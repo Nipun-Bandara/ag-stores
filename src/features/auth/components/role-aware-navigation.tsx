@@ -31,6 +31,7 @@ export function RoleAwareNavigation({ user }: { user: AuthenticatedUser }) {
           {user.role === UserRole.CUSTOMER ? (
             <>
               <Link href="/account/profile">Profile</Link>
+              <Link href="/account/addresses">Addresses</Link>
               <Link href="/account/security">Security</Link>
               <Link href="/orders">Orders</Link>
               <Link href="/cart">Cart</Link>

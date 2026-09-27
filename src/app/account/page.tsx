@@ -39,6 +39,9 @@ export default async function AccountPage() {
           <Link className="underline" href="/account/profile">
             Edit profile
           </Link>
+          <Link className="underline" href="/account/addresses">
+            Delivery addresses
+          </Link>
           <Link className="underline" href="/account/security">
             Change password
           </Link>

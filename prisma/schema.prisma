@@ -112,6 +112,7 @@ model CustomerAddress {
   address    String
   latitude   Decimal @db.Decimal(9, 6)
   longitude  Decimal @db.Decimal(10, 6)
+  isDefault  Boolean @default(false)
 
   customer User    @relation("CustomerAddresses", fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   orders   Order[] @relation("OrderDeliveryAddress")
@@ -119,6 +120,7 @@ model CustomerAddress {
   @@unique([id, customerId])
   @@unique([customerId, label])
   @@index([customerId])
+  @@index([customerId, isDefault])
   @@map("customer_addresses")
 }
 

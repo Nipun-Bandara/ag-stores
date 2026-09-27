@@ -40,6 +40,10 @@ quantities, non-negative stock, and `total = subtotal + deliveryFee`.
 Coordinates use fixed-point decimals and database checks constrain latitude to
 `[-90, 90]` and longitude to `[-180, 180]`.
 
+Customer address coordinates accept at most six decimal places and are returned
+through APIs as decimal strings. This preserves their exact PostgreSQL value
+instead of converting them to an imprecise JSON floating-point representation.
+
 ## Deletion policy
 
 Foreign keys use `RESTRICT` for users, shops, addresses, categories, products,
@@ -55,6 +59,13 @@ per customer, category and product English names are unique per shop, an order
 can appear in only one delivery batch, and batch sequence numbers cannot repeat.
 Indexes cover common role/status, shop catalog, customer order history, shop
 order queue, order status, and delivery-person batch queries.
+
+A partial unique PostgreSQL index permits at most one default address per
+customer. The first address becomes the default automatically. Default changes,
+and promotion of a replacement when the default is deleted, run in database
+transactions. Address reads and writes always include `customerId` in their
+predicate so another customer's address is indistinguishable from a missing
+record.
 
 ## Seed data
 
