@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("customer manages profile and changes password", async ({ page }) => {
   const email = `profile-e2e-${Date.now()}@example.test`;
+  const phone = `+94${Date.now().toString().slice(-9)}`;
   const currentPassword = "CurrentPassword123!";
   const newPassword = "NewSecurePassword123!";
 
@@ -16,7 +17,7 @@ test("customer manages profile and changes password", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible();
   await expect(page.getByLabel("Email")).toHaveValue(email);
   await page.getByLabel("Name").fill("Updated E2E Customer");
-  await page.getByLabel("Phone").fill("+94771234568");
+  await page.getByLabel("Phone").fill(phone);
   await page.getByLabel("Preferred language").selectOption("SI");
   await page.getByRole("button", { name: "Save profile" }).click();
   await expect(page.getByRole("status")).toHaveText("Profile updated.");

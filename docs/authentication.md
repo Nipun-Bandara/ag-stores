@@ -32,10 +32,29 @@ timing disclosure.
 
 ## Authorization boundaries
 
-Proxy performs only a fast missing-cookie redirect for `/account`. The account
-page and session endpoint independently resolve the token against PostgreSQL,
-check expiry, and require an active user. Proxy is therefore not treated as the
-security boundary.
+Proxy performs only a fast missing-cookie redirect for the protected customer,
+shop-owner, delivery, and administration route prefixes. Every protected page
+independently resolves the token against PostgreSQL, checks expiry and active
+user status, and requires its exact role. Proxy is therefore an early user
+experience optimization, not the security boundary.
+
+Page authorization is centralized in `requireAuth`, `requireRole`, and
+`requireAnyRole`. API authorization uses the corresponding request helpers and
+returns `401` for a missing or invalid session and `403` for an authenticated
+user with the wrong role. Pages redirect anonymous users to login with a safe
+relative return path and redirect authenticated users with the wrong role to
+the forbidden page.
+
+The role dashboards and their matching APIs use the same policy:
+
+- `CUSTOMER`: `/account/*`, `/orders/*`, `/cart/*`, and `/checkout/*`
+- `SHOP_OWNER`: `/owner/*`
+- `DELIVERY_PERSON`: `/delivery/*`
+- `ADMIN`: `/admin/*`
+
+Roles are intentionally exact. In particular, administrators do not implicitly
+inherit another role's permissions; broader access must be granted explicitly
+with `requireAnyRole` at the relevant boundary.
 
 Authenticated-user queries use an explicit safe-field projection. They never
 return `passwordHash` or the stored session digest.

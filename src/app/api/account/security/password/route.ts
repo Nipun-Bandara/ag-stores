@@ -1,18 +1,16 @@
 import type { NextRequest } from "next/server";
 
+import { UserRole } from "@/generated/prisma/client";
 import { errorResponse, successResponse } from "@/lib/api-response";
-import { authenticateRequest } from "@/lib/auth/request";
+import { requireApiRole } from "@/lib/auth/request";
 import { profileErrorResponse } from "@/lib/profile-http";
 import { changeCustomerPassword } from "@/services/customer-profile.service";
 import { passwordChangeSchema } from "@/validations/profile";
 
 export async function POST(request: NextRequest) {
-  const authentication = await authenticateRequest(request);
-  if (!authentication) {
-    return errorResponse(
-      { code: "UNAUTHENTICATED", message: "Authentication is required." },
-      401,
-    );
+  const authorization = await requireApiRole(request, UserRole.CUSTOMER);
+  if (!authorization.authorized) {
+    return authorization.response;
   }
 
   const body: unknown = await request.json().catch(() => null);
@@ -30,8 +28,8 @@ export async function POST(request: NextRequest) {
 
   try {
     await changeCustomerPassword(
-      authentication.user,
-      authentication.token,
+      authorization.user,
+      authorization.token,
       parsed.data,
     );
     return successResponse({ passwordChanged: true });

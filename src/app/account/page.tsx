@@ -4,16 +4,16 @@ import Link from "next/link";
 
 import { UserRole } from "@/generated/prisma/client";
 import { AccountHeader } from "@/features/account/components/account-header";
-import { requireAuthenticatedUser } from "@/lib/auth/server";
+import { requireRole } from "@/lib/auth/server";
 
 export const metadata: Metadata = { title: "Account | AG Stores" };
 
 export default async function AccountPage() {
-  const user = await requireAuthenticatedUser();
+  const user = await requireRole(UserRole.CUSTOMER, "/account");
 
   return (
     <main className="mx-auto min-h-screen max-w-3xl px-6 py-16">
-      <AccountHeader />
+      <AccountHeader user={user} />
       <section className="mt-8 rounded-xl border p-6">
         <h1 className="text-2xl font-semibold tracking-tight">Your account</h1>
         <h2 className="text-xl font-semibold">{user.name}</h2>
@@ -35,16 +35,14 @@ export default async function AccountPage() {
             </dd>
           </div>
         </dl>
-        {user.role === UserRole.CUSTOMER ? (
-          <div className="mt-6 flex gap-3 border-t pt-5 text-sm font-medium">
-            <Link className="underline" href="/account/profile">
-              Edit profile
-            </Link>
-            <Link className="underline" href="/account/security">
-              Change password
-            </Link>
-          </div>
-        ) : null}
+        <div className="mt-6 flex gap-3 border-t pt-5 text-sm font-medium">
+          <Link className="underline" href="/account/profile">
+            Edit profile
+          </Link>
+          <Link className="underline" href="/account/security">
+            Change password
+          </Link>
+        </div>
       </section>
     </main>
   );

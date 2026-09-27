@@ -16,7 +16,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     requestedPath.startsWith("/") &&
     !requestedPath.startsWith("//")
       ? requestedPath
-      : "/account";
+      : undefined;
 
   return (
     <AuthShell
@@ -26,7 +26,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       alternateHref="/register"
       alternateLabel="Create an account"
     >
-      <LoginForm returnTo={returnTo} />
+      <LoginForm {...(returnTo ? { returnTo } : {})} />
     </AuthShell>
   );
 }

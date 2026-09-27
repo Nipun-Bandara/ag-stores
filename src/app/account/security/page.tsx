@@ -8,11 +8,11 @@ import { requireRole } from "@/lib/auth/server";
 export const metadata: Metadata = { title: "Security | AG Stores" };
 
 export default async function SecurityPage() {
-  await requireRole([UserRole.CUSTOMER]);
+  const user = await requireRole(UserRole.CUSTOMER, "/account/security");
 
   return (
     <main className="mx-auto min-h-screen max-w-3xl px-6 py-16">
-      <AccountHeader />
+      <AccountHeader user={user} />
       <section className="pt-8">
         <h1 className="text-3xl font-semibold tracking-tight">Security</h1>
         <p className="mt-2 text-sm text-neutral-600">
