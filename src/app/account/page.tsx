@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 
-import { LogoutButton } from "@/features/auth/components/logout-button";
+import Link from "next/link";
+
+import { UserRole } from "@/generated/prisma/client";
+import { AccountHeader } from "@/features/account/components/account-header";
 import { requireAuthenticatedUser } from "@/lib/auth/server";
 
 export const metadata: Metadata = { title: "Account | AG Stores" };
@@ -10,18 +13,9 @@ export default async function AccountPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-3xl px-6 py-16">
-      <div className="flex items-start justify-between gap-6 border-b pb-6">
-        <div>
-          <p className="text-sm font-medium tracking-widest text-neutral-500 uppercase">
-            AG Stores
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-            Your account
-          </h1>
-        </div>
-        <LogoutButton />
-      </div>
+      <AccountHeader />
       <section className="mt-8 rounded-xl border p-6">
+        <h1 className="text-2xl font-semibold tracking-tight">Your account</h1>
         <h2 className="text-xl font-semibold">{user.name}</h2>
         <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
           <div>
@@ -41,6 +35,16 @@ export default async function AccountPage() {
             </dd>
           </div>
         </dl>
+        {user.role === UserRole.CUSTOMER ? (
+          <div className="mt-6 flex gap-3 border-t pt-5 text-sm font-medium">
+            <Link className="underline" href="/account/profile">
+              Edit profile
+            </Link>
+            <Link className="underline" href="/account/security">
+              Change password
+            </Link>
+          </div>
+        ) : null}
       </section>
     </main>
   );

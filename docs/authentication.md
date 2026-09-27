@@ -40,6 +40,17 @@ security boundary.
 Authenticated-user queries use an explicit safe-field projection. They never
 return `passwordHash` or the stored session digest.
 
+## Customer profile management
+
+Profile APIs derive the customer ID only from the verified session and reject
+unknown request fields. Customers may update their name, phone number, and
+preferred language; email and role are immutable through these endpoints.
+
+Password changes require the existing password, apply the same strength rules
+as registration, and revoke every other session in the same database
+transaction. The current session remains active so a successful password change
+does not interrupt the initiating customer.
+
 ## Operational follow-ups
 
 Production deployments should add distributed rate limiting for registration
