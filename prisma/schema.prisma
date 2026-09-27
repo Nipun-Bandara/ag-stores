@@ -50,8 +50,8 @@ enum DeliveryBatchStatus {
 model User {
   id                String            @id @default(uuid()) @db.Uuid
   name              String            @db.VarChar(150)
-  email             String            @unique @db.VarChar(320)
-  phone             String            @unique @db.VarChar(32)
+  email             String?           @unique @db.VarChar(320)
+  phone             String?           @unique @db.VarChar(32)
   passwordHash      String            @db.VarChar(255)
   role              UserRole
   preferredLanguage PreferredLanguage @default(EN)
@@ -63,9 +63,24 @@ model User {
   addresses       CustomerAddress[] @relation("CustomerAddresses")
   customerOrders  Order[]           @relation("CustomerOrders")
   deliveryBatches DeliveryBatch[]   @relation("DeliveryPersonBatches")
+  sessions        AuthSession[]
 
   @@index([role, status])
   @@map("users")
+}
+
+model AuthSession {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  tokenHash String   @unique @db.Char(64)
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("auth_sessions")
 }
 
 model Shop {
