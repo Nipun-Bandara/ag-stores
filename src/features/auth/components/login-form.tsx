@@ -7,12 +7,23 @@ import { useRouter } from "next/navigation";
 import { FormError, FormField } from "./form-fields";
 
 interface LoginFormProps {
-  returnTo: string;
+  returnTo?: string;
 }
 
 interface ErrorPayload {
   error?: { message?: string };
 }
+
+interface SuccessPayload {
+  data?: { role?: "CUSTOMER" | "SHOP_OWNER" | "DELIVERY_PERSON" | "ADMIN" };
+}
+
+const dashboardByRole = {
+  CUSTOMER: "/account",
+  SHOP_OWNER: "/owner",
+  DELIVERY_PERSON: "/delivery",
+  ADMIN: "/admin",
+} as const;
 
 export function LoginForm({ returnTo }: LoginFormProps) {
   const router = useRouter();
@@ -45,7 +56,11 @@ export function LoginForm({ returnTo }: LoginFormProps) {
       return;
     }
 
-    router.replace(returnTo);
+    const payload = (await response.json().catch(() => ({}))) as SuccessPayload;
+    const dashboard = payload.data?.role
+      ? dashboardByRole[payload.data.role]
+      : "/account";
+    router.replace(returnTo ?? dashboard);
     router.refresh();
   }
 

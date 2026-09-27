@@ -12,22 +12,31 @@ export const getAuthenticatedUser = cache(async () => {
   return getUserForSessionToken(token);
 });
 
-export async function requireAuthenticatedUser() {
+export async function requireAuth(returnTo = "/account") {
   const user = await getAuthenticatedUser();
 
   if (!user) {
-    redirect("/login?returnTo=%2Faccount");
+    redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
   }
 
   return user;
 }
 
-export async function requireRole(allowedRoles: readonly UserRole[]) {
-  const user = await requireAuthenticatedUser();
+export async function requireAnyRole(
+  allowedRoles: readonly UserRole[],
+  returnTo = "/account",
+) {
+  const user = await requireAuth(returnTo);
 
   if (!allowedRoles.includes(user.role)) {
-    redirect("/account");
+    redirect("/forbidden");
   }
 
   return user;
 }
+
+export function requireRole(role: UserRole, returnTo = "/account") {
+  return requireAnyRole([role], returnTo);
+}
+
+export const requireAuthenticatedUser = requireAuth;

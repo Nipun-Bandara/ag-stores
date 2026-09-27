@@ -9,12 +9,12 @@ import { getCustomerProfile } from "@/services/customer-profile.service";
 export const metadata: Metadata = { title: "Profile | AG Stores" };
 
 export default async function ProfilePage() {
-  const sessionUser = await requireRole([UserRole.CUSTOMER]);
+  const sessionUser = await requireRole(UserRole.CUSTOMER, "/account/profile");
   const user = await getCustomerProfile(sessionUser);
 
   return (
     <main className="mx-auto min-h-screen max-w-3xl px-6 py-16">
-      <AccountHeader />
+      <AccountHeader user={user} />
       <section className="pt-8">
         <h1 className="text-3xl font-semibold tracking-tight">Profile</h1>
         <p className="mt-2 text-sm text-neutral-600">
