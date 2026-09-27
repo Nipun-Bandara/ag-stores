@@ -1,5 +1,3 @@
-import { scryptSync } from "node:crypto";
-
 import { PrismaPg } from "@prisma/adapter-pg";
 
 import {
@@ -9,6 +7,7 @@ import {
   UserRole,
   UserStatus,
 } from "../src/generated/prisma/client";
+import { hashPassword } from "../src/lib/auth/password";
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -20,17 +19,12 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: databaseUrl }),
 });
 
-function hashSeedPassword(password: string): string {
-  const salt = "ag-stores-development-seed";
-  return `scrypt:${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
-}
-
-const passwordHash = hashSeedPassword("ChangeMe123!");
-
 async function main() {
+  const passwordHash = await hashPassword("ChangeMe123!");
+
   await prisma.user.upsert({
     where: { email: "admin@agstores.local" },
-    update: {},
+    update: { passwordHash },
     create: {
       name: "AG Stores Administrator",
       email: "admin@agstores.local",
@@ -44,7 +38,7 @@ async function main() {
 
   const owner = await prisma.user.upsert({
     where: { email: "owner@agstores.local" },
-    update: {},
+    update: { passwordHash },
     create: {
       name: "Sample Shop Owner",
       email: "owner@agstores.local",
@@ -58,7 +52,7 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: "delivery@agstores.local" },
-    update: {},
+    update: { passwordHash },
     create: {
       name: "Sample Delivery Person",
       email: "delivery@agstores.local",
@@ -72,7 +66,7 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: "customer@agstores.local" },
-    update: {},
+    update: { passwordHash },
     create: {
       name: "Sample Customer",
       email: "customer@agstores.local",

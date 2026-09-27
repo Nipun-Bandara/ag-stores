@@ -2,6 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 
 const port = 3100;
 const chromiumExecutable = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+const e2eDatabaseUrl =
+  process.env.TEST_DATABASE_URL ??
+  "postgresql://postgres:postgres@127.0.0.1:5432/ag_stores_test";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -31,8 +34,7 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {
-      DATABASE_URL:
-        "postgresql://postgres:postgres@127.0.0.1:5432/ag_stores_test",
+      DATABASE_URL: e2eDatabaseUrl,
       NEXT_PUBLIC_APP_URL: `http://127.0.0.1:${port}`,
     },
   },

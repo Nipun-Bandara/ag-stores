@@ -74,6 +74,9 @@ TEST_DATABASE_URL="<test-database-url>" npm run test:db
 See [Database design decisions](docs/database-design.md) for ownership,
 precision, indexing, and deletion-policy details.
 
+See [Authentication design](docs/authentication.md) for password, session,
+cookie, and authorization decisions.
+
 Playwright requires a Chromium installation. Install it once with:
 
 ```bash

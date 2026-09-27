@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function HomePage() {
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
@@ -12,6 +14,20 @@ export default function HomePage() {
           Retail ordering and delivery management, built for customers, shops,
           delivery teams, and administrators.
         </p>
+        <div className="mt-7 flex justify-center gap-3">
+          <Link
+            className="rounded-md bg-neutral-950 px-4 py-2 text-sm text-white"
+            href="/login"
+          >
+            Sign in
+          </Link>
+          <Link
+            className="rounded-md border px-4 py-2 text-sm"
+            href="/register"
+          >
+            Register
+          </Link>
+        </div>
       </section>
     </main>
   );
