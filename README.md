@@ -1,0 +1,90 @@
+# AG Stores
+
+Production-oriented foundation for a retail ordering and delivery management
+application. It uses Next.js App Router, strict TypeScript, Tailwind CSS,
+shadcn/ui conventions, PostgreSQL, Prisma, and Zod.
+
+No business features are implemented yet.
+
+## Requirements
+
+- Node.js 24 or newer
+- npm 11 or newer
+- PostgreSQL 16 or newer
+
+## Local development
+
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Create the local environment file:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+3. Update `DATABASE_URL` in `.env`, then generate the Prisma client:
+
+   ```bash
+   npm run db:generate
+   ```
+
+4. Apply migrations once models have been added:
+
+   ```bash
+   npm run db:migrate
+   ```
+
+5. Start the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+Open <http://localhost:3000>. The health endpoint is available at
+<http://localhost:3000/api/health>.
+
+## Quality checks
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run test:e2e
+npm run format:check
+```
+
+Playwright requires a Chromium installation. Install it once with:
+
+```bash
+npx playwright install chromium
+```
+
+CI images that provide their own Chrome can set
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to that executable instead.
+
+## Architecture
+
+```text
+src/
+├── app/           # App Router pages and thin HTTP route adapters
+├── components/    # Shared presentation components and shadcn/ui primitives
+├── db/            # Lazy database client construction
+├── features/      # Feature-owned UI and application modules
+├── generated/     # Generated Prisma client (not committed)
+├── lib/           # Framework-neutral shared utilities
+├── repositories/  # Persistence abstractions and Prisma queries
+├── services/      # Application orchestration and business logic
+├── types/         # Shared TypeScript types
+└── validations/   # Zod schemas and input/environment validation
+```
+
+React components focus on presentation. Route handlers translate HTTP requests
+and responses. Business rules belong in feature/application services, and only
+repositories should contain persistence queries.
+
+The initial locale is English (`en`). User-facing copy should be kept ready for
+extraction into translation dictionaries when Sinhala (`si`) is introduced.

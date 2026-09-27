@@ -1,0 +1,13 @@
+node_modules/
+.next/
+out/
+coverage/
+playwright-report/
+test-results/
+.env
+.env.local
+.env.*.local
+src/generated/prisma/
+*.tsbuildinfo
+.DS_Store
+
