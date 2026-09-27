@@ -38,7 +38,13 @@ No business features are implemented yet.
    npm run db:migrate
    ```
 
-5. Start the development server:
+5. Load the idempotent development seed:
+
+   ```bash
+   npm run db:seed
+   ```
+
+6. Start the development server:
 
    ```bash
    npm run dev
@@ -56,6 +62,17 @@ npm test
 npm run test:e2e
 npm run format:check
 ```
+
+Database integration tests require a migrated and seeded PostgreSQL database:
+
+```bash
+DATABASE_URL="<test-database-url>" npm run db:migrate:deploy
+DATABASE_URL="<test-database-url>" npm run db:seed
+TEST_DATABASE_URL="<test-database-url>" npm run test:db
+```
+
+See [Database design decisions](docs/database-design.md) for ownership,
+precision, indexing, and deletion-policy details.
 
 Playwright requires a Chromium installation. Install it once with:
 
