@@ -30,6 +30,14 @@ The service layer must still verify other cross-record rules, such as ensuring
 every order item belongs to the order's shop and validating allowed status
 transitions.
 
+Category management scopes every mutation through the category's shop owner.
+Shop assignment is set when a category is created and is not editable. Owners
+and administrators may read management category data, but only the owning
+`SHOP_OWNER` may create, rename, activate, or deactivate categories. Public
+storefront category reads always add `status = ACTIVE`, so inactive categories
+remain available for management and existing product relations without being
+shown to customers.
+
 ## Money and quantities
 
 Money uses `DECIMAL(12,2)`, which is exact and can represent values up to
