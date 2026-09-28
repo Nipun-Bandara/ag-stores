@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { CartNavigationLink } from "@/features/cart/components/cart-navigation-link";
 import { storefrontCopy, type StorefrontLocale } from "@/lib/i18n/storefront";
 
 export function StorefrontHeader({
@@ -26,6 +27,7 @@ export function StorefrontHeader({
           <Link href="/#categories">{copy.categories}</Link>
         </nav>
         <div className="order-2 flex items-center gap-2 text-sm sm:order-3">
+          <CartNavigationLink />
           <Link
             href="/login"
             className="rounded-full px-3 py-2 font-semibold text-emerald-950"

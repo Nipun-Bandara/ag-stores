@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AddToCartButton } from "@/features/cart/components/add-to-cart-button";
 import {
   localizeBilingual,
   storefrontCopy,
@@ -50,7 +51,7 @@ export function ProductCard({
           </p>
         </div>
         <p className="mt-2 text-xs text-neutral-500">{product.shopName}</p>
-        <div className="mt-5 flex items-center justify-between gap-3">
+        <div className="mt-5 flex items-start justify-between gap-3">
           <span
             className={
               product.isOutOfStock
@@ -60,12 +61,23 @@ export function ProductCard({
           >
             {product.isOutOfStock ? copy.outOfStock : copy.inStock}
           </span>
-          <Link
-            href={`/products/${product.id}`}
-            className="text-sm font-bold text-emerald-800 underline decoration-emerald-300 underline-offset-4"
-          >
-            {copy.viewProduct}
-          </Link>
+          <div className="flex flex-col items-end gap-2">
+            <Link
+              href={`/products/${product.id}`}
+              className="text-sm font-bold text-emerald-800 underline decoration-emerald-300 underline-offset-4"
+            >
+              {copy.viewProduct}
+            </Link>
+            <AddToCartButton
+              product={{
+                id: product.id,
+                name,
+                price: product.price,
+                stockQuantity: product.stockQuantity,
+                imageUrl: product.imageUrl,
+              }}
+            />
+          </div>
         </div>
       </div>
     </article>

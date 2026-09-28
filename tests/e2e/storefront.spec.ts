@@ -25,7 +25,9 @@ test("storefront renders active categories and available products", async ({
   const zeroStockProduct = page
     .getByTestId("product-card")
     .filter({ hasText: "Coconut Milk" });
-  await expect(zeroStockProduct.getByText("Out of Stock")).toBeVisible();
+  await expect(
+    zeroStockProduct.locator("span").filter({ hasText: "Out of Stock" }),
+  ).toBeVisible();
 });
 
 test("customer searches products and filters by category", async ({ page }) => {
