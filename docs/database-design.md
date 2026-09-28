@@ -38,12 +38,22 @@ storefront category reads always add `status = ACTIVE`, so inactive categories
 remain available for management and existing product relations without being
 shown to customers.
 
+Product management follows the same ownership boundary. A product's shop is
+immutable after creation, and category changes must reference a category from
+that same owned shop. Owner searches are scoped through the shop relation before
+applying category or case-insensitive bilingual text filters.
+
 ## Money and quantities
 
 Money uses `DECIMAL(12,2)`, which is exact and can represent values up to
 9,999,999,999.99 without floating-point rounding. The initial migration adds
 database checks for non-negative prices and totals, positive order-item
 quantities, non-negative stock, and `total = subtotal + deliveryFee`.
+
+Product price requests are validated and normalized as decimal strings with at
+most two fractional digits. They are passed to Prisma without conversion through
+JavaScript floating-point arithmetic and returned to clients as fixed two-place
+strings.
 
 Coordinates use fixed-point decimals and database checks constrain latitude to
 `[-90, 90]` and longitude to `[-180, 180]`.
