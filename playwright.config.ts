@@ -32,10 +32,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
+    command: `npm run build && npm run start -- --hostname 127.0.0.1 --port ${port}`,
     url: `http://127.0.0.1:${port}/api/health`,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 180_000,
     env: {
       DATABASE_URL: e2eDatabaseUrl,
       NEXT_PUBLIC_APP_URL: `http://127.0.0.1:${port}`,

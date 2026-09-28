@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AddToCartButton } from "@/features/cart/components/add-to-cart-button";
 import { StorefrontFooter } from "@/features/storefront/components/storefront-footer";
 import { StorefrontHeader } from "@/features/storefront/components/storefront-header";
 import { getStorefrontProduct } from "@/services/storefront.service";
@@ -79,8 +80,17 @@ export default async function ProductDetailPage({
                 {product.descriptionSi}
               </p>
             ) : null}
-            <div className="mt-10 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-              Cart functionality will be added in a later feature.
+            <div className="mt-10">
+              <AddToCartButton
+                product={{
+                  id: product.id,
+                  name: product.nameEn,
+                  price: product.price,
+                  stockQuantity: product.stockQuantity,
+                  imageUrl: product.imageUrl,
+                }}
+                className="rounded-xl bg-emerald-950 px-6 py-3 font-bold text-white disabled:cursor-not-allowed disabled:bg-neutral-300"
+              />
             </div>
           </section>
         </div>
