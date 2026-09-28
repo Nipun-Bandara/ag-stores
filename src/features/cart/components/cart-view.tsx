@@ -128,6 +128,12 @@ export function CartView() {
         >
           {pending ? "Checking…" : "Validate cart for checkout"}
         </button>
+        <Link
+          href="/checkout"
+          className="mt-3 flex w-full justify-center rounded-xl border border-emerald-950 px-5 py-3 text-sm font-bold text-emerald-950"
+        >
+          Proceed to checkout
+        </Link>
         {validationMessage ? (
           <p
             className="mt-3 text-sm font-semibold text-emerald-800"

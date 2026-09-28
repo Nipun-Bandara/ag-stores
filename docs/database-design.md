@@ -10,7 +10,8 @@ precision. `createdAt` values are database-generated; Prisma maintains
 ## Roles and lifecycle state
 
 User roles, user status, catalog status, order status, preferred language, and
-delivery batch status are PostgreSQL enums. This prevents values outside the
+delivery batch status are PostgreSQL enums. Orders also persist a payment-method
+enum; the MVP permits only `CASH_ON_DELIVERY`. This prevents values outside the
 known workflows from being written even when a caller bypasses application
 validation.
 
@@ -60,6 +61,12 @@ Product price requests are validated and normalized as decimal strings with at
 most two fractional digits. They are passed to Prisma without conversion through
 JavaScript floating-point arithmetic and returned to clients as fixed two-place
 strings.
+
+Checkout accepts only product identifiers and quantities from the browser. It
+locks stock through conditional decrements, reloads current database prices,
+and creates the order and its items in one transaction. The MVP uses a fixed
+LKR 250.00 delivery fee and one shop per order. Stored order-item prices are the
+authoritative price snapshot used for the order total.
 
 Coordinates use fixed-point decimals and database checks constrain latitude to
 `[-90, 90]` and longitude to `[-180, 180]`.
