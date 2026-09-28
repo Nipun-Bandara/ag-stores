@@ -120,6 +120,19 @@ async function main() {
     },
   });
 
+  const seasonal = await prisma.category.upsert({
+    where: {
+      shopId_nameEn: { shopId: shop.id, nameEn: "Seasonal" },
+    },
+    update: { nameSi: "සෘතුමය", status: CatalogStatus.INACTIVE },
+    create: {
+      shopId: shop.id,
+      nameEn: "Seasonal",
+      nameSi: "සෘතුමය",
+      status: CatalogStatus.INACTIVE,
+    },
+  });
+
   await prisma.product.upsert({
     where: { shopId_nameEn: { shopId: shop.id, nameEn: "Red Rice 1kg" } },
     update: {},
@@ -146,6 +159,51 @@ async function main() {
       descriptionEn: "100g pure Ceylon black tea",
       price: "680.00",
       stockQuantity: 30,
+      isAvailable: true,
+    },
+  });
+
+  await prisma.product.upsert({
+    where: { shopId_nameEn: { shopId: shop.id, nameEn: "Coconut Milk" } },
+    update: { stockQuantity: 0, isAvailable: true },
+    create: {
+      shopId: shop.id,
+      categoryId: groceries.id,
+      nameEn: "Coconut Milk",
+      nameSi: "පොල් කිරි",
+      descriptionEn: "Rich coconut milk for everyday cooking",
+      price: "390.00",
+      stockQuantity: 0,
+      isAvailable: true,
+    },
+  });
+
+  await prisma.product.upsert({
+    where: {
+      shopId_nameEn: { shopId: shop.id, nameEn: "Unavailable Sample" },
+    },
+    update: { isAvailable: false },
+    create: {
+      shopId: shop.id,
+      categoryId: groceries.id,
+      nameEn: "Unavailable Sample",
+      price: "100.00",
+      stockQuantity: 10,
+      isAvailable: false,
+    },
+  });
+
+  await prisma.product.upsert({
+    where: {
+      shopId_nameEn: { shopId: shop.id, nameEn: "Inactive Category Sample" },
+    },
+    update: { categoryId: seasonal.id, isAvailable: true },
+    create: {
+      shopId: shop.id,
+      categoryId: seasonal.id,
+      nameEn: "Inactive Category Sample",
+      price: "150.00",
+      stockQuantity: 5,
       isAvailable: true,
     },
   });

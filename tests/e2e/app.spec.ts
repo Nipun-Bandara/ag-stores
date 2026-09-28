@@ -4,7 +4,10 @@ test("application loads successfully", async ({ page }) => {
   await page.goto("/");
 
   await expect(
-    page.getByRole("heading", { level: 1, name: "AG Stores" }),
+    page.getByRole("heading", {
+      level: 1,
+      name: "Your neighborhood market, delivered.",
+    }),
   ).toBeVisible();
 });
 
