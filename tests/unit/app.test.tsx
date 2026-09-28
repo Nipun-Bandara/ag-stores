@@ -1,14 +1,22 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import HomePage from "@/app/page";
 
+vi.mock("@/services/storefront.service", () => ({
+  listStorefrontCategories: vi.fn().mockResolvedValue([]),
+  listStorefrontProducts: vi.fn().mockResolvedValue([]),
+}));
+
 describe("application", () => {
-  it("renders the application landing page", () => {
-    render(<HomePage />);
+  it("renders the application landing page", async () => {
+    render(await HomePage());
 
     expect(
-      screen.getByRole("heading", { level: 1, name: "AG Stores" }),
+      screen.getByRole("heading", {
+        level: 1,
+        name: "Your neighborhood market, delivered.",
+      }),
     ).toBeInTheDocument();
   });
 });

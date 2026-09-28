@@ -43,6 +43,12 @@ immutable after creation, and category changes must reference a category from
 that same owned shop. Owner searches are scoped through the shop relation before
 applying category or case-insensitive bilingual text filters.
 
+Customer storefront reads use a separate read-only repository. Every storefront
+product query requires `Product.isAvailable = true` and an `ACTIVE` category,
+including direct product-detail lookups. Products with zero stock remain visible
+so customers can see the catalog state, but are explicitly marked out of stock.
+Storefront category counts include only available products.
+
 ## Money and quantities
 
 Money uses `DECIMAL(12,2)`, which is exact and can represent values up to
