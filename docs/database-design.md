@@ -83,6 +83,17 @@ silent cascades that could remove order or delivery history. Future deletion
 workflows should generally deactivate or anonymize records and should remove
 non-critical dependent records explicitly inside a transaction.
 
+## Order lifecycle
+
+Order status changes use a centralized, explicit transition graph. Shop owners
+control acceptance and preparation, customers may cancel only a newly placed
+order, delivery personnel control assigned-delivery states, and administrators
+may perform any otherwise valid transition. Terminal states cannot transition.
+
+Every successful transition updates the order and inserts an
+`OrderStatusHistory` record in the same serializable transaction, including the
+previous status, new status, actor, timestamp, and optional note.
+
 ## Uniqueness and indexing
 
 Emails and user phone numbers are globally unique. Address labels are unique

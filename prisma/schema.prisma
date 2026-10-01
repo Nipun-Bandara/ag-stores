@@ -31,13 +31,16 @@ enum CatalogStatus {
 }
 
 enum OrderStatus {
-  PENDING
+  PLACED
   CONFIRMED
   PREPARING
-  READY_FOR_PICKUP
+  READY_FOR_DELIVERY
+  ASSIGNED
   OUT_FOR_DELIVERY
   DELIVERED
   CANCELLED
+  REJECTED
+  FAILED_DELIVERY
 }
 
 enum PaymentMethod {
@@ -68,6 +71,7 @@ model User {
   customerOrders  Order[]           @relation("CustomerOrders")
   deliveryBatches DeliveryBatch[]   @relation("DeliveryPersonBatches")
   sessions        AuthSession[]
+  orderStatusChanges OrderStatusHistory[] @relation("OrderStatusChangedBy")
 
   @@index([role, status])
   @@map("users")
@@ -188,12 +192,30 @@ model Order {
   deliveryAddress CustomerAddress     @relation("OrderDeliveryAddress", fields: [deliveryAddressId, customerId], references: [id, customerId], onDelete: Restrict, onUpdate: Cascade)
   items           OrderItem[]
   batchAssignment DeliveryBatchOrder?
+  statusHistory   OrderStatusHistory[]
 
   @@index([customerId, createdAt])
   @@index([shopId, status, createdAt])
   @@index([deliveryAddressId, customerId])
   @@index([status, createdAt])
   @@map("orders")
+}
+
+model OrderStatusHistory {
+  id          String      @id @default(uuid()) @db.Uuid
+  orderId     String      @db.Uuid
+  fromStatus  OrderStatus
+  toStatus    OrderStatus
+  changedById String      @db.Uuid
+  note        String?
+  createdAt   DateTime    @default(now()) @db.Timestamptz(3)
+
+  order     Order @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  changedBy User  @relation("OrderStatusChangedBy", fields: [changedById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([orderId, createdAt])
+  @@index([changedById, createdAt])
+  @@map("order_status_history")
 }
 
 model OrderItem {
