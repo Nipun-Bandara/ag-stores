@@ -135,7 +135,12 @@ async function main() {
 
   await prisma.product.upsert({
     where: { shopId_nameEn: { shopId: shop.id, nameEn: "Red Rice 1kg" } },
-    update: {},
+    update: {
+      categoryId: groceries.id,
+      price: "420.00",
+      stockQuantity: 50,
+      isAvailable: true,
+    },
     create: {
       shopId: shop.id,
       categoryId: groceries.id,
@@ -150,7 +155,12 @@ async function main() {
 
   await prisma.product.upsert({
     where: { shopId_nameEn: { shopId: shop.id, nameEn: "Ceylon Tea" } },
-    update: {},
+    update: {
+      categoryId: beverages.id,
+      price: "680.00",
+      stockQuantity: 30,
+      isAvailable: true,
+    },
     create: {
       shopId: shop.id,
       categoryId: beverages.id,
