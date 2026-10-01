@@ -178,7 +178,7 @@ model Order {
   customerId        String      @db.Uuid
   shopId            String      @db.Uuid
   deliveryAddressId String      @db.Uuid
-  status            OrderStatus   @default(PENDING)
+  status            OrderStatus   @default(PLACED)
   paymentMethod     PaymentMethod @default(CASH_ON_DELIVERY)
   subtotal          Decimal     @db.Decimal(12, 2)
   deliveryFee       Decimal     @db.Decimal(12, 2)
