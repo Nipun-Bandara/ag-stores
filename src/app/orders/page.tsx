@@ -1,13 +1,5 @@
-import { UserRole } from "@/generated/prisma/client";
-import { RoleDashboardPlaceholder } from "@/features/dashboard/components/role-dashboard-placeholder";
+import { redirect } from "next/navigation";
 
 export default function OrdersPage() {
-  return (
-    <RoleDashboardPlaceholder
-      role={UserRole.CUSTOMER}
-      path="/orders"
-      title="Your orders"
-      description="Customer order history and tracking will be added here."
-    />
-  );
+  redirect("/account/orders");
 }

@@ -29,6 +29,7 @@ export default async function OwnerDashboardPage() {
           </div>
           <Link
             href="/owner/orders"
+            aria-label="Open order workflow"
             className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white"
           >
             Manage orders
@@ -58,22 +59,26 @@ export default async function OwnerDashboardPage() {
                 "Orders",
                 "/owner/orders",
                 "Review and prepare customer orders.",
+                "Open workflow",
               ],
               [
                 "Products",
                 "/owner/products",
                 "Manage products, prices, and stock.",
+                "Open inventory",
               ],
               [
                 "Categories",
                 "/owner/categories",
                 "Organize the storefront catalog.",
+                "Open catalog setup",
               ],
             ] as const
-          ).map(([title, href, description]) => (
+          ).map(([title, href, description, accessibleLabel]) => (
             <Link
               key={href}
               href={href}
+              aria-label={accessibleLabel}
               className="rounded-xl border bg-white p-5"
             >
               <h2 className="font-semibold">{title}</h2>

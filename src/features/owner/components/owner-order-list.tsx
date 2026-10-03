@@ -3,7 +3,7 @@ import Link from "next/link";
 import {
   orderStatusLabels,
   formatOrderDate,
-} from "@/features/owner/order-presentation";
+} from "@/features/orders/order-presentation";
 import type { getOwnerOrderDashboard } from "@/services/owner-order.service";
 
 type Dashboard = Awaited<ReturnType<typeof getOwnerOrderDashboard>>;
