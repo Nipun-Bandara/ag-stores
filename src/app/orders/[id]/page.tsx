@@ -119,8 +119,14 @@ export default async function OrderConfirmationPage({
             </div>
           ) : null}
           <Link
-            href="/products"
+            href={`/account/orders/${order.id}`}
             className="mt-8 inline-flex rounded-xl bg-emerald-950 px-5 py-3 text-sm font-bold text-white"
+          >
+            Track this order
+          </Link>
+          <Link
+            href="/products"
+            className="mt-8 ml-3 inline-flex rounded-xl border border-emerald-950/20 px-5 py-3 text-sm font-bold text-emerald-950"
           >
             Continue shopping
           </Link>

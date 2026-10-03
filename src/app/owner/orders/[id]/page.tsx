@@ -9,7 +9,7 @@ import { OwnerOrderStatusActions } from "@/features/owner/components/owner-order
 import {
   formatOrderDate,
   orderStatusLabels,
-} from "@/features/owner/order-presentation";
+} from "@/features/orders/order-presentation";
 import { requireRole } from "@/lib/auth/server";
 import { getOwnerOrder, OwnerOrderError } from "@/services/owner-order.service";
 import { orderIdSchema } from "@/validations/order";

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { OrderStatus, UserRole } from "@/generated/prisma/client";
 import { RoleAwareNavigation } from "@/features/auth/components/role-aware-navigation";
 import { OwnerOrderList } from "@/features/owner/components/owner-order-list";
-import { orderStatusLabels } from "@/features/owner/order-presentation";
+import { orderStatusLabels } from "@/features/orders/order-presentation";
 import { requireRole } from "@/lib/auth/server";
 import { getOwnerOrderDashboard } from "@/services/owner-order.service";
 import { ownerOrderFiltersSchema } from "@/validations/owner-order";
