@@ -101,6 +101,8 @@ function toDetailView(order: OwnerOrderDetailRecord) {
     deliveryFee: order.deliveryFee.toFixed(2),
     total: order.total.toFixed(2),
     customerNote: order.customerNote,
+    cancelledAt: order.cancelledAt?.toISOString() ?? null,
+    cancellationReason: order.cancellationReason,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
     customer: order.customer,

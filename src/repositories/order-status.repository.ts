@@ -12,6 +12,7 @@ const orderTransitionSelect = {
   batchAssignment: {
     select: { batch: { select: { deliveryPersonId: true } } },
   },
+  items: { select: { productId: true, quantity: true } },
 } satisfies Prisma.OrderSelect;
 
 export type OrderTransitionRecord = Prisma.OrderGetPayload<{
@@ -24,6 +25,7 @@ export interface OrderStatusTransaction {
     orderId: string,
     expectedStatus: OrderStatus,
     nextStatus: OrderStatus,
+    cancellation: { at: Date; reason: string | null } | null,
   ): Promise<boolean>;
   createHistory(input: {
     orderId: string;
@@ -31,7 +33,11 @@ export interface OrderStatusTransaction {
     toStatus: OrderStatus;
     changedById: string;
     note: string | null;
+    createdAt: Date;
   }): Promise<{ id: string; createdAt: Date }>;
+  restoreStock(
+    items: ReadonlyArray<{ productId: string; quantity: number }>,
+  ): Promise<void>;
 }
 
 export interface OrderStatusRepository {
@@ -54,10 +60,19 @@ class PrismaOrderStatusTransaction implements OrderStatusTransaction {
     orderId: string,
     expectedStatus: OrderStatus,
     nextStatus: OrderStatus,
+    cancellation: { at: Date; reason: string | null } | null,
   ): Promise<boolean> {
     const result = await this.prisma.order.updateMany({
       where: { id: orderId, status: expectedStatus },
-      data: { status: nextStatus },
+      data: {
+        status: nextStatus,
+        ...(cancellation
+          ? {
+              cancelledAt: cancellation.at,
+              cancellationReason: cancellation.reason,
+            }
+          : {}),
+      },
     });
     return result.count === 1;
   }
@@ -68,11 +83,23 @@ class PrismaOrderStatusTransaction implements OrderStatusTransaction {
     toStatus: OrderStatus;
     changedById: string;
     note: string | null;
+    createdAt: Date;
   }): Promise<{ id: string; createdAt: Date }> {
     return this.prisma.orderStatusHistory.create({
       data: input,
       select: { id: true, createdAt: true },
     });
+  }
+
+  async restoreStock(
+    items: ReadonlyArray<{ productId: string; quantity: number }>,
+  ): Promise<void> {
+    for (const item of items) {
+      await this.prisma.product.update({
+        where: { id: item.productId },
+        data: { stockQuantity: { increment: item.quantity } },
+      });
+    }
   }
 }
 

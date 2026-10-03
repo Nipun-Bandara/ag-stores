@@ -42,6 +42,7 @@ function order(
     status,
     shop: { ownerId },
     batchAssignment: null,
+    items: [{ productId: "4d4fd014-a88d-4b6a-a557-f5822d64299d", quantity: 2 }],
   };
 }
 
@@ -53,6 +54,7 @@ function repositoryFor(record: OrderTransitionRecord | null) {
       id: "8a430274-76f0-4999-9f86-a32b37823daf",
       createdAt: new Date("2026-09-28T12:00:00.000Z"),
     })),
+    restoreStock: vi.fn(async () => undefined),
   } satisfies OrderStatusTransaction;
   const repository: OrderStatusRepository = {
     transaction: async (operation) => operation(transaction),
@@ -75,19 +77,65 @@ describe("order status service", () => {
       orderId,
       OrderStatus.PLACED,
       OrderStatus.CONFIRMED,
+      null,
     );
-    expect(transaction.createHistory).toHaveBeenCalledWith({
-      orderId,
-      fromStatus: OrderStatus.PLACED,
-      toStatus: OrderStatus.CONFIRMED,
-      changedById: ownerId,
-      note: "Accepted by shop",
-    });
+    expect(transaction.createHistory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId,
+        fromStatus: OrderStatus.PLACED,
+        toStatus: OrderStatus.CONFIRMED,
+        changedById: ownerId,
+        note: "Accepted by shop",
+        createdAt: expect.any(Date),
+      }),
+    );
+    expect(transaction.restoreStock).not.toHaveBeenCalled();
     expect(result).toEqual({
       orderId,
       previousStatus: OrderStatus.PLACED,
       status: OrderStatus.CONFIRMED,
       changedAt: "2026-09-28T12:00:00.000Z",
+    });
+  });
+
+  it("stores customer cancellation details and restores reserved stock", async () => {
+    const record = order();
+    const { repository, transaction } = repositoryFor(record);
+
+    const result = await transitionOrderStatus(
+      user(customerId, UserRole.CUSTOMER),
+      orderId,
+      OrderStatus.CANCELLED,
+      "  Ordered by mistake  ",
+      repository,
+    );
+
+    expect(transaction.updateStatus).toHaveBeenCalledWith(
+      orderId,
+      OrderStatus.PLACED,
+      OrderStatus.CANCELLED,
+      {
+        at: expect.any(Date),
+        reason: "Ordered by mistake",
+      },
+    );
+    expect(transaction.restoreStock).toHaveBeenCalledWith(record.items);
+    expect(transaction.createHistory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId,
+        fromStatus: OrderStatus.PLACED,
+        toStatus: OrderStatus.CANCELLED,
+        changedById: customerId,
+        note: "Ordered by mistake",
+        createdAt: expect.any(Date),
+      }),
+    );
+    expect(result).toMatchObject({
+      orderId,
+      previousStatus: OrderStatus.PLACED,
+      status: OrderStatus.CANCELLED,
+      cancelledAt: expect.any(String),
+      cancellationReason: "Ordered by mistake",
     });
   });
 

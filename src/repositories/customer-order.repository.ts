@@ -22,6 +22,8 @@ const customerOrderDetailSelect = {
   deliveryFee: true,
   total: true,
   customerNote: true,
+  cancelledAt: true,
+  cancellationReason: true,
   createdAt: true,
   updatedAt: true,
   shop: { select: { name: true } },
