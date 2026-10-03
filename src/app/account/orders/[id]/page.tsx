@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 
 import { UserRole } from "@/generated/prisma/client";
 import { AccountHeader } from "@/features/account/components/account-header";
+import { CustomerOrderCancellation } from "@/features/account/components/customer-order-cancellation";
 import {
   formatOrderDate,
   orderStatusLabels,
@@ -69,6 +70,24 @@ export default async function CustomerOrderDetailsPage({
             {orderStatusLabels[order.status]}
           </span>
         </div>
+
+        {order.cancelledAt ? (
+          <section className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-5">
+            <h2 className="font-semibold text-amber-950">Order cancelled</h2>
+            <p className="mt-2 text-sm text-amber-900">
+              Cancelled {formatOrderDate(order.cancelledAt)}
+            </p>
+            {order.cancellationReason ? (
+              <p className="mt-2 text-sm text-amber-900">
+                Reason: {order.cancellationReason}
+              </p>
+            ) : null}
+          </section>
+        ) : null}
+
+        {order.status === "PLACED" ? (
+          <CustomerOrderCancellation orderId={order.id} />
+        ) : null}
 
         <section className="mt-6 rounded-xl border bg-white p-5">
           <h2 className="text-lg font-semibold">Tracking timeline</h2>

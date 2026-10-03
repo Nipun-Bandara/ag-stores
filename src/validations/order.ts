@@ -9,6 +9,16 @@ export const orderStatusTransitionSchema = z.object({
   note: z.string().trim().max(500).optional(),
 });
 
+export const customerOrderCancellationSchema = z
+  .object({
+    reason: z.string().trim().max(500).optional(),
+  })
+  .strict();
+
 export type OrderStatusTransitionInput = z.infer<
   typeof orderStatusTransitionSchema
+>;
+
+export type CustomerOrderCancellationInput = z.infer<
+  typeof customerOrderCancellationSchema
 >;

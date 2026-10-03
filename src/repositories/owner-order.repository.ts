@@ -30,6 +30,8 @@ const ownerOrderDetailSelect = {
   deliveryFee: true,
   total: true,
   customerNote: true,
+  cancelledAt: true,
+  cancellationReason: true,
   createdAt: true,
   updatedAt: true,
   customer: { select: { name: true, email: true, phone: true } },

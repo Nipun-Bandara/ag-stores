@@ -59,6 +59,22 @@ export default async function OwnerOrderDetailPage({
           </span>
         </div>
 
+        {order.cancelledAt ? (
+          <section className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-5">
+            <h2 className="font-semibold text-amber-950">
+              Customer cancellation
+            </h2>
+            <p className="mt-2 text-sm text-amber-900">
+              Cancelled {formatOrderDate(order.cancelledAt)}
+            </p>
+            {order.cancellationReason ? (
+              <p className="mt-2 text-sm text-amber-900">
+                Reason: {order.cancellationReason}
+              </p>
+            ) : null}
+          </section>
+        ) : null}
+
         <OwnerOrderStatusActions orderId={order.id} status={order.status} />
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">

@@ -86,10 +86,18 @@ export async function transitionOrderStatus(
       throw error;
     }
 
+    const transitionAt = new Date();
+    const normalizedNote = note?.trim() || null;
+    const cancellation =
+      nextStatus === OrderStatus.CANCELLED
+        ? { at: transitionAt, reason: normalizedNote }
+        : null;
+
     const updated = await transaction.updateStatus(
       order.id,
       order.status,
       nextStatus,
+      cancellation,
     );
     if (!updated) {
       throw new OrderStatusServiceError(
@@ -99,12 +107,20 @@ export async function transitionOrderStatus(
       );
     }
 
+    if (
+      nextStatus === OrderStatus.CANCELLED ||
+      nextStatus === OrderStatus.REJECTED
+    ) {
+      await transaction.restoreStock(order.items);
+    }
+
     const history = await transaction.createHistory({
       orderId: order.id,
       fromStatus: order.status,
       toStatus: nextStatus,
       changedById: actor.id,
-      note: note || null,
+      note: normalizedNote,
+      createdAt: transitionAt,
     });
 
     return {
@@ -112,6 +128,12 @@ export async function transitionOrderStatus(
       previousStatus: order.status,
       status: nextStatus,
       changedAt: history.createdAt.toISOString(),
+      ...(cancellation
+        ? {
+            cancelledAt: cancellation.at.toISOString(),
+            cancellationReason: cancellation.reason,
+          }
+        : {}),
     };
   });
 }
