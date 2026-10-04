@@ -50,7 +50,7 @@ async function main() {
     },
   });
 
-  await prisma.user.upsert({
+  const deliveryPerson = await prisma.user.upsert({
     where: { email: "delivery@agstores.local" },
     update: { passwordHash },
     create: {
@@ -92,6 +92,11 @@ async function main() {
       phone: "+94112345678",
       isOpen: true,
     },
+  });
+
+  await prisma.user.update({
+    where: { id: deliveryPerson.id },
+    data: { assignedShopId: shop.id },
   });
 
   const groceries = await prisma.category.upsert({

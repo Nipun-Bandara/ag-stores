@@ -56,6 +56,7 @@ enum DeliveryBatchStatus {
 
 model User {
   id                String            @id @default(uuid()) @db.Uuid
+  assignedShopId    String?           @db.Uuid
   name              String            @db.VarChar(150)
   email             String?           @unique @db.VarChar(320)
   phone             String?           @unique @db.VarChar(32)
@@ -67,6 +68,7 @@ model User {
   updatedAt         DateTime          @updatedAt @db.Timestamptz(3)
 
   ownedShops         Shop[]               @relation("ShopOwner")
+  assignedShop       Shop?                @relation("ShopDeliveryPersonnel", fields: [assignedShopId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   addresses          CustomerAddress[]    @relation("CustomerAddresses")
   customerOrders     Order[]              @relation("CustomerOrders")
   deliveryBatches    DeliveryBatch[]      @relation("DeliveryPersonBatches")
@@ -74,6 +76,7 @@ model User {
   orderStatusChanges OrderStatusHistory[] @relation("OrderStatusChangedBy")
 
   @@index([role, status])
+  @@index([assignedShopId, status])
   @@map("users")
 }
 
@@ -103,10 +106,11 @@ model Shop {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
-  owner      User       @relation("ShopOwner", fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  categories Category[]
-  products   Product[]
-  orders     Order[]
+  owner             User       @relation("ShopOwner", fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  deliveryPersonnel User[]     @relation("ShopDeliveryPersonnel")
+  categories        Category[]
+  products          Product[]
+  orders            Order[]
 
   @@index([ownerId])
   @@index([isOpen])
