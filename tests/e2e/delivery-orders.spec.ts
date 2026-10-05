@@ -234,12 +234,15 @@ test.describe.serial("available delivery orders", () => {
     await expect(
       page.getByTestId("available-order-card").filter({ hasText: nearOrderId }),
     ).toContainText("2 items");
+    await expect(
+      page.getByTestId("available-order-card").filter({ hasText: nearOrderId }),
+    ).toContainText("Approximate straight-line distance:");
   });
 
   test("filters by distance and sorts by creation time", async ({ page }) => {
     await signIn(page, "delivery@agstores.local", "/delivery");
     await page.goto("/delivery/orders");
-    await page.getByLabel("Maximum distance").fill("5");
+    await page.getByLabel("Maximum approximate distance").fill("5");
     await page.getByLabel("Sort by").selectOption("distance");
     await page.getByLabel("Direction").selectOption("asc");
     await page.getByRole("button", { name: "Apply" }).click();
