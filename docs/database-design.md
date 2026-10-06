@@ -109,6 +109,11 @@ second database-level guard against double assignment. A conflict rolls back
 the batch, every assignment, every status change, and its history records. Each
 batch stores its own creation timestamp for queue and audit views.
 
+Pending batches may be reordered only by their assigned delivery person. Batch
+start, individual delivery results, order status history, and automatic batch
+completion are transactional. Lifecycle writes lock the batch first, ensuring
+that simultaneous delivery updates cannot complete the batch prematurely.
+
 A partial unique PostgreSQL index permits at most one default address per
 customer. The first address becomes the default automatically. Default changes,
 and promotion of a replacement when the default is deleted, run in database
