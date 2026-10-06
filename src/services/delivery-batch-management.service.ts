@@ -55,12 +55,21 @@ function assertDeliveryPerson(user: AuthenticatedUser): void {
 }
 
 function toDetailView(batch: DeliveryBatchDetailRecord) {
+  const shop = batch.orders[0]?.order.shop;
   return {
     id: batch.id,
     status: batch.status,
     createdAt: batch.createdAt.toISOString(),
     startedAt: batch.startedAt?.toISOString() ?? null,
     completedAt: batch.completedAt?.toISOString() ?? null,
+    shopLocation: shop
+      ? {
+          id: shop.id,
+          name: shop.name,
+          latitude: shop.latitude.toString(),
+          longitude: shop.longitude.toString(),
+        }
+      : null,
     orders: batch.orders.map(({ sequence, order }) => ({
       id: order.id,
       sequence,

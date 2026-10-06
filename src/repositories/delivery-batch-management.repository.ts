@@ -34,6 +34,14 @@ const batchDetailSelect = {
           total: true,
           customerNote: true,
           createdAt: true,
+          shop: {
+            select: {
+              id: true,
+              name: true,
+              latitude: true,
+              longitude: true,
+            },
+          },
           deliveryAddress: {
             select: {
               label: true,

@@ -6,6 +6,8 @@ import { notFound } from "next/navigation";
 import { UserRole } from "@/generated/prisma/client";
 import { RoleAwareNavigation } from "@/features/auth/components/role-aware-navigation";
 import { DeliveryBatchActions } from "@/features/delivery/components/delivery-batch-actions";
+import { DeliveryMap } from "@/features/maps/components/delivery-map";
+import { buildDeliveryMapData } from "@/features/maps/delivery-map-data";
 import {
   formatOrderDate,
   orderStatusLabels,
@@ -36,6 +38,16 @@ export default async function DeliveryBatchDetailPage({
       notFound();
     }
     throw error;
+  });
+  const mapData = buildDeliveryMapData({
+    shop: batch.shopLocation,
+    stops: batch.orders.map((order) => ({
+      id: order.id,
+      sequence: order.sequence,
+      label: order.deliveryLocation.label,
+      latitude: order.deliveryLocation.latitude,
+      longitude: order.deliveryLocation.longitude,
+    })),
   });
 
   return (
@@ -68,6 +80,8 @@ export default async function DeliveryBatchDetailPage({
           status={batch.status}
           orders={batch.orders}
         />
+
+        <DeliveryMap data={mapData} />
 
         <section className="mt-6 rounded-xl border bg-white p-5">
           <h2 className="text-lg font-semibold">Delivery stops</h2>
