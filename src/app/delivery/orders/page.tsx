@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { UserRole } from "@/generated/prisma/client";
 import { RoleAwareNavigation } from "@/features/auth/components/role-aware-navigation";
-import { formatOrderDate } from "@/features/orders/order-presentation";
+import { AvailableOrderBatchSelector } from "@/features/delivery/components/available-order-batch-selector";
 import { requireRole } from "@/lib/auth/server";
 import { listAvailableDeliveryOrders } from "@/services/delivery-order.service";
 import { availableDeliveryOrderFiltersSchema } from "@/validations/delivery-order";
@@ -122,47 +122,7 @@ export default async function DeliveryOrdersPage({
           </p>
         ) : null}
 
-        {data.orders.length ? (
-          <div className="mt-6 grid gap-4">
-            {data.orders.map((order) => (
-              <article
-                key={order.id}
-                data-testid="available-order-card"
-                className="rounded-xl border bg-white p-5 shadow-sm"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-semibold tracking-wide text-neutral-500 uppercase">
-                      Order ID
-                    </p>
-                    <p className="mt-1 break-all font-mono text-sm font-semibold">
-                      {order.id}
-                    </p>
-                    <p className="mt-3 text-sm font-medium">
-                      {order.deliveryArea}
-                    </p>
-                    <p className="mt-1 text-sm text-neutral-600">
-                      {order.itemCount} item
-                      {order.itemCount === 1 ? "" : "s"}
-                    </p>
-                    <p className="mt-1 text-sm text-neutral-600">
-                      Approximate straight-line distance:{" "}
-                      {order.distanceKm.toFixed(1)} km from shop
-                    </p>
-                    <time className="mt-1 block text-xs text-neutral-500">
-                      {formatOrderDate(order.createdAt)}
-                    </time>
-                  </div>
-                  <p className="font-semibold">LKR {order.total}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-6 rounded-xl border border-dashed p-10 text-center text-sm text-neutral-600">
-            No ready orders match these filters.
-          </div>
-        )}
+        <AvailableOrderBatchSelector orders={data.orders} />
       </section>
     </main>
   );

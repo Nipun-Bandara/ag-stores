@@ -37,7 +37,7 @@ export const ORDER_TRANSITION_ROLES: Readonly<
     [OrderStatus.READY_FOR_DELIVERY]: [UserRole.SHOP_OWNER],
   },
   [OrderStatus.READY_FOR_DELIVERY]: {
-    [OrderStatus.ASSIGNED]: [UserRole.ADMIN],
+    [OrderStatus.ASSIGNED]: [UserRole.DELIVERY_PERSON],
   },
   [OrderStatus.ASSIGNED]: {
     [OrderStatus.OUT_FOR_DELIVERY]: [UserRole.DELIVERY_PERSON],

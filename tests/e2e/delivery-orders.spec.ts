@@ -45,9 +45,11 @@ test.describe.serial("available delivery orders", () => {
       where: { id: deliveryPerson.assignedShopId ?? "" },
     });
     const products = await prisma.product.findMany({
-      where: { shopId: shop.id },
-      orderBy: { id: "asc" },
-      take: 2,
+      where: {
+        shopId: shop.id,
+        nameEn: { in: ["Ceylon Tea", "Red Rice 1kg"] },
+      },
+      orderBy: { nameEn: "asc" },
     });
     if (products.length < 2)
       throw new Error("Two seeded products are required.");
@@ -188,10 +190,20 @@ test.describe.serial("available delivery orders", () => {
   });
 
   test.afterAll(async () => {
-    if (batchId) {
-      await prisma.deliveryBatchOrder.deleteMany({ where: { batchId } });
-      await prisma.deliveryBatch.deleteMany({ where: { id: batchId } });
-    }
+    await prisma.orderStatusHistory.deleteMany({
+      where: { orderId: { in: orderIds } },
+    });
+    const assignments = await prisma.deliveryBatchOrder.findMany({
+      where: { orderId: { in: orderIds } },
+      select: { batchId: true },
+    });
+    const batchIds = [
+      ...new Set([...assignments.map(({ batchId }) => batchId), batchId]),
+    ].filter(Boolean);
+    await prisma.deliveryBatchOrder.deleteMany({
+      where: { orderId: { in: orderIds } },
+    });
+    await prisma.deliveryBatch.deleteMany({ where: { id: { in: batchIds } } });
     await prisma.orderItem.deleteMany({ where: { orderId: { in: orderIds } } });
     await prisma.order.deleteMany({ where: { id: { in: orderIds } } });
     await prisma.customerAddress.deleteMany({
@@ -256,6 +268,31 @@ test.describe.serial("available delivery orders", () => {
     const cards = page.getByTestId("available-order-card");
     await expect(cards.first()).toContainText(nearOrderId);
     await expect(cards.nth(1)).toContainText(farOrderId);
+  });
+
+  test("selects multiple ready orders and creates a delivery batch", async ({
+    page,
+  }) => {
+    await signIn(page, "delivery@agstores.local", "/delivery");
+    await page.goto("/delivery/orders");
+    await page.getByLabel(`Select order ${nearOrderId}`).check();
+    await page.getByLabel(`Select order ${farOrderId}`).check();
+    await expect(page.getByText("2 orders selected")).toBeVisible();
+    await page.getByRole("button", { name: "Create delivery batch" }).click();
+
+    await expect(page.getByText(nearOrderId)).toHaveCount(0);
+    await expect(page.getByText(farOrderId)).toHaveCount(0);
+    const assignments = await prisma.deliveryBatchOrder.findMany({
+      where: { orderId: { in: [nearOrderId, farOrderId] } },
+      orderBy: { sequence: "asc" },
+      include: { order: true },
+    });
+    expect(assignments).toHaveLength(2);
+    expect(new Set(assignments.map(({ batchId }) => batchId)).size).toBe(1);
+    expect(assignments.map(({ sequence }) => sequence)).toEqual([1, 2]);
+    expect(
+      assignments.every(({ order }) => order.status === OrderStatus.ASSIGNED),
+    ).toBe(true);
   });
 
   test("customer cannot access the delivery orders page or API", async ({
