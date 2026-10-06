@@ -157,6 +157,13 @@ test.describe.serial("active delivery batch", () => {
     await expect(
       page.getByText("55 Batch Route, Colombo").first(),
     ).toBeVisible();
+    const markers = page.getByRole("list", { name: "Map markers" });
+    await expect(
+      markers.getByText("Shop", { exact: false }).first(),
+    ).toBeVisible();
+    await expect(markers.getByText("Stop 1 · E2E delivery home")).toBeVisible();
+    await expect(markers.getByText("Stop 2 · E2E delivery home")).toBeVisible();
+    await expect(page.getByText(/Map preview is disabled/)).toBeVisible();
 
     await page.getByLabel(`Move order ${secondOrderId} up`).click();
     await page.getByRole("button", { name: "Save sequence" }).click();

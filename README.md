@@ -26,6 +26,11 @@ No business features are implemented yet.
    cp .env.example .env
    ```
 
+   Delivery maps are disabled by default. To enable Mapbox visualization, set
+   `NEXT_PUBLIC_MAP_PROVIDER="mapbox"` and provide a URL-restricted public
+   `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` beginning with `pk.`. Never use a Mapbox
+   secret token (`sk.*`) in a `NEXT_PUBLIC_*` variable.
+
 3. Update `DATABASE_URL` in `.env`, then generate the Prisma client:
 
    ```bash

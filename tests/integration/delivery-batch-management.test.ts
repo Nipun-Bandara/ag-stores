@@ -231,6 +231,12 @@ describeWithDatabase("delivery batch lifecycle API", () => {
     await expect(detailResponse.json()).resolves.toMatchObject({
       data: {
         id: batchId,
+        shopLocation: {
+          id: expect.any(String),
+          name: expect.stringContaining("Lifecycle Shop"),
+          latitude: "6.927079",
+          longitude: "79.861244",
+        },
         orders: [
           {
             id: firstOrderId,
