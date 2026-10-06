@@ -1,8 +1,12 @@
 import { errorResponse } from "@/lib/api-response";
+import { DeliveryBatchManagementError } from "@/services/delivery-batch-management.service";
 import { DeliveryBatchError } from "@/services/delivery-batch.service";
 
 export function deliveryBatchErrorResponse(error: unknown) {
-  if (error instanceof DeliveryBatchError) {
+  if (
+    error instanceof DeliveryBatchError ||
+    error instanceof DeliveryBatchManagementError
+  ) {
     return errorResponse(
       { code: error.code, message: error.message },
       error.status,
@@ -13,7 +17,7 @@ export function deliveryBatchErrorResponse(error: unknown) {
   return errorResponse(
     {
       code: "DELIVERY_BATCH_ERROR",
-      message: "Unable to create the delivery batch.",
+      message: "Unable to process the delivery batch.",
     },
     500,
   );

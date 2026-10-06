@@ -49,7 +49,10 @@ export function RoleAwareNavigation({ user }: { user: AuthenticatedUser }) {
             <Link href="/admin/delivery-personnel">Delivery personnel</Link>
           ) : null}
           {user.role === UserRole.DELIVERY_PERSON ? (
-            <Link href="/delivery/orders">Available orders</Link>
+            <>
+              <Link href="/delivery/orders">Available orders</Link>
+              <Link href="/delivery/batches">Active batches</Link>
+            </>
           ) : null}
         </nav>
       </div>
