@@ -54,7 +54,7 @@ export default async function DeliveryOrdersPage({
 
         <form className="mt-8 grid gap-4 rounded-xl border p-5 sm:grid-cols-2 lg:grid-cols-5">
           <label className="text-sm font-medium" htmlFor="maxDistanceKm">
-            Maximum distance
+            Maximum approximate distance
             <input
               id="maxDistanceKm"
               name="maxDistanceKm"
@@ -86,7 +86,7 @@ export default async function DeliveryOrdersPage({
               className="mt-1.5 h-10 w-full rounded-md border bg-white px-3 text-sm"
             >
               <option value="createdAt">Creation time</option>
-              <option value="distance">Distance</option>
+              <option value="distance">Approximate distance</option>
             </select>
           </label>
           <label className="text-sm font-medium" htmlFor="direction">
@@ -143,7 +143,10 @@ export default async function DeliveryOrdersPage({
                     </p>
                     <p className="mt-1 text-sm text-neutral-600">
                       {order.itemCount} item
-                      {order.itemCount === 1 ? "" : "s"} ·{" "}
+                      {order.itemCount === 1 ? "" : "s"}
+                    </p>
+                    <p className="mt-1 text-sm text-neutral-600">
+                      Approximate straight-line distance:{" "}
                       {order.distanceKm.toFixed(1)} km from shop
                     </p>
                     <time className="mt-1 block text-xs text-neutral-500">

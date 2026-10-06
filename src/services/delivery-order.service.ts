@@ -1,5 +1,6 @@
 import { getDb } from "@/db";
 import { UserRole } from "@/generated/prisma/client";
+import { calculateDistance } from "@/services/geographic-distance.service";
 import {
   PrismaDeliveryOrderRepository,
   type AvailableDeliveryOrderRecord,
@@ -26,26 +27,6 @@ function repository(): DeliveryOrderRepository {
   return new PrismaDeliveryOrderRepository(getDb());
 }
 
-export function calculateDistanceKm(
-  origin: { latitude: number; longitude: number },
-  destination: { latitude: number; longitude: number },
-): number {
-  const radiusKm = 6_371;
-  const radians = (degrees: number) => (degrees * Math.PI) / 180;
-  const latitudeDelta = radians(destination.latitude - origin.latitude);
-  const longitudeDelta = radians(destination.longitude - origin.longitude);
-  const startLatitude = radians(origin.latitude);
-  const endLatitude = radians(destination.latitude);
-  const haversine =
-    Math.sin(latitudeDelta / 2) ** 2 +
-    Math.cos(startLatitude) *
-      Math.cos(endLatitude) *
-      Math.sin(longitudeDelta / 2) ** 2;
-  return (
-    radiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine))
-  );
-}
-
 export function toGeneralDeliveryArea(address: string): string {
   const segments = address
     .split(",")
@@ -60,21 +41,17 @@ function toAvailableOrderView(
   order: AvailableDeliveryOrderRecord,
   shop: NonNullable<DeliveryShopAssignment>,
 ) {
-  const distanceKm = calculateDistanceKm(
-    {
-      latitude: Number(shop.latitude),
-      longitude: Number(shop.longitude),
-    },
-    {
-      latitude: Number(order.deliveryAddress.latitude),
-      longitude: Number(order.deliveryAddress.longitude),
-    },
+  const distanceKm = calculateDistance(
+    Number(shop.latitude),
+    Number(shop.longitude),
+    Number(order.deliveryAddress.latitude),
+    Number(order.deliveryAddress.longitude),
   );
 
   return {
     id: order.id,
     deliveryArea: toGeneralDeliveryArea(order.deliveryAddress.address),
-    distanceKm: Math.round(distanceKm * 10) / 10,
+    distanceKm,
     itemCount: order._count.items,
     total: order.total.toFixed(2),
     createdAt: order.createdAt.toISOString(),
@@ -122,7 +99,11 @@ export async function listAvailableDeliveryOrders(
           : new Date(left.createdAt).getTime() -
             new Date(right.createdAt).getTime();
       return filters.direction === "asc" ? comparison : -comparison;
-    });
+    })
+    .map((order) => ({
+      ...order,
+      distanceKm: Math.round(order.distanceKm * 10) / 10,
+    }));
 
   return {
     shop: { id: shop.id, name: shop.name },
