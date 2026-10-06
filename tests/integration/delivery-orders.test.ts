@@ -76,9 +76,11 @@ describeWithDatabase("available delivery orders API", () => {
       where: { id: deliveryPerson.assignedShopId ?? "" },
     });
     const products = await prisma.product.findMany({
-      where: { shopId: shop.id },
-      orderBy: { id: "asc" },
-      take: 2,
+      where: {
+        shopId: shop.id,
+        nameEn: { in: ["Ceylon Tea", "Red Rice 1kg"] },
+      },
+      orderBy: { nameEn: "asc" },
     });
     expect(products).toHaveLength(2);
 

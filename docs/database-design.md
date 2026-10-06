@@ -102,6 +102,13 @@ can appear in only one delivery batch, and batch sequence numbers cannot repeat.
 Indexes cover common role/status, shop catalog, customer order history, shop
 order queue, order status, and delivery-person batch queries.
 
+Delivery batch creation locks all selected order rows in stable ID order, then
+re-checks shop ownership, readiness, and existing assignments inside the same
+transaction. The unique constraint on `DeliveryBatchOrder.orderId` provides a
+second database-level guard against double assignment. A conflict rolls back
+the batch, every assignment, every status change, and its history records. Each
+batch stores its own creation timestamp for queue and audit views.
+
 A partial unique PostgreSQL index permits at most one default address per
 customer. The first address becomes the default automatically. Default changes,
 and promotion of a replacement when the default is deleted, run in database
