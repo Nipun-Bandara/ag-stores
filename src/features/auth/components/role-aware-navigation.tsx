@@ -68,9 +68,12 @@ export async function RoleAwareNavigation({
             </>
           ) : null}
           {user.role === UserRole.ADMIN ? (
-            <Link href={href("/admin/delivery-personnel")}>
-              {copy.deliveryPersonnel}
-            </Link>
+            <>
+              <Link href={href("/admin/users")}>Users</Link>
+              <Link href={href("/admin/delivery-personnel")}>
+                {copy.deliveryPersonnel}
+              </Link>
+            </>
           ) : null}
           {user.role === UserRole.DELIVERY_PERSON ? (
             <>
