@@ -35,6 +35,8 @@ export interface ProductView {
   descriptionSi: string | null;
   price: string;
   stockQuantity: number;
+  lowStockThreshold: number;
+  inventoryStatus: "OUT_OF_STOCK" | "LOW_STOCK" | "AVAILABLE";
   imageUrl: string | null;
   isAvailable: boolean;
   createdAt: string;
@@ -68,6 +70,12 @@ function assertOwner(user: AuthenticatedUser): void {
 }
 
 function toProductView(product: ProductRecord): ProductView {
+  const inventoryStatus =
+    product.stockQuantity === 0
+      ? "OUT_OF_STOCK"
+      : product.stockQuantity <= product.lowStockThreshold
+        ? "LOW_STOCK"
+        : "AVAILABLE";
   return {
     id: product.id,
     shopId: product.shopId,
@@ -81,6 +89,8 @@ function toProductView(product: ProductRecord): ProductView {
     descriptionSi: product.descriptionSi,
     price: product.price.toFixed(2),
     stockQuantity: product.stockQuantity,
+    lowStockThreshold: product.lowStockThreshold,
+    inventoryStatus,
     imageUrl: product.imageUrl,
     isAvailable: product.isAvailable,
     createdAt: product.createdAt.toISOString(),

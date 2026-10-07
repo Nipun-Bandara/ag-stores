@@ -246,6 +246,16 @@ describeWithDatabase("customer order cancellation API", () => {
       (await prisma.product.findUniqueOrThrow({ where: { id: productId } }))
         .stockQuantity,
     ).toBe(originalStock);
+
+    const secondResponse = await cancelOrderRoute(
+      request(placedOrderId, customerToken, "Second attempt"),
+      context(placedOrderId),
+    );
+    expect(secondResponse.status).toBe(409);
+    expect(
+      (await prisma.product.findUniqueOrThrow({ where: { id: productId } }))
+        .stockQuantity,
+    ).toBe(originalStock);
   });
 
   for (const [label, getOrderId] of [

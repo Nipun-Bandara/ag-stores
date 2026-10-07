@@ -76,6 +76,7 @@ describeWithDatabase("shop owner product API", () => {
     descriptionSi: null,
     price: "1234.50",
     stockQuantity: 12,
+    lowStockThreshold: 4,
     imageUrl: "https://example.test/product.jpg",
     isAvailable: true,
   });
@@ -169,9 +170,16 @@ describeWithDatabase("shop owner product API", () => {
         stockQuantity: -1,
       }),
     );
+    const negativeThreshold = await createProduct(
+      request("/api/owner/products", "POST", ownerToken, {
+        ...input(),
+        lowStockThreshold: -1,
+      }),
+    );
 
     expect(negativePrice.status).toBe(400);
     expect(negativeStock.status).toBe(400);
+    expect(negativeThreshold.status).toBe(400);
   });
 
   it("prevents customers from creating products", async () => {
@@ -192,6 +200,8 @@ describeWithDatabase("shop owner product API", () => {
     expect(body.data).toMatchObject({
       price: "1234.50",
       stockQuantity: 12,
+      lowStockThreshold: 4,
+      inventoryStatus: "AVAILABLE",
       isAvailable: true,
       categoryId,
     });
@@ -220,6 +230,7 @@ describeWithDatabase("shop owner product API", () => {
     const stockResponse = await updateStock(
       request(`/api/owner/products/${productId}/stock`, "PATCH", ownerToken, {
         stockQuantity: 25,
+        lowStockThreshold: 10,
       }),
       context(productId),
     );
@@ -230,7 +241,11 @@ describeWithDatabase("shop owner product API", () => {
       price: "999.99",
     });
     expect(stockResponse.status).toBe(200);
-    expect((await stockResponse.json()).data.stockQuantity).toBe(25);
+    expect((await stockResponse.json()).data).toMatchObject({
+      stockQuantity: 25,
+      lowStockThreshold: 10,
+      inventoryStatus: "AVAILABLE",
+    });
   });
 
   it("marks a product unavailable", async () => {
@@ -299,5 +314,47 @@ describeWithDatabase("shop owner product API", () => {
 
     expect(products.map(({ id }) => id)).toContain(productId);
     expect(products.map(({ id }) => id)).not.toContain(otherProductId);
+  });
+
+  it("filters out-of-stock, low-stock, and available products", async () => {
+    async function filter(inventoryStatus: string) {
+      const response = await listProducts(
+        request(
+          `/api/owner/products?categoryId=${categoryId}&inventoryStatus=${inventoryStatus}`,
+          "GET",
+          ownerToken,
+        ),
+      );
+      expect(response.status).toBe(200);
+      return (await response.json()).data as Array<{
+        id: string;
+        inventoryStatus: string;
+      }>;
+    }
+
+    expect((await filter("AVAILABLE")).map(({ id }) => id)).toContain(
+      productId,
+    );
+
+    await prisma.product.update({
+      where: { id: productId },
+      data: { stockQuantity: 5, lowStockThreshold: 10 },
+    });
+    const lowStock = await filter("LOW_STOCK");
+    expect(lowStock).toContainEqual(
+      expect.objectContaining({ id: productId, inventoryStatus: "LOW_STOCK" }),
+    );
+
+    await prisma.product.update({
+      where: { id: productId },
+      data: { stockQuantity: 0 },
+    });
+    const outOfStock = await filter("OUT_OF_STOCK");
+    expect(outOfStock).toContainEqual(
+      expect.objectContaining({
+        id: productId,
+        inventoryStatus: "OUT_OF_STOCK",
+      }),
+    );
   });
 });

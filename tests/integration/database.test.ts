@@ -209,6 +209,18 @@ describeWithDatabase("PostgreSQL schema", () => {
         },
       }),
     ).rejects.toBeDefined();
+    await expect(
+      prisma.product.update({
+        where: { id: constraintProductId },
+        data: { stockQuantity: -1 },
+      }),
+    ).rejects.toBeDefined();
+    await expect(
+      prisma.product.update({
+        where: { id: constraintProductId },
+        data: { lowStockThreshold: -1 },
+      }),
+    ).rejects.toBeDefined();
   });
 
   it("prevents critical historical records from being deleted", async () => {

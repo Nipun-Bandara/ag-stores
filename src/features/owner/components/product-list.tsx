@@ -24,25 +24,36 @@ function StockForm({
   onSaved: (product: ProductView) => void;
 }) {
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string>();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
+    setError(undefined);
     const form = new FormData(event.currentTarget);
     const response = await fetch(`/api/owner/products/${product.id}/stock`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ stockQuantity: form.get("stockQuantity") }),
+      body: JSON.stringify({
+        stockQuantity: form.get("stockQuantity"),
+        lowStockThreshold: form.get("lowStockThreshold"),
+      }),
     }).catch(() => null);
     if (response?.ok) {
       const payload = await readPayload(response);
       if (payload.data) onSaved(payload.data);
+    } else {
+      const payload = response ? await readPayload(response) : {};
+      setError(payload.error?.message ?? "Unable to update inventory.");
     }
     setPending(false);
   }
 
   return (
-    <form className="mt-4 flex items-end gap-2" onSubmit={handleSubmit}>
+    <form
+      className="mt-4 flex flex-wrap items-end gap-2"
+      onSubmit={handleSubmit}
+    >
       <label className="text-xs font-medium" htmlFor={`stock-${product.id}`}>
         Stock
         <input
@@ -56,6 +67,22 @@ function StockForm({
           required
         />
       </label>
+      <label
+        className="text-xs font-medium"
+        htmlFor={`threshold-${product.id}`}
+      >
+        Low-stock threshold
+        <input
+          id={`threshold-${product.id}`}
+          name="lowStockThreshold"
+          type="number"
+          min="0"
+          step="1"
+          defaultValue={product.lowStockThreshold}
+          className="mt-1 block h-9 w-36 rounded-md border px-3 text-sm"
+          required
+        />
+      </label>
       <button
         type="submit"
         disabled={pending}
@@ -63,6 +90,11 @@ function StockForm({
       >
         {pending ? "Updating…" : "Update stock"}
       </button>
+      {error ? (
+        <p role="alert" className="w-full text-xs font-medium text-red-700">
+          {error}
+        </p>
+      ) : null}
     </form>
   );
 }
@@ -125,9 +157,21 @@ export function ProductList({
                   {product.categoryName} · {product.shopName}
                 </p>
               </div>
-              <span className="rounded-full bg-neutral-100 px-2 py-1 text-xs font-medium">
-                {product.isAvailable ? "Available" : "Unavailable"}
-              </span>
+              <div className="flex flex-col items-end gap-2">
+                <span className="rounded-full bg-neutral-100 px-2 py-1 text-xs font-medium">
+                  {product.isAvailable ? "Available" : "Unavailable"}
+                </span>
+                <span
+                  data-testid="inventory-status"
+                  className="rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900"
+                >
+                  {product.inventoryStatus === "OUT_OF_STOCK"
+                    ? "Out of stock"
+                    : product.inventoryStatus === "LOW_STOCK"
+                      ? "Low stock"
+                      : "In stock"}
+                </span>
+              </div>
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <div>
@@ -137,6 +181,10 @@ export function ProductList({
               <div>
                 <dt className="text-neutral-500">Stock</dt>
                 <dd className="font-medium">{product.stockQuantity}</dd>
+              </div>
+              <div>
+                <dt className="text-neutral-500">Low-stock threshold</dt>
+                <dd className="font-medium">{product.lowStockThreshold}</dd>
               </div>
             </dl>
             <StockForm product={product} onSaved={saveProduct} />

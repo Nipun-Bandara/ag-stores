@@ -147,6 +147,7 @@ async function main() {
       categoryId: groceries.id,
       price: "420.00",
       stockQuantity: 50,
+      lowStockThreshold: 10,
       isAvailable: true,
     },
     create: {
@@ -157,6 +158,7 @@ async function main() {
       descriptionEn: "Locally sourced red rice",
       price: "420.00",
       stockQuantity: 50,
+      lowStockThreshold: 10,
       isAvailable: true,
     },
   });
@@ -167,6 +169,7 @@ async function main() {
       categoryId: beverages.id,
       price: "680.00",
       stockQuantity: 30,
+      lowStockThreshold: 5,
       isAvailable: true,
     },
     create: {
@@ -177,6 +180,7 @@ async function main() {
       descriptionEn: "100g pure Ceylon black tea",
       price: "680.00",
       stockQuantity: 30,
+      lowStockThreshold: 5,
       isAvailable: true,
     },
   });

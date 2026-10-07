@@ -3,6 +3,7 @@ import {
   type OrderStatus,
   type PrismaClient,
 } from "@/generated/prisma/client";
+import { withSerializableRetry } from "@/lib/db-transaction";
 
 const orderTransitionSelect = {
   id: true,
@@ -106,13 +107,15 @@ class PrismaOrderStatusTransaction implements OrderStatusTransaction {
 export class PrismaOrderStatusRepository implements OrderStatusRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
-  transaction<T>(
+  async transaction<T>(
     operation: (transaction: OrderStatusTransaction) => Promise<T>,
   ): Promise<T> {
-    return this.prisma.$transaction(
-      (prismaTransaction) =>
-        operation(new PrismaOrderStatusTransaction(prismaTransaction)),
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    return withSerializableRetry(() =>
+      this.prisma.$transaction(
+        (prismaTransaction) =>
+          operation(new PrismaOrderStatusTransaction(prismaTransaction)),
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      ),
     );
   }
 }

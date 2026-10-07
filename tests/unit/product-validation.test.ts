@@ -19,6 +19,7 @@ describe("product validation", () => {
     expect(productCreateSchema.parse(validProduct)).toMatchObject({
       price: "125.50",
       stockQuantity: 10,
+      lowStockThreshold: 5,
       isAvailable: true,
     });
     expect(
@@ -43,5 +44,11 @@ describe("product validation", () => {
     expect(productStockSchema.safeParse({ stockQuantity: 1.5 }).success).toBe(
       false,
     );
+    expect(
+      productStockSchema.safeParse({
+        stockQuantity: 1,
+        lowStockThreshold: -1,
+      }).success,
+    ).toBe(false);
   });
 });

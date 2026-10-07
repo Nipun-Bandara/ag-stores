@@ -3,6 +3,7 @@ import {
   Prisma,
   type PrismaClient,
 } from "@/generated/prisma/client";
+import { withSerializableRetry } from "@/lib/db-transaction";
 
 const reservedProductSelect = {
   id: true,
@@ -171,13 +172,15 @@ class PrismaCheckoutTransaction implements CheckoutTransaction {
 export class PrismaCheckoutRepository implements CheckoutRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
-  transaction<T>(
+  async transaction<T>(
     operation: (transaction: CheckoutTransaction) => Promise<T>,
   ): Promise<T> {
-    return this.prisma.$transaction(
-      (prismaTransaction) =>
-        operation(new PrismaCheckoutTransaction(prismaTransaction)),
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    return withSerializableRetry(() =>
+      this.prisma.$transaction(
+        (prismaTransaction) =>
+          operation(new PrismaCheckoutTransaction(prismaTransaction)),
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      ),
     );
   }
 

@@ -1,7 +1,9 @@
 import { Prisma, type PrismaClient } from "@/generated/prisma/client";
+import { withSerializableRetry } from "@/lib/db-transaction";
 import type {
   ProductAvailabilityInput,
   ProductCreateInput,
+  ProductInventoryStatus,
   ProductStockInput,
   ProductUpdateInput,
 } from "@/validations/product";
@@ -16,6 +18,7 @@ const productSelect = {
   descriptionSi: true,
   price: true,
   stockQuantity: true,
+  lowStockThreshold: true,
   imageUrl: true,
   isAvailable: true,
   createdAt: true,
@@ -43,6 +46,7 @@ export interface ProductCategoryRecord {
 export interface ProductFilters {
   categoryId?: string;
   search?: string;
+  inventoryStatus?: ProductInventoryStatus;
 }
 
 export interface ProductRepository {
@@ -111,9 +115,31 @@ export class PrismaProductRepository implements ProductRepository {
     filters: ProductFilters,
   ): Promise<ProductRecord[]> {
     const search = filters.search;
+    const inventoryFilter = (() => {
+      switch (filters.inventoryStatus) {
+        case "OUT_OF_STOCK":
+          return { stockQuantity: 0 };
+        case "LOW_STOCK":
+          return {
+            stockQuantity: {
+              gt: 0,
+              lte: this.prisma.product.fields.lowStockThreshold,
+            },
+          };
+        case "AVAILABLE":
+          return {
+            stockQuantity: {
+              gt: this.prisma.product.fields.lowStockThreshold,
+            },
+          };
+        default:
+          return {};
+      }
+    })();
     return this.prisma.product.findMany({
       where: {
         shop: { ownerId },
+        ...inventoryFilter,
         ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
         ...(search
           ? {
@@ -148,12 +174,41 @@ export class PrismaProductRepository implements ProductRepository {
     });
   }
 
-  update(productId: string, input: ProductUpdateInput): Promise<ProductRecord> {
-    return this.prisma.product.update({
-      where: { id: productId },
-      data: input,
-      select: productSelect,
-    });
+  async update(
+    productId: string,
+    input: ProductUpdateInput,
+  ): Promise<ProductRecord> {
+    return withSerializableRetry(() =>
+      this.prisma.$transaction(
+        async (transaction) => {
+          await transaction.$queryRaw`
+            SELECT "id"
+            FROM "products"
+            WHERE "id" = ${productId}::uuid
+            FOR UPDATE
+          `;
+          return transaction.product.update({
+            where: { id: productId },
+            data: {
+              categoryId: input.categoryId,
+              nameEn: input.nameEn,
+              nameSi: input.nameSi,
+              descriptionEn: input.descriptionEn,
+              descriptionSi: input.descriptionSi,
+              price: input.price,
+              stockQuantity: input.stockQuantity,
+              imageUrl: input.imageUrl,
+              isAvailable: input.isAvailable,
+              ...(input.lowStockThreshold === undefined
+                ? {}
+                : { lowStockThreshold: input.lowStockThreshold }),
+            },
+            select: productSelect,
+          });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      ),
+    );
   }
 
   setAvailabilityOwned(
@@ -180,17 +235,33 @@ export class PrismaProductRepository implements ProductRepository {
     productId: string,
     input: ProductStockInput,
   ): Promise<ProductRecord | null> {
-    return this.prisma.$transaction(async (transaction) => {
-      const product = await transaction.product.findFirst({
-        where: { id: productId, shop: { ownerId } },
-        select: { id: true },
-      });
-      if (!product) return null;
-      return transaction.product.update({
-        where: { id: productId },
-        data: input,
-        select: productSelect,
-      });
-    });
+    return withSerializableRetry(() =>
+      this.prisma.$transaction(
+        async (transaction) => {
+          const product = await transaction.product.findFirst({
+            where: { id: productId, shop: { ownerId } },
+            select: { id: true },
+          });
+          if (!product) return null;
+          await transaction.$queryRaw`
+            SELECT "id"
+            FROM "products"
+            WHERE "id" = ${product.id}::uuid
+            FOR UPDATE
+          `;
+          return transaction.product.update({
+            where: { id: productId },
+            data: {
+              stockQuantity: input.stockQuantity,
+              ...(input.lowStockThreshold === undefined
+                ? {}
+                : { lowStockThreshold: input.lowStockThreshold }),
+            },
+            select: productSelect,
+          });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      ),
+    );
   }
 }
