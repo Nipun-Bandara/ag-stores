@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { useCart } from "@/features/cart/cart-store";
-import { DELIVERY_FEE } from "@/lib/checkout";
 import {
   addMinorUnits,
   minorUnitsToMoney,
@@ -19,6 +18,10 @@ interface CheckoutPayload {
   error?: { message?: string };
 }
 
+interface QuotePayload {
+  data?: { subtotal?: string; deliveryFee?: string | null };
+}
+
 export function CheckoutView({
   addresses,
 }: {
@@ -28,10 +31,48 @@ export function CheckoutView({
   const { items, subtotal, clear } = useCart();
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
-  const total = minorUnitsToMoney(
-    addMinorUnits(moneyToMinorUnits(subtotal), moneyToMinorUnits(DELIVERY_FEE)),
-  );
+  const [serverQuote, setServerQuote] = useState<{
+    subtotal: string;
+    deliveryFee: string;
+  }>();
+  const quotedSubtotal = serverQuote?.subtotal ?? subtotal;
+  const deliveryFee = serverQuote?.deliveryFee;
+  const total = deliveryFee
+    ? minorUnitsToMoney(
+        addMinorUnits(
+          moneyToMinorUnits(quotedSubtotal),
+          moneyToMinorUnits(deliveryFee),
+        ),
+      )
+    : null;
   const defaultAddress = addresses.find((address) => address.isDefault);
+
+  useEffect(() => {
+    if (items.length === 0) return;
+    const controller = new AbortController();
+    void fetch("/api/checkout/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: items.map((item) => ({
+          productId: item.id,
+          quantity: item.quantity,
+        })),
+      }),
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const payload = (await response.json()) as QuotePayload;
+        if (response.ok && payload.data?.subtotal && payload.data.deliveryFee) {
+          setServerQuote({
+            subtotal: payload.data.subtotal,
+            deliveryFee: payload.data.deliveryFee,
+          });
+        }
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [items]);
 
   async function submitOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -189,15 +230,21 @@ export function CheckoutView({
         <dl className="mt-6 space-y-4 text-sm">
           <div className="flex justify-between">
             <dt>Subtotal</dt>
-            <dd data-testid="checkout-subtotal">LKR {subtotal}</dd>
+            <dd data-testid="checkout-subtotal">LKR {quotedSubtotal}</dd>
           </div>
           <div className="flex justify-between">
             <dt>Delivery fee</dt>
-            <dd data-testid="checkout-delivery-fee">LKR {DELIVERY_FEE}</dd>
+            <dd data-testid="checkout-delivery-fee">
+              {deliveryFee
+                ? `LKR ${deliveryFee}`
+                : "Calculated at confirmation"}
+            </dd>
           </div>
           <div className="flex justify-between border-t pt-4 text-base font-black text-emerald-950">
             <dt>Total</dt>
-            <dd data-testid="checkout-total">LKR {total}</dd>
+            <dd data-testid="checkout-total">
+              {total ? `LKR ${total}` : "Calculated at confirmation"}
+            </dd>
           </div>
         </dl>
         <div className="mt-6 rounded-xl bg-amber-50 p-4 text-sm">

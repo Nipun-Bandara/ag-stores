@@ -64,9 +64,13 @@ strings.
 
 Checkout accepts only product identifiers and quantities from the browser. It
 locks stock through conditional decrements, reloads current database prices,
-and creates the order and its items in one transaction. The MVP uses a fixed
-LKR 250.00 delivery fee and one shop per order. Stored order-item prices are the
-authoritative price snapshot used for the order total.
+and creates the order and its items in one transaction. Each shop stores its
+minimum order amount, delivery fee, and maximum delivery radius as constrained
+decimal values. Checkout reloads these settings inside the same transaction,
+requires the shop to be open, compares the exact subtotal against the minimum,
+and checks the saved address against the radius using approximate Haversine
+distance. One order may contain products from only one shop. Stored order-item
+prices are the authoritative price snapshot used for the order total.
 
 Coordinates use fixed-point decimals and database checks constrain latitude to
 `[-90, 90]` and longitude to `[-180, 180]`.

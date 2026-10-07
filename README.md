@@ -4,8 +4,6 @@ Production-oriented foundation for a retail ordering and delivery management
 application. It uses Next.js App Router, strict TypeScript, Tailwind CSS,
 shadcn/ui conventions, PostgreSQL, Prisma, and Zod.
 
-No business features are implemented yet.
-
 ## Requirements
 
 - Node.js 24 or newer
@@ -113,3 +111,14 @@ repositories should contain persistence queries.
 
 The initial locale is English (`en`). User-facing copy should be kept ready for
 extraction into translation dictionaries when Sinhala (`si`) is introduced.
+
+## Shop checkout settings
+
+Shop owners configure their location, open status, minimum order, delivery fee,
+and maximum delivery radius at `/owner/settings`. Monetary settings use
+PostgreSQL decimal columns and are never calculated with JavaScript floating
+point arithmetic. The final checkout transaction reloads these values, checks
+the saved customer address, and calculates approximate straight-line distance
+with the Haversine formula. The radius is therefore a geographic eligibility
+check, not a road-distance or travel-time estimate. Rejected checkout attempts
+roll back their temporary stock reservations.

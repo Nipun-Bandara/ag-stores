@@ -74,5 +74,11 @@ export async function validateCartForCheckout(
     };
   });
 
-  return { items, subtotal: minorUnitsToMoney(subtotal) };
+  const shopIds = new Set(products.map((product) => product.shop.id));
+  const deliveryFee =
+    shopIds.size === 1
+      ? (products[0]?.shop.deliveryFee.toFixed(2) ?? null)
+      : null;
+
+  return { items, subtotal: minorUnitsToMoney(subtotal), deliveryFee };
 }

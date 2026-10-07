@@ -19,6 +19,10 @@ function product(
     stockQuantity: 5,
     isAvailable: true,
     category: { status: CatalogStatus.ACTIVE },
+    shop: {
+      id: "a4f5bfe2-22ca-46a3-943b-3b01ed7cf1c2",
+      deliveryFee: new Prisma.Decimal("250.00"),
+    },
     ...overrides,
   };
 }

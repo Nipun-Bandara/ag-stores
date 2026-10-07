@@ -7,6 +7,7 @@ const cartProductSelect = {
   stockQuantity: true,
   isAvailable: true,
   category: { select: { status: true } },
+  shop: { select: { id: true, deliveryFee: true } },
 } satisfies Prisma.ProductSelect;
 
 export type CartProductRecord = Prisma.ProductGetPayload<{

@@ -95,16 +95,19 @@ model AuthSession {
 }
 
 model Shop {
-  id        String   @id @default(uuid()) @db.Uuid
-  ownerId   String   @db.Uuid
-  name      String   @db.VarChar(180)
-  address   String
-  latitude  Decimal  @db.Decimal(9, 6)
-  longitude Decimal  @db.Decimal(10, 6)
-  phone     String   @db.VarChar(32)
-  isOpen    Boolean  @default(false)
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  id                      String   @id @default(uuid()) @db.Uuid
+  ownerId                 String   @db.Uuid
+  name                    String   @db.VarChar(180)
+  address                 String
+  latitude                Decimal  @db.Decimal(9, 6)
+  longitude               Decimal  @db.Decimal(10, 6)
+  phone                   String   @db.VarChar(32)
+  isOpen                  Boolean  @default(false)
+  minimumOrderAmount      Decimal  @default(0) @db.Decimal(12, 2)
+  deliveryFee             Decimal  @default(250) @db.Decimal(12, 2)
+  maximumDeliveryRadiusKm Decimal  @default(50) @db.Decimal(8, 2)
+  createdAt               DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime @updatedAt @db.Timestamptz(3)
 
   owner             User       @relation("ShopOwner", fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   deliveryPersonnel User[]     @relation("ShopDeliveryPersonnel")
