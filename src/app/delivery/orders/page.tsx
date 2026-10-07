@@ -122,7 +122,10 @@ export default async function DeliveryOrdersPage({
           </p>
         ) : null}
 
-        <AvailableOrderBatchSelector orders={data.orders} />
+        <AvailableOrderBatchSelector
+          orders={data.orders}
+          suggestedGroups={data.suggestedGroups}
+        />
       </section>
     </main>
   );

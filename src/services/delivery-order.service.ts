@@ -1,6 +1,7 @@
 import { getDb } from "@/db";
 import { UserRole } from "@/generated/prisma/client";
 import { calculateDistance } from "@/services/geographic-distance.service";
+import { suggestDeliveryGroups } from "@/services/delivery-routing.service";
 import {
   PrismaDeliveryOrderRepository,
   type AvailableDeliveryOrderRecord,
@@ -55,6 +56,10 @@ function toAvailableOrderView(
     itemCount: order._count.items,
     total: order.total.toFixed(2),
     createdAt: order.createdAt.toISOString(),
+    destination: {
+      latitude: Number(order.deliveryAddress.latitude),
+      longitude: Number(order.deliveryAddress.longitude),
+    },
   };
 }
 
@@ -83,7 +88,7 @@ export async function listAvailableDeliveryOrders(
   const createdAfter = filters.createdAfter
     ? new Date(`${filters.createdAfter}T00:00:00.000+05:30`)
     : undefined;
-  const availableOrders = (
+  const preparedOrders = (
     await orders.findAvailableOrders(shop.id, createdAfter)
   )
     .map((order) => toAvailableOrderView(order, shop))
@@ -104,10 +109,30 @@ export async function listAvailableDeliveryOrders(
       ...order,
       distanceKm: Math.round(order.distanceKm * 10) / 10,
     }));
+  const suggestions = suggestDeliveryGroups({
+    shop: {
+      latitude: Number(shop.latitude),
+      longitude: Number(shop.longitude),
+    },
+    orders: preparedOrders.map((order) => ({
+      orderId: order.id,
+      latitude: order.destination.latitude,
+      longitude: order.destination.longitude,
+    })),
+  });
+  const availableOrders = preparedOrders.map((order) => ({
+    id: order.id,
+    deliveryArea: order.deliveryArea,
+    distanceKm: order.distanceKm,
+    itemCount: order.itemCount,
+    total: order.total,
+    createdAt: order.createdAt,
+  }));
 
   return {
     shop: { id: shop.id, name: shop.name },
     orders: availableOrders,
+    suggestedGroups: suggestions.groups,
   };
 }
 
