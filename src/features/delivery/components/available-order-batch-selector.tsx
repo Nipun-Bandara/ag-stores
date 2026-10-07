@@ -14,14 +14,17 @@ interface BatchApiPayload {
 
 export function AvailableOrderBatchSelector({
   orders,
+  suggestedGroups,
 }: {
   orders: AvailableDeliveryOrdersView["orders"];
+  suggestedGroups: AvailableDeliveryOrdersView["suggestedGroups"];
 }) {
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const orderById = new Map(orders.map((order) => [order.id, order]));
 
   function toggle(orderId: string, checked: boolean) {
     setSelectedIds((current) =>
@@ -29,6 +32,15 @@ export function AvailableOrderBatchSelector({
         ? [...current, orderId]
         : current.filter((candidate) => candidate !== orderId),
     );
+  }
+
+  function selectSuggestedGroup(orderIds: readonly string[]) {
+    setSelectedIds((current) => [
+      ...new Set([
+        ...current,
+        ...orderIds.filter((orderId) => orderById.has(orderId)),
+      ]),
+    ]);
   }
 
   async function createBatch() {
@@ -70,6 +82,55 @@ export function AvailableOrderBatchSelector({
 
   return (
     <section className="mt-6" aria-label="Available order selection">
+      {suggestedGroups.length > 0 ? (
+        <section
+          className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-4"
+          aria-labelledby="route-suggestions-title"
+        >
+          <h2
+            id="route-suggestions-title"
+            className="font-semibold text-blue-950"
+          >
+            Suggested nearby groups
+          </h2>
+          <p className="mt-1 text-sm text-blue-900">
+            Basic straight-line geographic grouping only—not optimized road
+            routes. You make the final selection.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {suggestedGroups.map((group, index) => (
+              <article
+                key={group.id}
+                data-testid="suggested-delivery-group"
+                className="rounded-lg border border-blue-200 bg-white p-4"
+              >
+                <p className="text-sm font-semibold">
+                  Suggested group {index + 1} · {group.direction}
+                </p>
+                <p className="mt-1 text-xs text-neutral-600">
+                  Stops are within approximately{" "}
+                  {group.maximumPairDistanceKm.toFixed(1)} km of each other.
+                </p>
+                <ul className="mt-3 space-y-1 text-sm">
+                  {group.orderIds.map((orderId) => (
+                    <li key={orderId} className="break-all">
+                      {orderById.get(orderId)?.deliveryArea ?? orderId}
+                      <span className="sr-only"> · Order {orderId}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => selectSuggestedGroup(group.orderIds)}
+                  className="mt-3 rounded-md border border-blue-800 px-3 py-2 text-sm font-medium text-blue-950"
+                >
+                  Select suggested group {index + 1}
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-neutral-50 p-4">
         <p className="text-sm font-medium">
           {selectedIds.length} order{selectedIds.length === 1 ? "" : "s"}{" "}

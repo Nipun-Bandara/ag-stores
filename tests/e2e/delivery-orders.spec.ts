@@ -23,6 +23,7 @@ let otherOwnerId = "";
 let otherShopId = "";
 let batchId = "";
 let nearOrderId = "";
+let nearbyOrderId = "";
 let farOrderId = "";
 let preparingOrderId = "";
 let assignedOrderId = "";
@@ -87,7 +88,7 @@ test.describe.serial("available delivery orders", () => {
     });
     otherShopId = otherShop.id;
 
-    const [nearAddress, farAddress] = await Promise.all([
+    const [nearAddress, nearbyAddress, farAddress] = await Promise.all([
       prisma.customerAddress.create({
         data: {
           customerId: customer.id,
@@ -100,6 +101,15 @@ test.describe.serial("available delivery orders", () => {
       prisma.customerAddress.create({
         data: {
           customerId: customer.id,
+          label: "Nearby Destination",
+          address: "72 Nearby Street, Narahenpita, Colombo",
+          latitude: "6.912000",
+          longitude: "79.857000",
+        },
+      }),
+      prisma.customerAddress.create({
+        data: {
+          customerId: customer.id,
           label: "Confidential Office",
           address: "88 Confidential Avenue, Kaduwela, Colombo",
           latitude: "7.000000",
@@ -107,7 +117,7 @@ test.describe.serial("available delivery orders", () => {
         },
       }),
     ]);
-    addressIds.push(nearAddress.id, farAddress.id);
+    addressIds.push(nearAddress.id, nearbyAddress.id, farAddress.id);
 
     const base = {
       customerId: customer.id,
@@ -116,7 +126,7 @@ test.describe.serial("available delivery orders", () => {
       total: "250.00",
       customerNote: "Private note should never render",
     };
-    const [near, far, preparing, assigned, other] = await Promise.all([
+    const [near, nearby, far, preparing, assigned, other] = await Promise.all([
       prisma.order.create({
         data: {
           ...base,
@@ -129,6 +139,22 @@ test.describe.serial("available delivery orders", () => {
               { productId: products[0]!.id, quantity: 1, unitPrice: "100" },
               { productId: products[1]!.id, quantity: 1, unitPrice: "100" },
             ],
+          },
+        },
+      }),
+      prisma.order.create({
+        data: {
+          ...base,
+          shopId: shop.id,
+          deliveryAddressId: nearbyAddress.id,
+          status: OrderStatus.READY_FOR_DELIVERY,
+          createdAt: new Date("2026-10-04T08:00:00.000Z"),
+          items: {
+            create: {
+              productId: products[0]!.id,
+              quantity: 1,
+              unitPrice: "100",
+            },
           },
         },
       }),
@@ -174,11 +200,19 @@ test.describe.serial("available delivery orders", () => {
       }),
     ]);
     nearOrderId = near.id;
+    nearbyOrderId = nearby.id;
     farOrderId = far.id;
     preparingOrderId = preparing.id;
     assignedOrderId = assigned.id;
     otherShopOrderId = other.id;
-    orderIds.push(near.id, far.id, preparing.id, assigned.id, other.id);
+    orderIds.push(
+      near.id,
+      nearby.id,
+      far.id,
+      preparing.id,
+      assigned.id,
+      other.id,
+    );
 
     const batch = await prisma.deliveryBatch.create({
       data: { deliveryPersonId: deliveryPerson.id },
@@ -228,12 +262,15 @@ test.describe.serial("available delivery orders", () => {
     await expect(
       page.getByRole("heading", { name: "Available orders" }),
     ).toBeVisible();
-    await expect(page.getByText(nearOrderId)).toBeVisible();
-    await expect(page.getByText(farOrderId)).toBeVisible();
+    await expect(page.getByText(nearOrderId, { exact: true })).toBeVisible();
+    await expect(page.getByText(nearbyOrderId, { exact: true })).toBeVisible();
+    await expect(page.getByText(farOrderId, { exact: true })).toBeVisible();
     await expect(page.getByText(preparingOrderId)).toHaveCount(0);
     await expect(page.getByText(assignedOrderId)).toHaveCount(0);
     await expect(page.getByText(otherShopOrderId)).toHaveCount(0);
-    await expect(page.getByText("Colombo 05, Colombo")).toBeVisible();
+    await expect(
+      page.getByText("Colombo 05, Colombo", { exact: true }),
+    ).toBeVisible();
     await expect(
       page.getByText("71 Secret Street", { exact: false }),
     ).toHaveCount(0);
@@ -251,6 +288,23 @@ test.describe.serial("available delivery orders", () => {
     ).toContainText("Approximate straight-line distance:");
   });
 
+  test("suggests nearby orders but leaves selection to the rider", async ({
+    page,
+  }) => {
+    await signIn(page, "delivery@agstores.local", "/delivery");
+    await page.goto("/delivery/orders");
+
+    const suggestion = page.getByTestId("suggested-delivery-group").first();
+    await expect(suggestion).toContainText(nearOrderId);
+    await expect(suggestion).toContainText(nearbyOrderId);
+    await expect(suggestion).not.toContainText(farOrderId);
+    await expect(page.getByText("0 orders selected")).toBeVisible();
+    await suggestion
+      .getByRole("button", { name: /Select suggested group/ })
+      .click();
+    await expect(page.getByText("2 orders selected")).toBeVisible();
+  });
+
   test("filters by distance and sorts by creation time", async ({ page }) => {
     await signIn(page, "delivery@agstores.local", "/delivery");
     await page.goto("/delivery/orders");
@@ -258,7 +312,7 @@ test.describe.serial("available delivery orders", () => {
     await page.getByLabel("Sort by").selectOption("distance");
     await page.getByLabel("Direction").selectOption("asc");
     await page.getByRole("button", { name: "Apply" }).click();
-    await expect(page.getByText(nearOrderId)).toBeVisible();
+    await expect(page.getByText(nearOrderId, { exact: true })).toBeVisible();
     await expect(page.getByText(farOrderId)).toHaveCount(0);
 
     await page.getByRole("link", { name: "Clear" }).click();
