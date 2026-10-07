@@ -91,6 +91,9 @@ async function main() {
       longitude: "79.850000",
       phone: "+94112345678",
       isOpen: true,
+      minimumOrderAmount: "0.00",
+      deliveryFee: "250.00",
+      maximumDeliveryRadiusKm: "50.00",
     },
   });
 

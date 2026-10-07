@@ -43,6 +43,7 @@ export function RoleAwareNavigation({ user }: { user: AuthenticatedUser }) {
               <Link href="/owner/categories">Categories</Link>
               <Link href="/owner/products">Products</Link>
               <Link href="/owner/delivery-personnel">Delivery personnel</Link>
+              <Link href="/owner/settings">Shop settings</Link>
             </>
           ) : null}
           {user.role === UserRole.ADMIN ? (

@@ -1,6 +1,5 @@
 import { getDb } from "@/db";
 import { CatalogStatus } from "@/generated/prisma/client";
-import { DELIVERY_FEE } from "@/lib/checkout";
 import {
   addMinorUnits,
   minorUnitsToMoney,
@@ -13,6 +12,7 @@ import {
   type OrderConfirmationRecord,
   type ReservedProductRecord,
 } from "@/repositories/checkout.repository";
+import { calculateDistance } from "@/services/geographic-distance.service";
 import type { AuthenticatedUser } from "@/types/auth";
 import type { CheckoutInput } from "@/validations/checkout";
 
@@ -23,6 +23,9 @@ type CheckoutErrorCode =
   | "PRODUCT_UNAVAILABLE"
   | "INSUFFICIENT_STOCK"
   | "MULTIPLE_SHOPS"
+  | "SHOP_CLOSED"
+  | "MINIMUM_ORDER_NOT_MET"
+  | "OUTSIDE_DELIVERY_RADIUS"
   | "ORDER_NOT_FOUND";
 
 export class CheckoutError extends Error {
@@ -90,9 +93,11 @@ export async function checkout(
   }
 
   return repository.transaction(async (transaction) => {
-    if (
-      !(await transaction.findOwnedAddress(user.id, input.deliveryAddressId))
-    ) {
+    const deliveryAddress = await transaction.findOwnedAddress(
+      user.id,
+      input.deliveryAddressId,
+    );
+    if (!deliveryAddress) {
       throw new CheckoutError(
         "ADDRESS_NOT_FOUND",
         "Select one of your saved delivery addresses.",
@@ -156,15 +161,48 @@ export async function checkout(
       return { productId: product.id, quantity, unitPrice };
     });
     const subtotal = minorUnitsToMoney(subtotalMinor);
+    const shopId = reservedProducts[0]?.product.shopId ?? "";
+    const shop = await transaction.findShopSettings(shopId);
+    if (!shop || !shop.isOpen) {
+      throw new CheckoutError(
+        "SHOP_CLOSED",
+        "This shop is currently closed and cannot accept orders.",
+        409,
+      );
+    }
+    if (
+      BigInt(subtotalMinor) <
+      BigInt(moneyToMinorUnits(shop.minimumOrderAmount.toFixed(2)))
+    ) {
+      throw new CheckoutError(
+        "MINIMUM_ORDER_NOT_MET",
+        `The minimum order amount is LKR ${shop.minimumOrderAmount.toFixed(2)}.`,
+        409,
+      );
+    }
+    const distanceKm = calculateDistance(
+      shop.latitude.toNumber(),
+      shop.longitude.toNumber(),
+      deliveryAddress.latitude.toNumber(),
+      deliveryAddress.longitude.toNumber(),
+    );
+    if (distanceKm > shop.maximumDeliveryRadiusKm.toNumber()) {
+      throw new CheckoutError(
+        "OUTSIDE_DELIVERY_RADIUS",
+        `The selected address is outside this shop's ${shop.maximumDeliveryRadiusKm.toFixed(2)} km delivery radius.`,
+        409,
+      );
+    }
+    const deliveryFee = shop.deliveryFee.toFixed(2);
     const total = minorUnitsToMoney(
-      addMinorUnits(subtotalMinor, moneyToMinorUnits(DELIVERY_FEE)),
+      addMinorUnits(subtotalMinor, moneyToMinorUnits(deliveryFee)),
     );
     const order = await transaction.createOrder({
       customerId: user.id,
-      shopId: reservedProducts[0]?.product.shopId ?? "",
+      shopId,
       deliveryAddressId: input.deliveryAddressId,
       subtotal,
-      deliveryFee: DELIVERY_FEE,
+      deliveryFee,
       total,
       customerNote: input.deliveryInstructions || null,
       items: orderItems,

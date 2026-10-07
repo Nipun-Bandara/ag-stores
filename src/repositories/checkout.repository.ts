@@ -47,6 +47,22 @@ export type OrderConfirmationRecord = Prisma.OrderGetPayload<{
   select: typeof orderConfirmationSelect;
 }>;
 
+export interface CheckoutAddressRecord {
+  id: string;
+  latitude: Prisma.Decimal;
+  longitude: Prisma.Decimal;
+}
+
+export interface ShopCheckoutSettingsRecord {
+  id: string;
+  latitude: Prisma.Decimal;
+  longitude: Prisma.Decimal;
+  isOpen: boolean;
+  minimumOrderAmount: Prisma.Decimal;
+  deliveryFee: Prisma.Decimal;
+  maximumDeliveryRadiusKm: Prisma.Decimal;
+}
+
 export interface CheckoutOrderData {
   customerId: string;
   shopId: string;
@@ -59,7 +75,11 @@ export interface CheckoutOrderData {
 }
 
 export interface CheckoutTransaction {
-  findOwnedAddress(customerId: string, addressId: string): Promise<boolean>;
+  findOwnedAddress(
+    customerId: string,
+    addressId: string,
+  ): Promise<CheckoutAddressRecord | null>;
+  findShopSettings(shopId: string): Promise<ShopCheckoutSettingsRecord | null>;
   reserveProduct(
     productId: string,
     quantity: number,
@@ -84,13 +104,26 @@ class PrismaCheckoutTransaction implements CheckoutTransaction {
   async findOwnedAddress(
     customerId: string,
     addressId: string,
-  ): Promise<boolean> {
-    return Boolean(
-      await this.prisma.customerAddress.findFirst({
-        where: { id: addressId, customerId },
-        select: { id: true },
-      }),
-    );
+  ): Promise<CheckoutAddressRecord | null> {
+    return this.prisma.customerAddress.findFirst({
+      where: { id: addressId, customerId },
+      select: { id: true, latitude: true, longitude: true },
+    });
+  }
+
+  findShopSettings(shopId: string): Promise<ShopCheckoutSettingsRecord | null> {
+    return this.prisma.shop.findUnique({
+      where: { id: shopId },
+      select: {
+        id: true,
+        latitude: true,
+        longitude: true,
+        isOpen: true,
+        minimumOrderAmount: true,
+        deliveryFee: true,
+        maximumDeliveryRadiusKm: true,
+      },
+    });
   }
 
   async reserveProduct(
