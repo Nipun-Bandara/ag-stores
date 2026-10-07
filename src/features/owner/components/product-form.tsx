@@ -54,6 +54,7 @@ export function ProductForm({
           descriptionSi: form.get("descriptionSi"),
           price: form.get("price"),
           stockQuantity: form.get("stockQuantity"),
+          lowStockThreshold: form.get("lowStockThreshold"),
           imageUrl: form.get("imageUrl"),
           isAvailable: form.get("isAvailable") === "on",
         }),
@@ -111,7 +112,7 @@ export function ProductForm({
           </option>
         ))}
       </SelectField>
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid gap-5 sm:grid-cols-3">
         <FormField
           id="nameEn"
           name="nameEn"
@@ -171,6 +172,17 @@ export function ProductForm({
           max="2147483647"
           step="1"
           defaultValue={product?.stockQuantity ?? 0}
+          required
+        />
+        <FormField
+          id="lowStockThreshold"
+          name="lowStockThreshold"
+          label="Low-stock threshold"
+          type="number"
+          min="0"
+          max="2147483647"
+          step="1"
+          defaultValue={product?.lowStockThreshold ?? 5}
           required
         />
       </div>

@@ -48,6 +48,7 @@ const productInput = {
   descriptionSi: null,
   price: "10.00",
   stockQuantity: 1,
+  lowStockThreshold: 5,
   imageUrl: null,
   isAvailable: true,
 };

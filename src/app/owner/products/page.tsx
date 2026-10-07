@@ -12,6 +12,7 @@ import {
 } from "@/services/product.service";
 import {
   productCategoryFilterSchema,
+  productInventoryStatusSchema,
   productSearchSchema,
 } from "@/validations/product";
 
@@ -21,6 +22,7 @@ interface ProductsPageProps {
   searchParams: Promise<{
     categoryId?: string | string[];
     search?: string | string[];
+    inventoryStatus?: string | string[];
   }>;
 }
 
@@ -35,15 +37,22 @@ export default async function OwnerProductsPage({
   const searchValue = Array.isArray(query.search)
     ? query.search[0]
     : query.search;
+  const inventoryValue = Array.isArray(query.inventoryStatus)
+    ? query.inventoryStatus[0]
+    : query.inventoryStatus;
   const category = categoryValue
     ? productCategoryFilterSchema.safeParse(categoryValue)
     : undefined;
   const search = searchValue
     ? productSearchSchema.safeParse(searchValue)
     : undefined;
+  const inventory = inventoryValue
+    ? productInventoryStatusSchema.safeParse(inventoryValue)
+    : undefined;
   const filters = {
     ...(category?.success ? { categoryId: category.data } : {}),
     ...(search?.success && search.data ? { search: search.data } : {}),
+    ...(inventory?.success ? { inventoryStatus: inventory.data } : {}),
   };
   const [products, options] = await Promise.all([
     listOwnerProducts(user, filters),
@@ -68,7 +77,7 @@ export default async function OwnerProductsPage({
             Add product
           </Link>
         </div>
-        <form className="mt-8 grid gap-4 rounded-xl border p-5 sm:grid-cols-[1fr_1fr_auto]">
+        <form className="mt-8 grid gap-4 rounded-xl border p-5 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto]">
           <label className="text-sm font-medium" htmlFor="search">
             Search
             <input
@@ -93,6 +102,20 @@ export default async function OwnerProductsPage({
                   {item.nameEn}
                 </option>
               ))}
+            </select>
+          </label>
+          <label className="text-sm font-medium" htmlFor="inventoryStatus">
+            Inventory
+            <select
+              id="inventoryStatus"
+              name="inventoryStatus"
+              defaultValue={inventory?.success ? inventory.data : ""}
+              className="mt-1.5 h-10 w-full rounded-md border bg-white px-3 text-sm"
+            >
+              <option value="">All stock levels</option>
+              <option value="OUT_OF_STOCK">Out of stock</option>
+              <option value="LOW_STOCK">Low stock</option>
+              <option value="AVAILABLE">Available</option>
             </select>
           </label>
           <button

@@ -17,6 +17,7 @@ test("shop owner creates, views, edits, stocks, and disables a product", async (
   await page.getByRole("link", { name: "Add product" }).click();
   await expect(page).toHaveURL(/\/owner\/products\/new$/);
 
+  await page.getByLabel("Shop").selectOption({ label: "Colombo Fresh Market" });
   await page.getByLabel("Category").selectOption({ label: "Groceries" });
   await page.getByLabel("English name").fill(originalName);
   await page.getByLabel("Sinhala name").fill("පරීක්ෂණ නිෂ්පාදනය");
@@ -40,9 +41,15 @@ test("shop owner creates, views, edits, stocks, and disables a product", async (
 
   product = page.getByRole("article").filter({ hasText: updatedName });
   await expect(product.getByText("275.50")).toBeVisible();
-  await product.getByLabel("Stock").fill("15");
+  await product.getByLabel("Stock", { exact: true }).fill("15");
+  await product.getByLabel("Low-stock threshold").fill("20");
   await product.getByRole("button", { name: "Update stock" }).click();
   await expect(product.getByText("15", { exact: true })).toBeVisible();
+  await expect(product.getByTestId("inventory-status")).toHaveText("Low stock");
+
+  await page.getByLabel("Inventory").selectOption("LOW_STOCK");
+  await page.getByRole("button", { name: "Apply filters" }).click();
+  await expect(product).toBeVisible();
 
   await product.getByRole("button", { name: "Mark unavailable" }).click();
   await expect(product.getByText("Unavailable")).toBeVisible();

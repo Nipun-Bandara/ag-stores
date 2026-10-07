@@ -8,6 +8,7 @@ import { createProduct, listOwnerProducts } from "@/services/product.service";
 import {
   productCategoryFilterSchema,
   productCreateSchema,
+  productInventoryStatusSchema,
   productSearchSchema,
 } from "@/validations/product";
 
@@ -17,13 +18,21 @@ export async function GET(request: NextRequest) {
 
   const categoryValue = request.nextUrl.searchParams.get("categoryId");
   const searchValue = request.nextUrl.searchParams.get("search");
+  const inventoryValue = request.nextUrl.searchParams.get("inventoryStatus");
   const category = categoryValue
     ? productCategoryFilterSchema.safeParse(categoryValue)
     : undefined;
   const search = searchValue
     ? productSearchSchema.safeParse(searchValue)
     : undefined;
-  if ((category && !category.success) || (search && !search.success)) {
+  const inventory = inventoryValue
+    ? productInventoryStatusSchema.safeParse(inventoryValue)
+    : undefined;
+  if (
+    (category && !category.success) ||
+    (search && !search.success) ||
+    (inventory && !inventory.success)
+  ) {
     return errorResponse(
       { code: "VALIDATION_ERROR", message: "Product filters are invalid." },
       400,
@@ -35,6 +44,7 @@ export async function GET(request: NextRequest) {
       await listOwnerProducts(authorization.user, {
         ...(category?.success ? { categoryId: category.data } : {}),
         ...(search?.success ? { search: search.data } : {}),
+        ...(inventory?.success ? { inventoryStatus: inventory.data } : {}),
       }),
     );
   } catch (error) {

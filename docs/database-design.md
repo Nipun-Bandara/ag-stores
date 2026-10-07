@@ -62,6 +62,11 @@ most two fractional digits. They are passed to Prisma without conversion through
 JavaScript floating-point arithmetic and returned to clients as fixed two-place
 strings.
 
+Each product stores a non-negative low-stock threshold. Inventory views derive
+three mutually exclusive states: zero units is out of stock, a positive quantity
+at or below the threshold is low stock, and a quantity above the threshold is
+available. PostgreSQL constraints prevent negative stock and thresholds.
+
 Checkout accepts only product identifiers and quantities from the browser. It
 locks stock through conditional decrements, reloads current database prices,
 and creates the order and its items in one transaction. Each shop stores its
@@ -71,6 +76,12 @@ requires the shop to be open, compares the exact subtotal against the minimum,
 and checks the saved address against the radius using approximate Haversine
 distance. One order may contain products from only one shop. Stored order-item
 prices are the authoritative price snapshot used for the order total.
+
+Conditional stock decrements and serializable transactions prevent two
+checkouts from claiming the same final units. Transient serialization conflicts
+are retried with a fresh transaction. Customer cancellation and owner rejection
+restore each order item's quantity in the same compare-and-set status
+transaction, so a terminal order cannot restore inventory twice.
 
 Coordinates use fixed-point decimals and database checks constrain latitude to
 `[-90, 90]` and longitude to `[-180, 180]`.

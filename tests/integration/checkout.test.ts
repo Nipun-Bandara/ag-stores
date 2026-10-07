@@ -263,4 +263,32 @@ describeWithDatabase("cash on delivery checkout", () => {
     expect(order.items[0]?.unitPrice.toFixed(2)).toBe("125.50");
     expect(product.stockQuantity).toBe(8);
   });
+
+  it("allows only one simultaneous checkout to claim the final stock unit", async () => {
+    await prisma.product.update({
+      where: { id: lowStockProductId },
+      data: { stockQuantity: 1, isAvailable: true },
+    });
+
+    const [first, second] = await Promise.all([
+      checkoutRoute(request(token, body(lowStockProductId, 1))),
+      checkoutRoute(
+        request(otherToken, {
+          ...body(lowStockProductId, 1),
+          deliveryAddressId: otherAddressId,
+        }),
+      ),
+    ]);
+    const statuses = [first.status, second.status].sort();
+    const storedProduct = await prisma.product.findUniqueOrThrow({
+      where: { id: lowStockProductId },
+    });
+    const orderItemCount = await prisma.orderItem.count({
+      where: { productId: lowStockProductId },
+    });
+
+    expect(statuses).toEqual([201, 409]);
+    expect(storedProduct.stockQuantity).toBe(0);
+    expect(orderItemCount).toBe(1);
+  });
 });
