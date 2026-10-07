@@ -1,32 +1,15 @@
-export type StorefrontLocale = "en" | "si";
+import {
+  getDictionary,
+  localizeBilingual,
+  type Locale,
+} from "@/lib/i18n/config";
 
-export const storefrontCopy = {
-  en: {
-    brand: "AG Stores",
-    products: "Products",
-    categories: "Categories",
-    signIn: "Sign in",
-    register: "Register",
-    outOfStock: "Out of Stock",
-    inStock: "In stock",
-    viewProduct: "View product",
-  },
-  si: {
-    brand: "AG වෙළඳසැල්",
-    products: "නිෂ්පාදන",
-    categories: "කාණ්ඩ",
-    signIn: "පිවිසෙන්න",
-    register: "ලියාපදිංචි වන්න",
-    outOfStock: "තොග අවසන්",
-    inStock: "තොග ඇත",
-    viewProduct: "නිෂ්පාදනය බලන්න",
-  },
-} as const;
+export { localizeBilingual };
 
-export function localizeBilingual(
-  english: string,
-  sinhala: string | null,
-  locale: StorefrontLocale,
-) {
-  return locale === "si" && sinhala ? sinhala : english;
-}
+export const storefrontCopy: Record<
+  Locale,
+  ReturnType<typeof getDictionary>["storefront"]
+> = {
+  en: getDictionary("en").storefront,
+  si: getDictionary("si").storefront,
+};

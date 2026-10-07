@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 
 import { AuthShell } from "@/features/auth/components/auth-shell";
 import { LoginForm } from "@/features/auth/components/login-form";
+import { getDictionary } from "@/lib/i18n/config";
+import { getLocaleContext } from "@/lib/i18n/server";
 
 export const metadata: Metadata = { title: "Sign in | AG Stores" };
 
@@ -10,23 +12,35 @@ interface LoginPageProps {
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const requestedPath = (await searchParams).returnTo;
+  const [query, localeContext] = await Promise.all([
+    searchParams,
+    getLocaleContext(),
+  ]);
+  const requestedPath = query.returnTo;
   const returnTo =
     typeof requestedPath === "string" &&
     requestedPath.startsWith("/") &&
     !requestedPath.startsWith("//")
       ? requestedPath
       : undefined;
+  const { locale, localizedRoute } = localeContext;
+  const copy = getDictionary(locale).auth;
 
   return (
     <AuthShell
-      title="Welcome back"
-      description="Sign in with your email address or phone number."
-      alternateText="New customer?"
+      title={copy.welcomeBack}
+      description={copy.loginDescription}
+      alternateText={copy.newCustomer}
       alternateHref="/register"
-      alternateLabel="Create an account"
+      alternateLabel={copy.createAccountLink}
+      locale={locale}
+      localizedRoute={localizedRoute}
     >
-      <LoginForm {...(returnTo ? { returnTo } : {})} />
+      <LoginForm
+        locale={locale}
+        localizedRoute={localizedRoute}
+        {...(returnTo ? { returnTo } : {})}
+      />
     </AuthShell>
   );
 }

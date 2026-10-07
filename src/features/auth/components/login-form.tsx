@@ -4,10 +4,14 @@ import { useState, type FormEvent } from "react";
 
 import { useRouter } from "next/navigation";
 
+import { getDictionary, routePath, type Locale } from "@/lib/i18n/config";
+
 import { FormError, FormField } from "./form-fields";
 
 interface LoginFormProps {
   returnTo?: string;
+  locale: Locale;
+  localizedRoute: boolean;
 }
 
 interface ErrorPayload {
@@ -25,10 +29,15 @@ const dashboardByRole = {
   ADMIN: "/admin",
 } as const;
 
-export function LoginForm({ returnTo }: LoginFormProps) {
+export function LoginForm({
+  returnTo,
+  locale,
+  localizedRoute,
+}: LoginFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
+  const copy = getDictionary(locale).auth;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -49,9 +58,7 @@ export function LoginForm({ returnTo }: LoginFormProps) {
       const payload = response
         ? ((await response.json().catch(() => ({}))) as ErrorPayload)
         : {};
-      setError(
-        payload.error?.message ?? "Unable to sign in. Please try again.",
-      );
+      setError(payload.error?.message ?? copy.loginError);
       setPending(false);
       return;
     }
@@ -60,7 +67,7 @@ export function LoginForm({ returnTo }: LoginFormProps) {
     const dashboard = payload.data?.role
       ? dashboardByRole[payload.data.role]
       : "/account";
-    router.replace(returnTo ?? dashboard);
+    router.replace(returnTo ?? routePath(dashboard, locale, localizedRoute));
     router.refresh();
   }
 
@@ -69,14 +76,14 @@ export function LoginForm({ returnTo }: LoginFormProps) {
       <FormField
         id="identifier"
         name="identifier"
-        label="Email or phone"
+        label={copy.emailOrPhone}
         autoComplete="username"
         required
       />
       <FormField
         id="password"
         name="password"
-        label="Password"
+        label={copy.password}
         type="password"
         autoComplete="current-password"
         required
@@ -87,7 +94,7 @@ export function LoginForm({ returnTo }: LoginFormProps) {
         disabled={pending}
         className="h-10 w-full rounded-md bg-neutral-950 px-4 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {pending ? "Signing in…" : "Sign in"}
+        {pending ? copy.signingIn : copy.signIn}
       </button>
     </form>
   );

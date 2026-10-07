@@ -16,6 +16,7 @@ function createRepository(): CustomerProfileRepository {
   return {
     findCustomerById: vi.fn(),
     updateCustomer: vi.fn(),
+    updatePreferredLanguage: vi.fn(),
     findPasswordRecord: vi.fn(),
     updatePasswordAndRevokeOtherSessions: vi.fn(),
   };
