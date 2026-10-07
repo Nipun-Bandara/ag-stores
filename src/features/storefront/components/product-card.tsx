@@ -2,20 +2,23 @@ import Link from "next/link";
 
 import { AddToCartButton } from "@/features/cart/components/add-to-cart-button";
 import {
+  getDictionary,
   localizeBilingual,
-  storefrontCopy,
-  type StorefrontLocale,
-} from "@/lib/i18n/storefront";
+  routePath,
+  type Locale,
+} from "@/lib/i18n/config";
 import type { StorefrontProductView } from "@/services/storefront.service";
 
 export function ProductCard({
   product,
   locale = "en",
+  localizedRoute = false,
 }: {
   product: StorefrontProductView;
-  locale?: StorefrontLocale;
+  locale?: Locale;
+  localizedRoute?: boolean;
 }) {
-  const copy = storefrontCopy[locale];
+  const copy = getDictionary(locale).storefront;
   const name = localizeBilingual(product.nameEn, product.nameSi, locale);
   const backgroundStyle = product.imageUrl
     ? { backgroundImage: `url(${JSON.stringify(product.imageUrl)})` }
@@ -63,12 +66,17 @@ export function ProductCard({
           </span>
           <div className="flex flex-col items-end gap-2">
             <Link
-              href={`/products/${product.id}`}
+              href={routePath(
+                `/products/${product.id}`,
+                locale,
+                localizedRoute,
+              )}
               className="text-sm font-bold text-emerald-800 underline decoration-emerald-300 underline-offset-4"
             >
               {copy.viewProduct}
             </Link>
             <AddToCartButton
+              locale={locale}
               product={{
                 id: product.id,
                 name,

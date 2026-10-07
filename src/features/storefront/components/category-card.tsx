@@ -1,23 +1,27 @@
 import Link from "next/link";
 
 import {
+  getDictionary,
   localizeBilingual,
-  type StorefrontLocale,
-} from "@/lib/i18n/storefront";
+  routePath,
+  type Locale,
+} from "@/lib/i18n/config";
 import type { StorefrontCategoryView } from "@/services/storefront.service";
 
 export function CategoryCard({
   category,
   locale = "en",
+  localizedRoute = false,
 }: {
   category: StorefrontCategoryView;
-  locale?: StorefrontLocale;
+  locale?: Locale;
+  localizedRoute?: boolean;
 }) {
   const name = localizeBilingual(category.nameEn, category.nameSi, locale);
 
   return (
     <Link
-      href={`/categories/${category.id}`}
+      href={routePath(`/categories/${category.id}`, locale, localizedRoute)}
       className="group rounded-2xl border border-emerald-950/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
       data-testid="category-card"
     >
@@ -30,7 +34,9 @@ export function CategoryCard({
       ) : null}
       <p className="mt-3 text-xs font-semibold tracking-wide text-emerald-700 uppercase">
         {category.productCount}{" "}
-        {category.productCount === 1 ? "product" : "products"}
+        {category.productCount === 1
+          ? getDictionary(locale).storefront.product
+          : getDictionary(locale).storefront.productPlural}
       </p>
       <p className="mt-1 text-xs text-neutral-500">{category.shopName}</p>
     </Link>

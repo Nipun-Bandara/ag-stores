@@ -1,6 +1,7 @@
 import { getDb } from "@/db";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { hashSessionToken } from "@/lib/auth/session-token";
+import { preferenceFromLocale, type Locale } from "@/lib/i18n/config";
 import { isUniqueConstraintError } from "@/repositories/auth.repository";
 import {
   PrismaCustomerProfileRepository,
@@ -88,6 +89,18 @@ export async function updateCustomerProfile(
     }
     throw error;
   }
+}
+
+export async function updateCustomerLanguage(
+  user: AuthenticatedUser,
+  locale: Locale,
+  repository: CustomerProfileRepository = getProfileRepository(),
+): Promise<void> {
+  assertCustomer(user);
+  await repository.updatePreferredLanguage(
+    user.id,
+    preferenceFromLocale(locale),
+  );
 }
 
 export async function changeCustomerPassword(

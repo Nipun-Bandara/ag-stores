@@ -32,6 +32,10 @@ export interface CustomerProfileRepository {
     userId: string,
     input: ProfileUpdateRecord,
   ): Promise<AuthenticatedUser>;
+  updatePreferredLanguage(
+    userId: string,
+    preferredLanguage: "EN" | "SI",
+  ): Promise<void>;
   findPasswordRecord(userId: string): Promise<PasswordRecord | null>;
   updatePasswordAndRevokeOtherSessions(
     userId: string,
@@ -65,6 +69,21 @@ export class PrismaCustomerProfileRepository implements CustomerProfileRepositor
             : PreferredLanguage.EN,
       },
       select: profileSelect,
+    });
+  }
+
+  async updatePreferredLanguage(
+    userId: string,
+    preferredLanguage: "EN" | "SI",
+  ): Promise<void> {
+    await this.prisma.user.updateMany({
+      where: { id: userId, role: UserRole.CUSTOMER },
+      data: {
+        preferredLanguage:
+          preferredLanguage === "SI"
+            ? PreferredLanguage.SI
+            : PreferredLanguage.EN,
+      },
     });
   }
 

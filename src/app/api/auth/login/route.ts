@@ -1,6 +1,8 @@
 import { errorResponse, successResponse } from "@/lib/api-response";
 import { setSessionCookie } from "@/lib/auth/cookie";
 import { authErrorResponse } from "@/lib/auth/http";
+import { localeFromPreference } from "@/lib/i18n/config";
+import { setLocaleCookie } from "@/lib/i18n/cookie";
 import { login } from "@/services/auth.service";
 import { loginSchema } from "@/validations/auth";
 
@@ -24,6 +26,10 @@ export async function POST(request: Request) {
     const response = successResponse(result.user);
     response.headers.set("Cache-Control", "no-store");
     setSessionCookie(response, result.session);
+    setLocaleCookie(
+      response,
+      localeFromPreference(result.user.preferredLanguage),
+    );
     return response;
   } catch (error) {
     return authErrorResponse(error);

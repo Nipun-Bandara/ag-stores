@@ -4,16 +4,26 @@ import { useState, type FormEvent } from "react";
 
 import { useRouter } from "next/navigation";
 
+import { getDictionary, routePath, type Locale } from "@/lib/i18n/config";
+
 import { FormError, FormField, SelectField } from "./form-fields";
 
 interface ErrorPayload {
   error?: { message?: string };
 }
 
-export function RegisterForm() {
+export function RegisterForm({
+  locale,
+  localizedRoute,
+}: {
+  locale: Locale;
+  localizedRoute: boolean;
+}) {
   const router = useRouter();
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
+  const copy = getDictionary(locale).auth;
+  const common = getDictionary(locale).common;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,15 +47,12 @@ export function RegisterForm() {
       const payload = response
         ? ((await response.json().catch(() => ({}))) as ErrorPayload)
         : {};
-      setError(
-        payload.error?.message ??
-          "Unable to create your account. Please try again.",
-      );
+      setError(payload.error?.message ?? copy.registerError);
       setPending(false);
       return;
     }
 
-    router.replace("/account");
+    router.replace(routePath("/account", locale, localizedRoute));
     router.refresh();
   }
 
@@ -54,7 +61,7 @@ export function RegisterForm() {
       <FormField
         id="name"
         name="name"
-        label="Name"
+        label={copy.name}
         autoComplete="name"
         minLength={2}
         maxLength={150}
@@ -63,7 +70,7 @@ export function RegisterForm() {
       <FormField
         id="email"
         name="email"
-        label="Email"
+        label={copy.email}
         type="email"
         autoComplete="email"
         maxLength={320}
@@ -71,31 +78,31 @@ export function RegisterForm() {
       <FormField
         id="phone"
         name="phone"
-        label="Phone"
+        label={copy.phone}
         type="tel"
         autoComplete="tel"
         placeholder="+94771234567"
-        hint="Provide at least an email or an international phone number."
+        hint={copy.contactHint}
       />
       <FormField
         id="password"
         name="password"
-        label="Password"
+        label={copy.password}
         type="password"
         autoComplete="new-password"
         minLength={12}
         maxLength={128}
-        hint="Use 12+ characters with uppercase, lowercase, number, and symbol."
+        hint={copy.passwordHint}
         required
       />
       <SelectField
         id="preferredLanguage"
         name="preferredLanguage"
-        label="Preferred language"
-        defaultValue="EN"
+        label={copy.preferredLanguage}
+        defaultValue={locale === "si" ? "SI" : "EN"}
       >
-        <option value="EN">English</option>
-        <option value="SI">සිංහල</option>
+        <option value="EN">{common.english}</option>
+        <option value="SI">{common.sinhala}</option>
       </SelectField>
       {error ? <FormError>{error}</FormError> : null}
       <button
@@ -103,7 +110,7 @@ export function RegisterForm() {
         disabled={pending}
         className="h-10 w-full rounded-md bg-neutral-950 px-4 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {pending ? "Creating account…" : "Create customer account"}
+        {pending ? copy.creatingAccount : copy.createCustomerAccount}
       </button>
     </form>
   );

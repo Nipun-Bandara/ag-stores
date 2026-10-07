@@ -6,6 +6,8 @@ import { notFound } from "next/navigation";
 import { AddToCartButton } from "@/features/cart/components/add-to-cart-button";
 import { StorefrontFooter } from "@/features/storefront/components/storefront-footer";
 import { StorefrontHeader } from "@/features/storefront/components/storefront-header";
+import { getDictionary, localizeBilingual, routePath } from "@/lib/i18n/config";
+import { getLocaleContext } from "@/lib/i18n/server";
 import { getStorefrontProduct } from "@/services/storefront.service";
 import { productIdSchema } from "@/validations/product";
 
@@ -18,8 +20,24 @@ export default async function ProductDetailPage({
 }) {
   const productId = productIdSchema.safeParse((await params).id);
   if (!productId.success) notFound();
-  const product = await getStorefrontProduct(productId.data);
+  const [localeContext, product] = await Promise.all([
+    getLocaleContext(),
+    getStorefrontProduct(productId.data),
+  ]);
   if (!product) notFound();
+  const { locale, localizedRoute } = localeContext;
+  const copy = getDictionary(locale).storefront;
+  const name = localizeBilingual(product.nameEn, product.nameSi, locale);
+  const description = localizeBilingual(
+    product.descriptionEn ?? "",
+    product.descriptionSi,
+    locale,
+  );
+  const categoryName = localizeBilingual(
+    product.categoryNameEn,
+    product.categoryNameSi,
+    locale,
+  );
 
   const backgroundStyle = product.imageUrl
     ? { backgroundImage: `url(${JSON.stringify(product.imageUrl)})` }
@@ -27,33 +45,34 @@ export default async function ProductDetailPage({
 
   return (
     <div className="min-h-screen bg-[#fffdf7]">
-      <StorefrontHeader />
+      <StorefrontHeader locale={locale} localizedRoute={localizedRoute} />
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
         <Link
-          href={`/categories/${product.categoryId}`}
+          href={routePath(
+            `/categories/${product.categoryId}`,
+            locale,
+            localizedRoute,
+          )}
           className="text-sm font-bold text-emerald-700"
         >
-          ← {product.categoryNameEn}
+          ← {categoryName}
         </Link>
         <div className="mt-6 grid gap-8 lg:grid-cols-2 lg:gap-14">
           <div
             className="flex aspect-square items-center justify-center rounded-[2rem] bg-gradient-to-br from-amber-100 via-orange-50 to-lime-100 bg-cover bg-center text-8xl font-black text-emerald-900/20 shadow-sm"
             style={backgroundStyle}
             role={product.imageUrl ? "img" : undefined}
-            aria-label={product.imageUrl ? product.nameEn : undefined}
+            aria-label={product.imageUrl ? name : undefined}
           >
-            {!product.imageUrl ? product.nameEn.charAt(0).toUpperCase() : null}
+            {!product.imageUrl ? name.charAt(0).toUpperCase() : null}
           </div>
           <section className="self-center">
             <p className="text-sm font-black tracking-wide text-emerald-700 uppercase">
               {product.shopName}
             </p>
             <h1 className="mt-3 text-4xl font-black tracking-tight text-emerald-950 sm:text-5xl">
-              {product.nameEn}
+              {name}
             </h1>
-            {product.nameSi ? (
-              <p className="mt-2 text-xl text-neutral-500">{product.nameSi}</p>
-            ) : null}
             <p className="mt-7 text-3xl font-black text-emerald-950">
               LKR {product.price}
             </p>
@@ -66,25 +85,19 @@ export default async function ProductDetailPage({
                 }
               >
                 {product.isOutOfStock
-                  ? "Out of Stock"
-                  : `${product.stockQuantity} in stock`}
+                  ? copy.outOfStock
+                  : `${product.stockQuantity} ${copy.inStockCount}`}
               </span>
             </div>
-            {product.descriptionEn ? (
-              <p className="mt-8 leading-7 text-neutral-600">
-                {product.descriptionEn}
-              </p>
-            ) : null}
-            {product.descriptionSi ? (
-              <p className="mt-3 leading-7 text-neutral-500">
-                {product.descriptionSi}
-              </p>
+            {description ? (
+              <p className="mt-8 leading-7 text-neutral-600">{description}</p>
             ) : null}
             <div className="mt-10">
               <AddToCartButton
+                locale={locale}
                 product={{
                   id: product.id,
-                  name: product.nameEn,
+                  name,
                   price: product.price,
                   stockQuantity: product.stockQuantity,
                   imageUrl: product.imageUrl,
@@ -95,7 +108,7 @@ export default async function ProductDetailPage({
           </section>
         </div>
       </main>
-      <StorefrontFooter />
+      <StorefrontFooter locale={locale} />
     </div>
   );
 }

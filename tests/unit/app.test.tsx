@@ -8,6 +8,17 @@ vi.mock("@/services/storefront.service", () => ({
   listStorefrontProducts: vi.fn().mockResolvedValue([]),
 }));
 
+vi.mock("@/lib/i18n/server", () => ({
+  getLocaleContext: vi.fn().mockResolvedValue({
+    locale: "en",
+    localizedRoute: false,
+  }),
+}));
+
+vi.mock("@/features/i18n/components/language-switcher", () => ({
+  LanguageSwitcher: () => <select aria-label="Language" />,
+}));
+
 describe("application", () => {
   it("renders the application landing page", async () => {
     render(await HomePage());
