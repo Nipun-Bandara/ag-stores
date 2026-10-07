@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { UserRole } from "@/generated/prisma/client";
 import { RoleAwareNavigation } from "@/features/auth/components/role-aware-navigation";
 import { formatOrderDate } from "@/features/orders/order-presentation";
@@ -19,6 +21,12 @@ export default async function AdminDashboardPage() {
         <p className="mt-3 text-neutral-600">
           Review customer order cancellations across all shops.
         </p>
+        <Link
+          href="/admin/users"
+          className="mt-5 inline-flex rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white"
+        >
+          Manage users
+        </Link>
       </section>
 
       <section className="mt-8 rounded-xl border bg-white p-5">
