@@ -143,7 +143,7 @@ export default async function OwnerDashboardPage() {
           )}
         </section>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {(
             [
               [
@@ -163,6 +163,12 @@ export default async function OwnerDashboardPage() {
                 "/owner/categories",
                 "Organize the storefront catalog.",
                 "Open catalog setup",
+              ],
+              [
+                "Reports",
+                "/owner/reports",
+                "Review order, revenue, delivery, and inventory summaries.",
+                "Open reports",
               ],
             ] as const
           ).map(([title, href, description, accessibleLabel]) => (
