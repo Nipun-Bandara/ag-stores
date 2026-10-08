@@ -59,6 +59,7 @@ function repositoryFor(record: OrderTransitionRecord | null) {
     restoreStock: vi.fn(async () => undefined),
     findActiveDeliveryPersonIds: vi.fn(async () => []),
     createNotifications: vi.fn(async () => undefined),
+    writeAudit: vi.fn(async () => undefined),
   } satisfies OrderStatusTransaction;
   const repository: OrderStatusRepository = {
     transaction: async (operation) => operation(transaction),

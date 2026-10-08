@@ -1,5 +1,10 @@
 import { getDb } from "@/db";
-import { OrderStatus, UserRole } from "@/generated/prisma/client";
+import {
+  AuditAction,
+  AuditEntityType,
+  OrderStatus,
+  UserRole,
+} from "@/generated/prisma/client";
 import {
   assertOrderStatusTransition,
   OrderStateMachineError,
@@ -125,6 +130,16 @@ export async function transitionOrderStatus(
       changedById: actor.id,
       note: normalizedNote,
       createdAt: transitionAt,
+    });
+    await transaction.writeAudit({
+      actorId: actor.id,
+      action: AuditAction.ORDER_STATUS_CHANGED,
+      entityType: AuditEntityType.ORDER,
+      entityId: order.id,
+      metadata: {
+        previousStatus: order.status,
+        newStatus: nextStatus,
+      },
     });
 
     const notificationType = notificationTypeForOrderStatus(nextStatus);

@@ -1,5 +1,7 @@
 import { getDb } from "@/db";
 import {
+  AuditAction,
+  AuditEntityType,
   DeliveryBatchStatus,
   NotificationType,
   OrderStatus,
@@ -250,6 +252,19 @@ export async function startDeliveryBatch(
       changedById: user.id,
       createdAt: startedAt,
     });
+    await transaction.writeAudits(
+      batch.orders.map(({ order }) => ({
+        actorId: user.id,
+        action: AuditAction.ORDER_STATUS_CHANGED,
+        entityType: AuditEntityType.ORDER,
+        entityId: order.id,
+        metadata: {
+          previousStatus: OrderStatus.ASSIGNED,
+          newStatus: OrderStatus.OUT_FOR_DELIVERY,
+          batchId: batch.id,
+        },
+      })),
+    );
     await transaction.createNotifications(
       batch.orders.flatMap(({ order }) =>
         buildOrderNotifications(NotificationType.ORDER_OUT_FOR_DELIVERY, {
@@ -325,6 +340,19 @@ export async function completeDeliveryOrder(
       note: input.note?.trim() || null,
       createdAt: changedAt,
     });
+    await transaction.writeAudits([
+      {
+        actorId: user.id,
+        action: AuditAction.ORDER_STATUS_CHANGED,
+        entityType: AuditEntityType.ORDER,
+        entityId: orderId,
+        metadata: {
+          previousStatus: assignment.order.status,
+          newStatus: input.status,
+          batchId,
+        },
+      },
+    ]);
     if (input.status === OrderStatus.DELIVERED) {
       await transaction.createNotifications(
         buildOrderNotifications(NotificationType.ORDER_DELIVERED, {

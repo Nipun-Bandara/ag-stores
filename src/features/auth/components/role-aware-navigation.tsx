@@ -77,6 +77,7 @@ export async function RoleAwareNavigation({
             <>
               <Link href={href("/admin/users")}>Users</Link>
               <Link href={href("/admin/shops")}>Shops</Link>
+              <Link href={href("/admin/audit-logs")}>Audit logs</Link>
               <Link href={href("/admin/delivery-personnel")}>
                 {copy.deliveryPersonnel}
               </Link>

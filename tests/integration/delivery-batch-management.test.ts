@@ -13,6 +13,8 @@ import { PATCH as finishOrderRoute } from "@/app/api/delivery/batches/[batchId]/
 import { PATCH as reorderBatchRoute } from "@/app/api/delivery/batches/[batchId]/sequence/route";
 import { POST as startBatchRoute } from "@/app/api/delivery/batches/[batchId]/start/route";
 import {
+  AuditAction,
+  AuditEntityType,
   DeliveryBatchStatus,
   OrderStatus,
   PrismaClient,
@@ -68,6 +70,7 @@ describeWithDatabase("delivery batch lifecycle API", () => {
   const orderIds: string[] = [];
   const batchIds: string[] = [];
   let riderToken = "";
+  let riderId = "";
   let otherRiderToken = "";
   let batchId = "";
   let foreignBatchId = "";
@@ -130,6 +133,7 @@ describeWithDatabase("delivery batch lifecycle API", () => {
       }),
     ]);
     userIds.push(rider.id, otherRider.id, customer.id);
+    riderId = rider.id;
     const address = await prisma.customerAddress.create({
       data: {
         customerId: customer.id,
@@ -186,6 +190,11 @@ describeWithDatabase("delivery batch lifecycle API", () => {
   });
 
   afterAll(async () => {
+    await prisma.auditLog.deleteMany({
+      where: {
+        OR: [{ entityId: { in: orderIds } }, { actorId: { in: userIds } }],
+      },
+    });
     await prisma.orderStatusHistory.deleteMany({
       where: { orderId: { in: orderIds } },
     });
@@ -358,6 +367,23 @@ describeWithDatabase("delivery batch lifecycle API", () => {
       status: DeliveryBatchStatus.IN_PROGRESS,
       completedAt: null,
     });
+    const deliveryAuditLogs = await prisma.auditLog.findMany({
+      where: {
+        actorId: riderId,
+        action: AuditAction.ORDER_STATUS_CHANGED,
+        entityType: AuditEntityType.ORDER,
+        entityId: secondOrderId,
+      },
+    });
+    expect(deliveryAuditLogs.map(({ metadata }) => metadata)).toEqual(
+      expect.arrayContaining([
+        {
+          previousStatus: OrderStatus.OUT_FOR_DELIVERY,
+          newStatus: OrderStatus.DELIVERED,
+          batchId,
+        },
+      ]),
+    );
   });
 
   it("supports failed delivery and completes only after every order finishes", async () => {

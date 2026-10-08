@@ -4,6 +4,10 @@ import {
   type PrismaClient,
 } from "@/generated/prisma/client";
 import { withSerializableRetry } from "@/lib/db-transaction";
+import {
+  type AuditEntry,
+  writeAuditLog,
+} from "@/repositories/audit-write.repository";
 import { createNotifications } from "@/repositories/notification-write.repository";
 import type { NotificationCreateRecord } from "@/services/order-notification.service";
 
@@ -46,6 +50,7 @@ export interface OrderStatusTransaction {
   createNotifications(
     notifications: readonly NotificationCreateRecord[],
   ): Promise<void>;
+  writeAudit(entry: AuditEntry): Promise<void>;
 }
 
 export interface OrderStatusRepository {
@@ -126,6 +131,10 @@ class PrismaOrderStatusTransaction implements OrderStatusTransaction {
     notifications: readonly NotificationCreateRecord[],
   ): Promise<void> {
     return createNotifications(this.prisma, notifications);
+  }
+
+  async writeAudit(entry: AuditEntry): Promise<void> {
+    await writeAuditLog(this.prisma, entry);
   }
 }
 

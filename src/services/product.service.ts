@@ -195,7 +195,7 @@ export async function updateProduct(
     repository,
   );
   return toProductView(
-    await handleWrite(() => repository.update(productId, input)),
+    await handleWrite(() => repository.update(user.id, productId, input)),
   );
 }
 
@@ -224,7 +224,12 @@ export async function updateProductStock(
   repository: ProductRepository = getProductRepository(),
 ): Promise<ProductView> {
   assertOwner(user);
-  const product = await repository.updateStockOwned(user.id, productId, input);
+  const product = await repository.updateStockOwned(
+    user.id,
+    user.id,
+    productId,
+    input,
+  );
   if (!product) {
     throw new ProductError("PRODUCT_NOT_FOUND", "Product not found.", 404);
   }
