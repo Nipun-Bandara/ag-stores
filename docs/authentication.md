@@ -28,7 +28,8 @@ revoked on logout.
 The cookie is `HttpOnly`, `SameSite=Lax`, scoped to `/`, high priority, and
 marked `Secure` in production. Login failures use the same message and perform a
 scrypt verification whether or not the account exists, reducing account and
-timing disclosure.
+timing disclosure. Login and registration are rate-limited by hashed identifier
+and client-address buckets; successful authentication clears the buckets.
 
 ## Authorization boundaries
 
@@ -72,7 +73,8 @@ does not interrupt the initiating customer.
 
 ## Operational follow-ups
 
-Production deployments should add distributed rate limiting for registration
-and login, TLS termination, security event logging, password reset and email or
-phone verification, session-management UI, and periodic deletion of expired
+Multi-instance production deployments must back authentication rate limits with
+a shared edge, Redis, or database store. They should also provide TLS
+termination, security event monitoring, password reset and email or phone
+verification, session-management UI, and periodic deletion of expired
 sessions. Multi-factor authentication is recommended for privileged roles.

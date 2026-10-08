@@ -4,10 +4,14 @@ import { UserRole } from "@/generated/prisma/client";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { authenticateRequest } from "@/lib/auth/request";
 import { setLocaleCookie } from "@/lib/i18n/cookie";
+import { requireSameOrigin } from "@/lib/security/request-origin";
 import { updateCustomerLanguage } from "@/services/customer-profile.service";
 import { localePreferenceSchema } from "@/validations/locale";
 
 export async function PATCH(request: NextRequest) {
+  const originError = requireSameOrigin(request);
+  if (originError) return originError;
+
   const parsed = localePreferenceSchema.safeParse(
     await request.json().catch(() => null),
   );

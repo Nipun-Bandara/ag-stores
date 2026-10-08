@@ -1,9 +1,11 @@
 import { z } from "zod";
 
-export const cartItemInputSchema = z.object({
-  productId: z.uuid(),
-  quantity: z.number().int().min(1),
-});
+export const cartItemInputSchema = z
+  .object({
+    productId: z.uuid(),
+    quantity: z.number().int().min(1),
+  })
+  .strip();
 
 export const cartValidationSchema = z
   .object({

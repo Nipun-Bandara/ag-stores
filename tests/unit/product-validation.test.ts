@@ -51,4 +51,14 @@ describe("product validation", () => {
       }).success,
     ).toBe(false);
   });
+
+  it.each([
+    "javascript:alert(1)",
+    "data:image/svg+xml,<svg onload=alert(1)>",
+    "http://example.test/image.jpg",
+  ])("rejects an unsafe image URL %s", (imageUrl) => {
+    expect(
+      productCreateSchema.safeParse({ ...validProduct, imageUrl }).success,
+    ).toBe(false);
+  });
 });

@@ -47,10 +47,12 @@ export const registrationSchema = z
     }
   });
 
-export const loginSchema = z.object({
-  identifier: z.string().trim().min(3).max(320),
-  password: z.string().min(1).max(128),
-});
+export const loginSchema = z
+  .object({
+    identifier: z.string().trim().min(3).max(320),
+    password: z.string().min(1).max(128),
+  })
+  .strict();
 
 export type RegistrationInput = z.infer<typeof registrationSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
