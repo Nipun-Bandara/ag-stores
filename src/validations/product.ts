@@ -34,6 +34,13 @@ const lowStockThresholdSchema = z.coerce
   .min(0, "Low-stock threshold cannot be negative.")
   .max(2_147_483_647);
 
+const secureImageUrlSchema = z
+  .url()
+  .max(2048)
+  .refine((value) => new URL(value).protocol === "https:", {
+    message: "Image URL must use HTTPS.",
+  });
+
 const productFields = {
   categoryId: z.uuid(),
   nameEn: z.string().trim().min(1).max(180),
@@ -43,7 +50,7 @@ const productFields = {
   price: priceSchema,
   stockQuantity: stockQuantitySchema,
   imageUrl: z
-    .union([z.url().max(2048), z.literal(""), z.null()])
+    .union([secureImageUrlSchema, z.literal(""), z.null()])
     .optional()
     .transform((value) => value || null),
   isAvailable: z.boolean().optional().default(true),

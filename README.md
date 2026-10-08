@@ -80,6 +80,9 @@ precision, indexing, and deletion-policy details.
 See [Authentication design](docs/authentication.md) for password, session,
 cookie, and authorization decisions.
 
+See [Security decisions](docs/security.md) for trust boundaries, CSRF and
+browser protections, rate limiting, input handling, and deployment follow-ups.
+
 Playwright requires a Chromium installation. Install it once with:
 
 ```bash

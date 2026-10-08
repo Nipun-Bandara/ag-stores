@@ -37,7 +37,7 @@ export async function registerCustomer(
   if (await repository.findDuplicate(input.email, input.phone)) {
     throw new AuthServiceError(
       "DUPLICATE_ACCOUNT",
-      "An account already exists with that email or phone number.",
+      "An account cannot be created with those details.",
       409,
     );
   }
@@ -62,7 +62,7 @@ export async function registerCustomer(
     if (isUniqueConstraintError(error)) {
       throw new AuthServiceError(
         "DUPLICATE_ACCOUNT",
-        "An account already exists with that email or phone number.",
+        "An account cannot be created with those details.",
         409,
       );
     }
@@ -105,20 +105,25 @@ export async function login(
 
 export async function getUserForSessionToken(
   token: string | undefined,
-  repository: AuthRepository = getAuthRepository(),
+  repository?: AuthRepository,
 ): Promise<AuthenticatedUser | null> {
   if (!token) {
     return null;
   }
 
-  return repository.findActiveSessionUser(hashSessionToken(token), new Date());
+  return (repository ?? getAuthRepository()).findActiveSessionUser(
+    hashSessionToken(token),
+    new Date(),
+  );
 }
 
 export async function logout(
   token: string | undefined,
-  repository: AuthRepository = getAuthRepository(),
+  repository?: AuthRepository,
 ): Promise<void> {
   if (token) {
-    await repository.deleteSession(hashSessionToken(token));
+    await (repository ?? getAuthRepository()).deleteSession(
+      hashSessionToken(token),
+    );
   }
 }

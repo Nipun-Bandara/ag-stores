@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import type { UserRole } from "@/generated/prisma/client";
 import { errorResponse } from "@/lib/api-response";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
+import { requireSameOrigin } from "@/lib/security/request-origin";
 import { getUserForSessionToken } from "@/services/auth.service";
 
 export async function authenticateRequest(request: NextRequest) {
@@ -13,6 +14,11 @@ export async function authenticateRequest(request: NextRequest) {
 }
 
 export async function requireApiAuth(request: NextRequest) {
+  const originError = requireSameOrigin(request);
+  if (originError) {
+    return { authorized: false as const, response: originError };
+  }
+
   const authentication = await authenticateRequest(request);
 
   if (!authentication) {
