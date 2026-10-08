@@ -17,7 +17,7 @@ import {
   GET as listShopsRoute,
   POST as createShopRoute,
 } from "@/app/api/admin/shops/route";
-import { PrismaClient, UserRole, UserStatus } from "@/generated/prisma/client";
+import { PrismaClient, UserRole } from "@/generated/prisma/client";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 import { hashPassword } from "@/lib/auth/password";
 import { hashSessionToken } from "@/lib/auth/session-token";

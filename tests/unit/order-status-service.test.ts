@@ -20,6 +20,7 @@ import type { AuthenticatedUser } from "@/types/auth";
 const orderId = "87d9a0e2-8e03-4c30-8377-fb41062017f2";
 const customerId = "9965b2c6-6da9-49fd-9b52-655158116faf";
 const ownerId = "4a59ce72-4c66-4880-8aeb-7dfaa7e2975f";
+const shopId = "5ce3aa64-d571-4337-a06e-58c11b5b3130";
 
 function user(id: string, role: UserRole): AuthenticatedUser {
   return {
@@ -39,6 +40,7 @@ function order(
   return {
     id: orderId,
     customerId,
+    shopId,
     status,
     shop: { ownerId },
     batchAssignment: null,
@@ -55,6 +57,8 @@ function repositoryFor(record: OrderTransitionRecord | null) {
       createdAt: new Date("2026-09-28T12:00:00.000Z"),
     })),
     restoreStock: vi.fn(async () => undefined),
+    findActiveDeliveryPersonIds: vi.fn(async () => []),
+    createNotifications: vi.fn(async () => undefined),
   } satisfies OrderStatusTransaction;
   const repository: OrderStatusRepository = {
     transaction: async (operation) => operation(transaction),

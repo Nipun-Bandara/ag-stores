@@ -4,6 +4,8 @@ import {
   Prisma,
   type PrismaClient,
 } from "@/generated/prisma/client";
+import { createNotifications } from "@/repositories/notification-write.repository";
+import type { NotificationCreateRecord } from "@/services/order-notification.service";
 
 const activeBatchListSelect = {
   id: true,
@@ -65,7 +67,7 @@ const lifecycleBatchSelect = {
     orderBy: { sequence: "asc" as const },
     select: {
       sequence: true,
-      order: { select: { id: true, status: true } },
+      order: { select: { id: true, customerId: true, status: true } },
     },
   },
 } satisfies Prisma.DeliveryBatchSelect;
@@ -111,6 +113,9 @@ export interface DeliveryBatchManagementTransaction {
   }): Promise<void>;
   countUnfinishedOrders(batchId: string): Promise<number>;
   completeBatch(batchId: string, completedAt: Date): Promise<boolean>;
+  createNotifications(
+    notifications: readonly NotificationCreateRecord[],
+  ): Promise<void>;
 }
 
 export interface DeliveryBatchManagementRepository {
@@ -252,6 +257,12 @@ class PrismaDeliveryBatchManagementTransaction implements DeliveryBatchManagemen
       data: { status: DeliveryBatchStatus.COMPLETED, completedAt },
     });
     return result.count === 1;
+  }
+
+  createNotifications(
+    notifications: readonly NotificationCreateRecord[],
+  ): Promise<void> {
+    return createNotifications(this.prisma, notifications);
   }
 }
 

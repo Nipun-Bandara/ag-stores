@@ -6,6 +6,7 @@ import { LanguageSwitcher } from "@/features/i18n/components/language-switcher";
 import { LocaleDocument } from "@/features/i18n/components/locale-document";
 import { getDictionary, routePath } from "@/lib/i18n/config";
 import { getLocaleContext } from "@/lib/i18n/server";
+import { getUnreadNotificationCount } from "@/services/notification.service";
 import type { AuthenticatedUser } from "@/types/auth";
 
 const dashboardByRole: Record<UserRole, string> = {
@@ -21,6 +22,7 @@ export async function RoleAwareNavigation({
   user: AuthenticatedUser;
 }) {
   const { locale, localizedRoute } = await getLocaleContext();
+  const unreadNotifications = await getUnreadNotificationCount(user);
   const copy = getDictionary(locale).common;
   const href = (path: string) => routePath(path, locale, localizedRoute);
   const dashboardLabel: Record<UserRole, string> = {
@@ -46,6 +48,10 @@ export async function RoleAwareNavigation({
         >
           <Link href={href(dashboardByRole[user.role])}>
             {dashboardLabel[user.role]}
+          </Link>
+          <Link href={href("/notifications")}>
+            Notifications
+            {unreadNotifications > 0 ? ` (${unreadNotifications})` : ""}
           </Link>
           {user.role === UserRole.CUSTOMER ? (
             <>

@@ -1,6 +1,7 @@
 import { getDb } from "@/db";
 import {
   DeliveryBatchStatus,
+  NotificationType,
   OrderStatus,
   UserRole,
 } from "@/generated/prisma/client";
@@ -14,6 +15,7 @@ import {
   type DeliveryBatchManagementRepository,
 } from "@/repositories/delivery-batch-management.repository";
 import type { AuthenticatedUser } from "@/types/auth";
+import { buildOrderNotifications } from "@/services/order-notification.service";
 import type {
   CompleteDeliveryOrderInput,
   ReorderDeliveryBatchInput,
@@ -248,6 +250,14 @@ export async function startDeliveryBatch(
       changedById: user.id,
       createdAt: startedAt,
     });
+    await transaction.createNotifications(
+      batch.orders.flatMap(({ order }) =>
+        buildOrderNotifications(NotificationType.ORDER_OUT_FOR_DELIVERY, {
+          orderId: order.id,
+          customerId: order.customerId,
+        }),
+      ),
+    );
     return {
       id: batch.id,
       status: DeliveryBatchStatus.IN_PROGRESS,
@@ -315,6 +325,14 @@ export async function completeDeliveryOrder(
       note: input.note?.trim() || null,
       createdAt: changedAt,
     });
+    if (input.status === OrderStatus.DELIVERED) {
+      await transaction.createNotifications(
+        buildOrderNotifications(NotificationType.ORDER_DELIVERED, {
+          orderId,
+          customerId: assignment.order.customerId,
+        }),
+      );
+    }
 
     const batchCompleted =
       (await transaction.countUnfinishedOrders(batchId)) === 0;

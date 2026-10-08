@@ -1,5 +1,5 @@
 import { getDb } from "@/db";
-import { CatalogStatus } from "@/generated/prisma/client";
+import { CatalogStatus, NotificationType } from "@/generated/prisma/client";
 import {
   addMinorUnits,
   minorUnitsToMoney,
@@ -13,6 +13,7 @@ import {
   type ReservedProductRecord,
 } from "@/repositories/checkout.repository";
 import { calculateDistance } from "@/services/geographic-distance.service";
+import { buildOrderNotifications } from "@/services/order-notification.service";
 import type { AuthenticatedUser } from "@/types/auth";
 import type { CheckoutInput } from "@/validations/checkout";
 
@@ -216,6 +217,13 @@ export async function checkout(
       customerNote: input.deliveryInstructions || null,
       items: orderItems,
     });
+    await transaction.createNotifications(
+      buildOrderNotifications(NotificationType.ORDER_PLACED, {
+        orderId: order.id,
+        customerId: user.id,
+        shopOwnerId: shop.ownerId,
+      }),
+    );
     return toOrderView(order);
   });
 }

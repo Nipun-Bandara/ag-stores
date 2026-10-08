@@ -4,10 +4,13 @@ import {
   type PrismaClient,
 } from "@/generated/prisma/client";
 import { withSerializableRetry } from "@/lib/db-transaction";
+import { createNotifications } from "@/repositories/notification-write.repository";
+import type { NotificationCreateRecord } from "@/services/order-notification.service";
 
 const orderTransitionSelect = {
   id: true,
   customerId: true,
+  shopId: true,
   status: true,
   shop: { select: { ownerId: true } },
   batchAssignment: {
@@ -38,6 +41,10 @@ export interface OrderStatusTransaction {
   }): Promise<{ id: string; createdAt: Date }>;
   restoreStock(
     items: ReadonlyArray<{ productId: string; quantity: number }>,
+  ): Promise<void>;
+  findActiveDeliveryPersonIds(shopId: string): Promise<string[]>;
+  createNotifications(
+    notifications: readonly NotificationCreateRecord[],
   ): Promise<void>;
 }
 
@@ -101,6 +108,24 @@ class PrismaOrderStatusTransaction implements OrderStatusTransaction {
         data: { stockQuantity: { increment: item.quantity } },
       });
     }
+  }
+
+  async findActiveDeliveryPersonIds(shopId: string): Promise<string[]> {
+    const users = await this.prisma.user.findMany({
+      where: {
+        assignedShopId: shopId,
+        role: "DELIVERY_PERSON",
+        status: "ACTIVE",
+      },
+      select: { id: true },
+    });
+    return users.map(({ id }) => id);
+  }
+
+  createNotifications(
+    notifications: readonly NotificationCreateRecord[],
+  ): Promise<void> {
+    return createNotifications(this.prisma, notifications);
   }
 }
 

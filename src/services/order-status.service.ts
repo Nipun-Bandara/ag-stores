@@ -10,6 +10,10 @@ import {
   type OrderTransitionRecord,
 } from "@/repositories/order-status.repository";
 import type { AuthenticatedUser } from "@/types/auth";
+import {
+  buildOrderNotifications,
+  notificationTypeForOrderStatus,
+} from "@/services/order-notification.service";
 
 type OrderStatusServiceErrorCode =
   | "ORDER_NOT_FOUND"
@@ -122,6 +126,27 @@ export async function transitionOrderStatus(
       note: normalizedNote,
       createdAt: transitionAt,
     });
+
+    const notificationType = notificationTypeForOrderStatus(nextStatus);
+    if (notificationType) {
+      const availableDeliveryPersonIds =
+        nextStatus === OrderStatus.READY_FOR_DELIVERY
+          ? await transaction.findActiveDeliveryPersonIds(order.shopId)
+          : [];
+      await transaction.createNotifications(
+        buildOrderNotifications(notificationType, {
+          orderId: order.id,
+          customerId: order.customerId,
+          shopOwnerId: order.shop.ownerId,
+          availableDeliveryPersonIds,
+          ...(order.batchAssignment
+            ? {
+                deliveryPersonId: order.batchAssignment.batch.deliveryPersonId,
+              }
+            : {}),
+        }),
+      );
+    }
 
     return {
       orderId: order.id,

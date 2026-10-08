@@ -4,6 +4,8 @@ import {
   type PrismaClient,
 } from "@/generated/prisma/client";
 import { withSerializableRetry } from "@/lib/db-transaction";
+import { createNotifications } from "@/repositories/notification-write.repository";
+import type { NotificationCreateRecord } from "@/services/order-notification.service";
 
 const reservedProductSelect = {
   id: true,
@@ -57,6 +59,7 @@ export interface CheckoutAddressRecord {
 
 export interface ShopCheckoutSettingsRecord {
   id: string;
+  ownerId: string;
   latitude: Prisma.Decimal;
   longitude: Prisma.Decimal;
   isOpen: boolean;
@@ -89,6 +92,9 @@ export interface CheckoutTransaction {
   ): Promise<ReservedProductRecord | null>;
   findProduct(productId: string): Promise<ReservedProductRecord | null>;
   createOrder(data: CheckoutOrderData): Promise<OrderConfirmationRecord>;
+  createNotifications(
+    notifications: readonly NotificationCreateRecord[],
+  ): Promise<void>;
 }
 
 export interface CheckoutRepository {
@@ -119,6 +125,7 @@ class PrismaCheckoutTransaction implements CheckoutTransaction {
       where: { id: shopId },
       select: {
         id: true,
+        ownerId: true,
         latitude: true,
         longitude: true,
         isOpen: true,
@@ -169,6 +176,12 @@ class PrismaCheckoutTransaction implements CheckoutTransaction {
       },
       select: orderConfirmationSelect,
     });
+  }
+
+  createNotifications(
+    notifications: readonly NotificationCreateRecord[],
+  ): Promise<void> {
+    return createNotifications(this.prisma, notifications);
   }
 }
 
