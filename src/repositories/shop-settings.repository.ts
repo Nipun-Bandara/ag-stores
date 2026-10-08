@@ -8,6 +8,7 @@ const shopSettingsSelect = {
   phone: true,
   latitude: true,
   longitude: true,
+  isActive: true,
   isOpen: true,
   minimumOrderAmount: true,
   deliveryFee: true,
@@ -45,7 +46,7 @@ export class PrismaShopSettingsRepository implements ShopSettingsRepository {
     return this.prisma.$transaction(async (transaction) => {
       const owned = await transaction.shop.findFirst({
         where: { id: input.shopId, ownerId },
-        select: { id: true },
+        select: { id: true, isActive: true },
       });
       if (!owned) return null;
 
@@ -57,7 +58,7 @@ export class PrismaShopSettingsRepository implements ShopSettingsRepository {
           phone: input.phone,
           latitude: input.latitude,
           longitude: input.longitude,
-          isOpen: input.isOpen,
+          isOpen: owned.isActive ? input.isOpen : false,
           minimumOrderAmount: input.minimumOrderAmount,
           deliveryFee: input.deliveryFee,
           maximumDeliveryRadiusKm: input.maximumDeliveryRadiusKm,

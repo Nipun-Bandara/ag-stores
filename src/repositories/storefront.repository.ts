@@ -60,7 +60,7 @@ export class PrismaStorefrontRepository implements StorefrontRepository {
 
   findCategories(limit?: number): Promise<StorefrontCategoryRecord[]> {
     return this.prisma.category.findMany({
-      where: { status: CatalogStatus.ACTIVE },
+      where: { status: CatalogStatus.ACTIVE, shop: { isActive: true } },
       orderBy: [{ nameEn: "asc" }, { shop: { name: "asc" } }],
       ...(limit ? { take: limit } : {}),
       select: storefrontCategorySelect,
@@ -71,7 +71,11 @@ export class PrismaStorefrontRepository implements StorefrontRepository {
     categoryId: string,
   ): Promise<StorefrontCategoryRecord | null> {
     return this.prisma.category.findFirst({
-      where: { id: categoryId, status: CatalogStatus.ACTIVE },
+      where: {
+        id: categoryId,
+        status: CatalogStatus.ACTIVE,
+        shop: { isActive: true },
+      },
       select: storefrontCategorySelect,
     });
   }
@@ -83,6 +87,7 @@ export class PrismaStorefrontRepository implements StorefrontRepository {
     return this.prisma.product.findMany({
       where: {
         isAvailable: true,
+        shop: { isActive: true },
         category: { status: CatalogStatus.ACTIVE },
         ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
         ...(search
@@ -107,6 +112,7 @@ export class PrismaStorefrontRepository implements StorefrontRepository {
       where: {
         id: productId,
         isAvailable: true,
+        shop: { isActive: true },
         category: { status: CatalogStatus.ACTIVE },
       },
       select: storefrontProductSelect,

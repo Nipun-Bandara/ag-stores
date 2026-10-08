@@ -46,9 +46,8 @@ const radiusSchema = z
     return `${BigInt(whole).toString()}.${fraction.padEnd(2, "0")}`;
   });
 
-export const shopSettingsUpdateSchema = z
+export const shopSettingsFieldsSchema = z
   .object({
-    shopId: z.uuid(),
     name: z.string().trim().min(2).max(180),
     address: z.string().trim().min(5).max(1000),
     phone: z
@@ -66,5 +65,9 @@ export const shopSettingsUpdateSchema = z
     maximumDeliveryRadiusKm: radiusSchema,
   })
   .strict();
+
+export const shopSettingsUpdateSchema = shopSettingsFieldsSchema.extend({
+  shopId: z.uuid(),
+});
 
 export type ShopSettingsUpdateInput = z.infer<typeof shopSettingsUpdateSchema>;

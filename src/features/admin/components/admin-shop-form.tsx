@@ -1,70 +1,102 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import type { ShopSettingsView } from "@/services/shop-settings.service";
+import type {
+  AdminShopManagementView,
+  AdminShopView,
+} from "@/services/admin-shop.service";
 
-interface ResponsePayload {
-  data?: ShopSettingsView;
+interface ShopResponse {
+  data?: AdminShopView;
   error?: { message?: string };
 }
 
-export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
-  const [settings, setSettings] = useState(initial);
+export function AdminShopForm({
+  owners,
+  shop,
+}: {
+  owners: AdminShopManagementView["owners"];
+  shop?: AdminShopView;
+}) {
+  const router = useRouter();
   const [message, setMessage] = useState<string>();
+  const [isError, setIsError] = useState(false);
   const [pending, setPending] = useState(false);
+  const inputClass =
+    "mt-1.5 h-10 w-full rounded-md border border-neutral-300 px-3 text-sm";
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
     setMessage(undefined);
+    setIsError(false);
     const form = new FormData(event.currentTarget);
-    const response = await fetch("/api/owner/shop-settings", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        shopId: settings.id,
-        name: form.get("name"),
-        address: form.get("address"),
-        phone: form.get("phone"),
-        latitude: form.get("latitude"),
-        longitude: form.get("longitude"),
-        isOpen: form.get("isOpen") === "on",
-        minimumOrderAmount: form.get("minimumOrderAmount"),
-        deliveryFee: form.get("deliveryFee"),
-        maximumDeliveryRadiusKm: form.get("maximumDeliveryRadiusKm"),
-      }),
-    });
-    const payload = (await response
-      .json()
-      .catch(() => ({}))) as ResponsePayload;
-    if (!response.ok || !payload.data) {
-      setMessage(payload.error?.message ?? "Unable to save shop settings.");
+    const response = await fetch(
+      shop ? `/api/admin/shops/${shop.id}` : "/api/admin/shops",
+      {
+        method: shop ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ownerId: form.get("ownerId"),
+          name: form.get("name"),
+          address: form.get("address"),
+          phone: form.get("phone"),
+          latitude: form.get("latitude"),
+          longitude: form.get("longitude"),
+          isOpen: form.get("isOpen") === "on",
+          minimumOrderAmount: form.get("minimumOrderAmount"),
+          deliveryFee: form.get("deliveryFee"),
+          maximumDeliveryRadiusKm: form.get("maximumDeliveryRadiusKm"),
+        }),
+      },
+    ).catch(() => null);
+    const payload = response
+      ? ((await response.json().catch(() => ({}))) as ShopResponse)
+      : {};
+
+    if (!response?.ok || !payload.data) {
+      setMessage(payload.error?.message ?? "Unable to save the shop.");
+      setIsError(true);
       setPending(false);
       return;
     }
-    setSettings(payload.data);
-    setMessage("Shop settings saved.");
+
+    if (shop) {
+      setMessage("Shop details saved.");
+      router.refresh();
+    } else {
+      router.push(`/admin/shops/${payload.data.id}`);
+    }
     setPending(false);
   }
 
-  const inputClass =
-    "mt-1.5 h-10 w-full rounded-md border border-neutral-300 px-3 text-sm";
-
   return (
     <form onSubmit={submit} className="rounded-xl border bg-white p-5 sm:p-6">
-      {!settings.isActive ? (
-        <p className="mb-5 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-          This shop is administratively inactive. Customers cannot browse or
-          order from it until an administrator reactivates it.
-        </p>
-      ) : null}
       <div className="grid gap-5 sm:grid-cols-2">
+        <label className="text-sm font-medium sm:col-span-2">
+          Shop owner
+          <select
+            name="ownerId"
+            defaultValue={shop?.ownerId ?? owners[0]?.id ?? ""}
+            className={inputClass}
+            required
+          >
+            {!owners.length ? <option value="">No active owners</option> : null}
+            {owners.map((owner) => (
+              <option key={owner.id} value={owner.id}>
+                {owner.name} {owner.email ? `(${owner.email})` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="text-sm font-medium sm:col-span-2">
           Shop name
           <input
             name="name"
-            defaultValue={settings.name}
+            defaultValue={shop?.name ?? ""}
+            maxLength={180}
             className={inputClass}
             required
           />
@@ -73,7 +105,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
           Address
           <textarea
             name="address"
-            defaultValue={settings.address}
+            defaultValue={shop?.address ?? ""}
             className="mt-1.5 min-h-24 w-full rounded-md border border-neutral-300 p-3 text-sm"
             required
           />
@@ -83,7 +115,8 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
           <input
             name="phone"
             type="tel"
-            defaultValue={settings.phone}
+            defaultValue={shop?.phone ?? ""}
+            placeholder="+94112345678"
             className={inputClass}
             required
           />
@@ -92,8 +125,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
           <input
             name="isOpen"
             type="checkbox"
-            disabled={!settings.isActive}
-            defaultChecked={settings.isOpen}
+            defaultChecked={shop?.isOpen ?? false}
           />
           Open for customer orders
         </label>
@@ -103,7 +135,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
             name="latitude"
             type="number"
             step="0.000001"
-            defaultValue={settings.latitude}
+            defaultValue={shop?.latitude ?? ""}
             className={inputClass}
             required
           />
@@ -114,7 +146,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
             name="longitude"
             type="number"
             step="0.000001"
-            defaultValue={settings.longitude}
+            defaultValue={shop?.longitude ?? ""}
             className={inputClass}
             required
           />
@@ -126,7 +158,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
             type="number"
             min="0"
             step="0.01"
-            defaultValue={settings.minimumOrderAmount}
+            defaultValue={shop?.minimumOrderAmount ?? "0.00"}
             className={inputClass}
             required
           />
@@ -138,7 +170,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
             type="number"
             min="0"
             step="0.01"
-            defaultValue={settings.deliveryFee}
+            defaultValue={shop?.deliveryFee ?? "250.00"}
             className={inputClass}
             required
           />
@@ -150,25 +182,25 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
             type="number"
             min="0.01"
             step="0.01"
-            defaultValue={settings.maximumDeliveryRadiusKm}
+            defaultValue={shop?.maximumDeliveryRadiusKm ?? "50.00"}
             className={inputClass}
             required
           />
-          <span className="mt-1 block text-xs font-normal text-neutral-500">
-            Uses approximate straight-line distance, not road distance.
-          </span>
         </label>
       </div>
       <div className="mt-6 flex flex-wrap items-center gap-4">
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || owners.length === 0}
           className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
         >
-          {pending ? "Saving…" : "Save settings"}
+          {pending ? "Saving…" : shop ? "Save shop" : "Create shop"}
         </button>
         {message ? (
-          <p role="status" className="text-sm text-neutral-700">
+          <p
+            role={isError ? "alert" : "status"}
+            className={isError ? "text-sm text-red-700" : "text-sm"}
+          >
             {message}
           </p>
         ) : null}

@@ -70,6 +70,7 @@ export async function RoleAwareNavigation({
           {user.role === UserRole.ADMIN ? (
             <>
               <Link href={href("/admin/users")}>Users</Link>
+              <Link href={href("/admin/shops")}>Shops</Link>
               <Link href={href("/admin/delivery-personnel")}>
                 {copy.deliveryPersonnel}
               </Link>

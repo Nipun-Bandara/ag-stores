@@ -102,6 +102,7 @@ model Shop {
   latitude                Decimal  @db.Decimal(9, 6)
   longitude               Decimal  @db.Decimal(10, 6)
   phone                   String   @db.VarChar(32)
+  isActive                Boolean  @default(true)
   isOpen                  Boolean  @default(false)
   minimumOrderAmount      Decimal  @default(0) @db.Decimal(12, 2)
   deliveryFee             Decimal  @default(250) @db.Decimal(12, 2)
@@ -115,8 +116,11 @@ model Shop {
   products          Product[]
   orders            Order[]
 
+  @@unique([ownerId, name])
+  @@unique([phone])
   @@index([ownerId])
   @@index([isOpen])
+  @@index([isActive, isOpen])
   @@map("shops")
 }
 

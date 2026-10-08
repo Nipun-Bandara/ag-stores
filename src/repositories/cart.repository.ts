@@ -23,7 +23,7 @@ export class PrismaCartRepository implements CartRepository {
 
   findProductsByIds(productIds: string[]): Promise<CartProductRecord[]> {
     return this.prisma.product.findMany({
-      where: { id: { in: productIds } },
+      where: { id: { in: productIds }, shop: { isActive: true } },
       select: cartProductSelect,
     });
   }
