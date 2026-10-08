@@ -23,6 +23,7 @@ type CheckoutErrorCode =
   | "PRODUCT_UNAVAILABLE"
   | "INSUFFICIENT_STOCK"
   | "MULTIPLE_SHOPS"
+  | "SHOP_INACTIVE"
   | "SHOP_CLOSED"
   | "MINIMUM_ORDER_NOT_MET"
   | "OUTSIDE_DELIVERY_RADIUS"
@@ -123,6 +124,7 @@ export async function checkout(
           !current ||
           !current.isAvailable ||
           current.stockQuantity === 0 ||
+          !current.shop.isActive ||
           current.category.status !== CatalogStatus.ACTIVE
         ) {
           throw new CheckoutError(
@@ -163,7 +165,14 @@ export async function checkout(
     const subtotal = minorUnitsToMoney(subtotalMinor);
     const shopId = reservedProducts[0]?.product.shopId ?? "";
     const shop = await transaction.findShopSettings(shopId);
-    if (!shop || !shop.isOpen) {
+    if (!shop || !shop.isActive) {
+      throw new CheckoutError(
+        "SHOP_INACTIVE",
+        "This shop is not currently available.",
+        409,
+      );
+    }
+    if (!shop.isOpen) {
       throw new CheckoutError(
         "SHOP_CLOSED",
         "This shop is currently closed and cannot accept orders.",

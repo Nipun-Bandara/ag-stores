@@ -13,6 +13,7 @@ const reservedProductSelect = {
   stockQuantity: true,
   isAvailable: true,
   category: { select: { status: true } },
+  shop: { select: { isActive: true } },
 } satisfies Prisma.ProductSelect;
 
 const orderConfirmationSelect = {
@@ -59,6 +60,7 @@ export interface ShopCheckoutSettingsRecord {
   latitude: Prisma.Decimal;
   longitude: Prisma.Decimal;
   isOpen: boolean;
+  isActive: boolean;
   minimumOrderAmount: Prisma.Decimal;
   deliveryFee: Prisma.Decimal;
   maximumDeliveryRadiusKm: Prisma.Decimal;
@@ -120,6 +122,7 @@ class PrismaCheckoutTransaction implements CheckoutTransaction {
         latitude: true,
         longitude: true,
         isOpen: true,
+        isActive: true,
         minimumOrderAmount: true,
         deliveryFee: true,
         maximumDeliveryRadiusKm: true,

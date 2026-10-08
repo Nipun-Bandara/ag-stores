@@ -21,12 +21,20 @@ export default async function AdminDashboardPage() {
         <p className="mt-3 text-neutral-600">
           Review customer order cancellations across all shops.
         </p>
-        <Link
-          href="/admin/users"
-          className="mt-5 inline-flex rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white"
-        >
-          Manage users
-        </Link>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Link
+            href="/admin/users"
+            className="inline-flex rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white"
+          >
+            Manage users
+          </Link>
+          <Link
+            href="/admin/shops"
+            className="inline-flex rounded-md border px-4 py-2 text-sm font-medium"
+          >
+            Manage shops
+          </Link>
+        </div>
       </section>
 
       <section className="mt-8 rounded-xl border bg-white p-5">

@@ -42,6 +42,7 @@ function toView(shop: ShopSettingsRecord) {
     phone: shop.phone,
     latitude: shop.latitude.toString(),
     longitude: shop.longitude.toString(),
+    isActive: shop.isActive,
     isOpen: shop.isOpen,
     minimumOrderAmount: shop.minimumOrderAmount.toFixed(2),
     deliveryFee: shop.deliveryFee.toFixed(2),
