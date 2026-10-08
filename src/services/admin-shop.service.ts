@@ -132,7 +132,7 @@ export async function createAdminShop(
 ) {
   assertAdministrator(administrator);
   return handleDuplicate(async () =>
-    handleMutationResult(await shops.create(input)),
+    handleMutationResult(await shops.create(administrator.id, input)),
   );
 }
 
@@ -144,7 +144,7 @@ export async function updateAdminShop(
 ) {
   assertAdministrator(administrator);
   return handleDuplicate(async () =>
-    handleMutationResult(await shops.update(shopId, input)),
+    handleMutationResult(await shops.update(administrator.id, shopId, input)),
   );
 }
 
@@ -155,7 +155,7 @@ export async function setAdminShopStatus(
   shops: AdminShopRepository = repository(),
 ) {
   assertAdministrator(administrator);
-  const shop = await shops.setActive(shopId, input.isActive);
+  const shop = await shops.setActive(administrator.id, shopId, input.isActive);
   if (!shop) {
     throw new AdminShopError("SHOP_NOT_FOUND", "Shop not found.", 404);
   }

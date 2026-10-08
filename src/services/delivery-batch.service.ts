@@ -1,5 +1,7 @@
 import { getDb } from "@/db";
 import {
+  AuditAction,
+  AuditEntityType,
   NotificationType,
   OrderStatus,
   UserRole,
@@ -128,6 +130,19 @@ export async function createDeliveryBatch(
         createdAt: batch.createdAt,
         note: `Assigned to delivery batch ${batch.id}.`,
       });
+      await transaction.writeAudits(
+        orders.map((order) => ({
+          actorId: user.id,
+          action: AuditAction.ORDER_STATUS_CHANGED,
+          entityType: AuditEntityType.ORDER,
+          entityId: order.id,
+          metadata: {
+            previousStatus: OrderStatus.READY_FOR_DELIVERY,
+            newStatus: OrderStatus.ASSIGNED,
+            batchId: batch.id,
+          },
+        })),
+      );
       await transaction.createNotifications(
         orders.flatMap((order) =>
           buildOrderNotifications(NotificationType.ORDER_ASSIGNED, {

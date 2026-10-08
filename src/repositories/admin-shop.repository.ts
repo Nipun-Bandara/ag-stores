@@ -1,9 +1,12 @@
 import {
+  AuditAction,
+  AuditEntityType,
   Prisma,
   type PrismaClient,
   UserRole,
   UserStatus,
 } from "@/generated/prisma/client";
+import { writeAuditLog } from "@/repositories/audit-write.repository";
 import type { AdminShopInput } from "@/validations/admin-shop";
 
 const adminShopSelect = {
@@ -61,12 +64,20 @@ export interface AdminShopRepository {
   findMany(): Promise<AdminShopRecord[]>;
   findById(shopId: string): Promise<AdminShopRecord | null>;
   findAssignableOwners(): Promise<AssignableOwnerRecord[]>;
-  create(input: AdminShopInput): Promise<AdminShopMutationResult>;
+  create(
+    actorId: string,
+    input: AdminShopInput,
+  ): Promise<AdminShopMutationResult>;
   update(
+    actorId: string,
     shopId: string,
     input: AdminShopInput,
   ): Promise<AdminShopMutationResult>;
-  setActive(shopId: string, isActive: boolean): Promise<AdminShopRecord | null>;
+  setActive(
+    actorId: string,
+    shopId: string,
+    isActive: boolean,
+  ): Promise<AdminShopRecord | null>;
 }
 
 const assignableOwnerWhere = {
@@ -114,7 +125,10 @@ export class PrismaAdminShopRepository implements AdminShopRepository {
     });
   }
 
-  create(input: AdminShopInput): Promise<AdminShopMutationResult> {
+  create(
+    actorId: string,
+    input: AdminShopInput,
+  ): Promise<AdminShopMutationResult> {
     return this.prisma.$transaction(async (transaction) => {
       const owner = await transaction.user.findFirst({
         where: { id: input.ownerId, ...assignableOwnerWhere },
@@ -126,11 +140,19 @@ export class PrismaAdminShopRepository implements AdminShopRepository {
         data: shopData(input),
         select: adminShopSelect,
       });
+      await writeAuditLog(transaction, {
+        actorId,
+        action: AuditAction.SHOP_CREATED,
+        entityType: AuditEntityType.SHOP,
+        entityId: shop.id,
+        metadata: { ownerId: shop.ownerId, name: shop.name },
+      });
       return { kind: "saved", shop };
     });
   }
 
   update(
+    actorId: string,
     shopId: string,
     input: AdminShopInput,
   ): Promise<AdminShopMutationResult> {
@@ -138,7 +160,19 @@ export class PrismaAdminShopRepository implements AdminShopRepository {
       const [shop, owner] = await Promise.all([
         transaction.shop.findUnique({
           where: { id: shopId },
-          select: { id: true },
+          select: {
+            id: true,
+            ownerId: true,
+            name: true,
+            address: true,
+            phone: true,
+            latitude: true,
+            longitude: true,
+            isOpen: true,
+            minimumOrderAmount: true,
+            deliveryFee: true,
+            maximumDeliveryRadiusKm: true,
+          },
         }),
         transaction.user.findFirst({
           where: { id: input.ownerId, ...assignableOwnerWhere },
@@ -153,22 +187,58 @@ export class PrismaAdminShopRepository implements AdminShopRepository {
         data: shopData(input),
         select: adminShopSelect,
       });
+      const changedFields = [
+        ["ownerId", shop.ownerId, updated.ownerId],
+        ["name", shop.name, updated.name],
+        ["address", shop.address, updated.address],
+        ["phone", shop.phone, updated.phone],
+        ["latitude", shop.latitude.toString(), updated.latitude.toString()],
+        ["longitude", shop.longitude.toString(), updated.longitude.toString()],
+        ["isOpen", shop.isOpen, updated.isOpen],
+        [
+          "minimumOrderAmount",
+          shop.minimumOrderAmount.toString(),
+          updated.minimumOrderAmount.toString(),
+        ],
+        [
+          "deliveryFee",
+          shop.deliveryFee.toString(),
+          updated.deliveryFee.toString(),
+        ],
+        [
+          "maximumDeliveryRadiusKm",
+          shop.maximumDeliveryRadiusKm.toString(),
+          updated.maximumDeliveryRadiusKm.toString(),
+        ],
+      ]
+        .filter(([, previous, next]) => previous !== next)
+        .map(([field]) => field);
+      if (changedFields.length > 0) {
+        await writeAuditLog(transaction, {
+          actorId,
+          action: AuditAction.SHOP_UPDATED,
+          entityType: AuditEntityType.SHOP,
+          entityId: updated.id,
+          metadata: { changedFields },
+        });
+      }
       return { kind: "saved", shop: updated };
     });
   }
 
   setActive(
+    actorId: string,
     shopId: string,
     isActive: boolean,
   ): Promise<AdminShopRecord | null> {
     return this.prisma.$transaction(async (transaction) => {
       const shop = await transaction.shop.findUnique({
         where: { id: shopId },
-        select: { id: true },
+        select: { id: true, isActive: true },
       });
       if (!shop) return null;
 
-      return transaction.shop.update({
+      const updated = await transaction.shop.update({
         where: { id: shopId },
         data: {
           isActive,
@@ -178,6 +248,19 @@ export class PrismaAdminShopRepository implements AdminShopRepository {
         },
         select: adminShopSelect,
       });
+      if (shop.isActive !== isActive) {
+        await writeAuditLog(transaction, {
+          actorId,
+          action: AuditAction.SHOP_STATUS_UPDATED,
+          entityType: AuditEntityType.SHOP,
+          entityId: updated.id,
+          metadata: {
+            previousStatus: shop.isActive ? "ACTIVE" : "INACTIVE",
+            newStatus: isActive ? "ACTIVE" : "INACTIVE",
+          },
+        });
+      }
+      return updated;
     });
   }
 }

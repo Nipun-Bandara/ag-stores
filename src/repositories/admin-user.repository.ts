@@ -1,10 +1,13 @@
 import {
+  AuditAction,
+  AuditEntityType,
   Prisma,
   type PrismaClient,
   UserRole,
   UserStatus,
 } from "@/generated/prisma/client";
 import { withSerializableRetry } from "@/lib/db-transaction";
+import { writeAuditLog } from "@/repositories/audit-write.repository";
 import type { AdminUserFilters } from "@/validations/admin-user";
 
 const adminUserListSelect = {
@@ -54,6 +57,7 @@ export interface AdminUserRepository {
   findMany(filters: AdminUserFilters): Promise<AdminUserListRecord[]>;
   findById(userId: string): Promise<AdminUserDetailRecord | null>;
   setStatus(
+    actorId: string,
     userId: string,
     status: ManageableUserStatus,
   ): Promise<AdminUserStatusResult>;
@@ -95,6 +99,7 @@ export class PrismaAdminUserRepository implements AdminUserRepository {
   }
 
   setStatus(
+    actorId: string,
     userId: string,
     status: ManageableUserStatus,
   ): Promise<AdminUserStatusResult> {
@@ -132,6 +137,19 @@ export class PrismaAdminUserRepository implements AdminUserRepository {
           if (status !== UserStatus.ACTIVE) {
             await transaction.authSession.deleteMany({
               where: { userId },
+            });
+          }
+          if (target.status !== status) {
+            await writeAuditLog(transaction, {
+              actorId,
+              action: AuditAction.USER_STATUS_UPDATED,
+              entityType: AuditEntityType.USER,
+              entityId: target.id,
+              metadata: {
+                previousStatus: target.status,
+                newStatus: status,
+                targetRole: target.role,
+              },
             });
           }
 

@@ -4,6 +4,10 @@ import {
   Prisma,
   type PrismaClient,
 } from "@/generated/prisma/client";
+import {
+  type AuditEntry,
+  writeAuditLog,
+} from "@/repositories/audit-write.repository";
 import { createNotifications } from "@/repositories/notification-write.repository";
 import type { NotificationCreateRecord } from "@/services/order-notification.service";
 
@@ -116,6 +120,7 @@ export interface DeliveryBatchManagementTransaction {
   createNotifications(
     notifications: readonly NotificationCreateRecord[],
   ): Promise<void>;
+  writeAudits(entries: readonly AuditEntry[]): Promise<void>;
 }
 
 export interface DeliveryBatchManagementRepository {
@@ -263,6 +268,10 @@ class PrismaDeliveryBatchManagementTransaction implements DeliveryBatchManagemen
     notifications: readonly NotificationCreateRecord[],
   ): Promise<void> {
     return createNotifications(this.prisma, notifications);
+  }
+
+  async writeAudits(entries: readonly AuditEntry[]): Promise<void> {
+    for (const entry of entries) await writeAuditLog(this.prisma, entry);
   }
 }
 

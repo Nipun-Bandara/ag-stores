@@ -96,7 +96,7 @@ export async function setAdminUserStatus(
   users: AdminUserRepository = repository(),
 ) {
   requireAdministrator(administrator);
-  const result = await users.setStatus(userId, input.status);
+  const result = await users.setStatus(administrator.id, userId, input.status);
   if (result.kind === "not_found") {
     throw new AdminUserError("USER_NOT_FOUND", "User not found.", 404);
   }

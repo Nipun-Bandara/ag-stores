@@ -1,5 +1,11 @@
-import { Prisma, type PrismaClient } from "@/generated/prisma/client";
+import {
+  AuditAction,
+  AuditEntityType,
+  Prisma,
+  type PrismaClient,
+} from "@/generated/prisma/client";
 import { withSerializableRetry } from "@/lib/db-transaction";
+import { writeAuditLog } from "@/repositories/audit-write.repository";
 import type {
   ProductAvailabilityInput,
   ProductCreateInput,
@@ -66,13 +72,18 @@ export interface ProductRepository {
     productId: string,
   ): Promise<ProductRecord | null>;
   create(input: ProductCreateInput): Promise<ProductRecord>;
-  update(productId: string, input: ProductUpdateInput): Promise<ProductRecord>;
+  update(
+    actorId: string,
+    productId: string,
+    input: ProductUpdateInput,
+  ): Promise<ProductRecord>;
   setAvailabilityOwned(
     ownerId: string,
     productId: string,
     input: ProductAvailabilityInput,
   ): Promise<ProductRecord | null>;
   updateStockOwned(
+    actorId: string,
     ownerId: string,
     productId: string,
     input: ProductStockInput,
@@ -175,6 +186,7 @@ export class PrismaProductRepository implements ProductRepository {
   }
 
   async update(
+    actorId: string,
     productId: string,
     input: ProductUpdateInput,
   ): Promise<ProductRecord> {
@@ -187,7 +199,11 @@ export class PrismaProductRepository implements ProductRepository {
             WHERE "id" = ${productId}::uuid
             FOR UPDATE
           `;
-          return transaction.product.update({
+          const previous = await transaction.product.findUniqueOrThrow({
+            where: { id: productId },
+            select: { price: true, stockQuantity: true },
+          });
+          const product = await transaction.product.update({
             where: { id: productId },
             data: {
               categoryId: input.categoryId,
@@ -205,6 +221,31 @@ export class PrismaProductRepository implements ProductRepository {
             },
             select: productSelect,
           });
+          if (!previous.price.equals(product.price)) {
+            await writeAuditLog(transaction, {
+              actorId,
+              action: AuditAction.PRODUCT_PRICE_UPDATED,
+              entityType: AuditEntityType.PRODUCT,
+              entityId: product.id,
+              metadata: {
+                previousPrice: previous.price.toFixed(2),
+                newPrice: product.price.toFixed(2),
+              },
+            });
+          }
+          if (previous.stockQuantity !== product.stockQuantity) {
+            await writeAuditLog(transaction, {
+              actorId,
+              action: AuditAction.PRODUCT_STOCK_UPDATED,
+              entityType: AuditEntityType.PRODUCT,
+              entityId: product.id,
+              metadata: {
+                previousQuantity: previous.stockQuantity,
+                newQuantity: product.stockQuantity,
+              },
+            });
+          }
+          return product;
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       ),
@@ -231,6 +272,7 @@ export class PrismaProductRepository implements ProductRepository {
   }
 
   updateStockOwned(
+    actorId: string,
     ownerId: string,
     productId: string,
     input: ProductStockInput,
@@ -240,7 +282,7 @@ export class PrismaProductRepository implements ProductRepository {
         async (transaction) => {
           const product = await transaction.product.findFirst({
             where: { id: productId, shop: { ownerId } },
-            select: { id: true },
+            select: { id: true, stockQuantity: true },
           });
           if (!product) return null;
           await transaction.$queryRaw`
@@ -249,7 +291,7 @@ export class PrismaProductRepository implements ProductRepository {
             WHERE "id" = ${product.id}::uuid
             FOR UPDATE
           `;
-          return transaction.product.update({
+          const updated = await transaction.product.update({
             where: { id: productId },
             data: {
               stockQuantity: input.stockQuantity,
@@ -259,6 +301,19 @@ export class PrismaProductRepository implements ProductRepository {
             },
             select: productSelect,
           });
+          if (product.stockQuantity !== updated.stockQuantity) {
+            await writeAuditLog(transaction, {
+              actorId,
+              action: AuditAction.PRODUCT_STOCK_UPDATED,
+              entityType: AuditEntityType.PRODUCT,
+              entityId: updated.id,
+              metadata: {
+                previousQuantity: product.stockQuantity,
+                newQuantity: updated.stockQuantity,
+              },
+            });
+          }
+          return updated;
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       ),
