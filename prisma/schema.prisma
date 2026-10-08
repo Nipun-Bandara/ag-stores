@@ -54,6 +54,17 @@ enum DeliveryBatchStatus {
   CANCELLED
 }
 
+enum NotificationType {
+  ORDER_PLACED
+  ORDER_CONFIRMED
+  ORDER_READY_FOR_DELIVERY
+  ORDER_ASSIGNED
+  ORDER_OUT_FOR_DELIVERY
+  ORDER_DELIVERED
+  ORDER_REJECTED
+  ORDER_CANCELLED
+}
+
 model User {
   id                String            @id @default(uuid()) @db.Uuid
   assignedShopId    String?           @db.Uuid
@@ -74,6 +85,7 @@ model User {
   deliveryBatches    DeliveryBatch[]      @relation("DeliveryPersonBatches")
   sessions           AuthSession[]
   orderStatusChanges OrderStatusHistory[] @relation("OrderStatusChangedBy")
+  notifications      Notification[]
 
   @@index([role, status])
   @@index([assignedShopId, status])
@@ -207,6 +219,7 @@ model Order {
   items           OrderItem[]
   batchAssignment DeliveryBatchOrder?
   statusHistory   OrderStatusHistory[]
+  notifications   Notification[]
 
   @@index([customerId, createdAt])
   @@index([shopId, status, createdAt])
@@ -274,4 +287,23 @@ model DeliveryBatchOrder {
   @@id([batchId, orderId])
   @@unique([batchId, sequence])
   @@map("delivery_batch_orders")
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  orderId   String           @db.Uuid
+  type      NotificationType
+  title     String           @db.VarChar(160)
+  message   String           @db.VarChar(500)
+  readAt    DateTime?        @db.Timestamptz(3)
+  createdAt DateTime         @default(now()) @db.Timestamptz(3)
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([userId, orderId, type])
+  @@index([userId, readAt, createdAt])
+  @@index([orderId, type])
+  @@map("notifications")
 }

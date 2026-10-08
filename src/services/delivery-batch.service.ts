@@ -1,5 +1,9 @@
 import { getDb } from "@/db";
-import { OrderStatus, UserRole } from "@/generated/prisma/client";
+import {
+  NotificationType,
+  OrderStatus,
+  UserRole,
+} from "@/generated/prisma/client";
 import { assertOrderStatusTransition } from "@/features/orders/order-state-machine";
 import {
   isDeliveryBatchConflictError,
@@ -8,6 +12,7 @@ import {
 } from "@/repositories/delivery-batch.repository";
 import type { AuthenticatedUser } from "@/types/auth";
 import type { CreateDeliveryBatchInput } from "@/validations/delivery-batch";
+import { buildOrderNotifications } from "@/services/order-notification.service";
 
 type DeliveryBatchErrorCode =
   | "DELIVERY_ONLY"
@@ -123,6 +128,15 @@ export async function createDeliveryBatch(
         createdAt: batch.createdAt,
         note: `Assigned to delivery batch ${batch.id}.`,
       });
+      await transaction.createNotifications(
+        orders.flatMap((order) =>
+          buildOrderNotifications(NotificationType.ORDER_ASSIGNED, {
+            orderId: order.id,
+            customerId: order.customerId,
+            deliveryPersonId: user.id,
+          }),
+        ),
+      );
 
       return {
         id: batch.id,

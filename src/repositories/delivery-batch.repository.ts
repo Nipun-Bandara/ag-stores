@@ -4,9 +4,12 @@ import {
   Prisma,
   type PrismaClient,
 } from "@/generated/prisma/client";
+import { createNotifications } from "@/repositories/notification-write.repository";
+import type { NotificationCreateRecord } from "@/services/order-notification.service";
 
 const batchOrderSelect = {
   id: true,
+  customerId: true,
   shopId: true,
   status: true,
   batchAssignment: { select: { batchId: true } },
@@ -39,6 +42,9 @@ export interface DeliveryBatchTransaction {
     createdAt: Date;
     note: string;
   }): Promise<void>;
+  createNotifications(
+    notifications: readonly NotificationCreateRecord[],
+  ): Promise<void>;
 }
 
 export interface DeliveryBatchRepository {
@@ -127,6 +133,12 @@ class PrismaDeliveryBatchTransaction implements DeliveryBatchTransaction {
         note: input.note,
       })),
     });
+  }
+
+  createNotifications(
+    notifications: readonly NotificationCreateRecord[],
+  ): Promise<void> {
+    return createNotifications(this.prisma, notifications);
   }
 }
 
