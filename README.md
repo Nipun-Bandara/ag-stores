@@ -21,7 +21,7 @@ shadcn/ui conventions, PostgreSQL, Prisma, and Zod.
 2. Create the local environment file:
 
    ```bash
-   cp .env.example .env
+   cp.env.example .env.example .env
    ```
 
    Delivery maps are disabled by default. To enable Mapbox visualization, set

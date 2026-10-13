@@ -16,7 +16,7 @@ export async function requireAuth(returnTo = "/account") {
   const user = await getAuthenticatedUser();
 
   if (!user) {
-    redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+    redirect(`/auth?returnTo=${encodeURIComponent(returnTo)}`);
   }
 
   return user;

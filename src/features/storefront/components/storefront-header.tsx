@@ -46,13 +46,13 @@ export function StorefrontHeader({
             withLabel={copy.with}
           />
           <Link
-            href={routePath("/login", locale, localizedRoute)}
+            href={routePath("/auth", locale, localizedRoute)}
             className="rounded-full px-3 py-2 font-semibold text-emerald-950"
           >
             {copy.signIn}
           </Link>
           <Link
-            href={routePath("/register", locale, localizedRoute)}
+            href={routePath("/auth?mode=register", locale, localizedRoute)}
             className="rounded-full bg-emerald-950 px-4 py-2 font-semibold text-white"
           >
             {copy.register}
