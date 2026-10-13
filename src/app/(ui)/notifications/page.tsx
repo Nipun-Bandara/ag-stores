@@ -11,14 +11,12 @@ export default async function NotificationsPage() {
   const notifications = await getNotifications(user);
 
   return (
-    <section className="mx-auto min-h-screen max-w-4xl px-4 py-10 sm:px-6 sm:py-16">
-      <section className="pt-8">
-        <h1 className="text-3xl font-semibold tracking-tight">Notifications</h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          Follow important updates for orders relevant to your account.
-        </p>
-        <NotificationCenter role={user.role} initialData={notifications} />
-      </section>
+    <section className="min-w-0 w-full">
+      <h1 className="text-3xl font-semibold tracking-tight">Notifications</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Follow important updates for orders relevant to your account.
+      </p>
+      <NotificationCenter role={user.role} initialData={notifications} />
     </section>
   );
 }

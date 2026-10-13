@@ -4,6 +4,11 @@ import { useState, type FormEvent } from "react";
 
 import { FormError, FormField } from "@/features/auth/components/form-fields";
 import type { CustomerAddressView } from "@/services/customer-address.service";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 
 interface ApiPayload {
   data?: CustomerAddressView;
@@ -62,80 +67,79 @@ function AddressForm({ address, onCancel, onSaved }: AddressFormProps) {
   }
 
   return (
-    <form className="space-y-4 rounded-xl border p-5" onSubmit={handleSubmit}>
-      <h2 className="text-lg font-semibold">
-        {address ? `Edit ${address.label}` : "Add an address"}
-      </h2>
-      <FormField
-        id={address ? `label-${address.id}` : "label"}
-        name="label"
-        label="Label"
-        placeholder="Home, Office, or Other"
-        defaultValue={address?.label ?? ""}
-        maxLength={80}
-        required
-      />
-      <FormField
-        id={address ? `address-${address.id}` : "address"}
-        name="address"
-        label="Address"
-        defaultValue={address?.address ?? ""}
-        maxLength={1000}
-        required
-      />
-      <div className="grid gap-4 sm:grid-cols-2">
+    <Card className="gap-0 p-5">
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <h2 className="text-lg font-semibold">
+          {address ? `Edit ${address.label}` : "Add an address"}
+        </h2>
         <FormField
-          id={address ? `latitude-${address.id}` : "latitude"}
-          name="latitude"
-          label="Latitude"
-          type="number"
-          min={-90}
-          max={90}
-          step="0.000001"
-          defaultValue={address?.latitude ?? ""}
+          id={address ? `label-${address.id}` : "label"}
+          name="label"
+          label="Label"
+          placeholder="Home, Office, or Other"
+          defaultValue={address?.label ?? ""}
+          maxLength={80}
           required
         />
         <FormField
-          id={address ? `longitude-${address.id}` : "longitude"}
-          name="longitude"
-          label="Longitude"
-          type="number"
-          min={-180}
-          max={180}
-          step="0.000001"
-          defaultValue={address?.longitude ?? ""}
+          id={address ? `address-${address.id}` : "address"}
+          name="address"
+          label="Address"
+          defaultValue={address?.address ?? ""}
+          maxLength={1000}
           required
         />
-      </div>
-      <label className="flex items-center gap-2 text-sm font-medium">
-        <input
-          name="isDefault"
-          type="checkbox"
-          defaultChecked={address?.isDefault ?? false}
-          disabled={address?.isDefault ?? false}
-        />
-        Use as default address
-      </label>
-      {error ? <FormError>{error}</FormError> : null}
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="h-10 rounded-md bg-neutral-950 px-5 text-sm font-medium text-white disabled:opacity-60"
-        >
-          {pending ? "Saving…" : address ? "Save changes" : "Add address"}
-        </button>
-        {onCancel ? (
-          <button
-            type="button"
-            className="h-10 rounded-md border px-5 text-sm font-medium"
-            onClick={onCancel}
-          >
-            Cancel
-          </button>
-        ) : null}
-      </div>
-    </form>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField
+            id={address ? `latitude-${address.id}` : "latitude"}
+            name="latitude"
+            label="Latitude"
+            type="number"
+            min={-90}
+            max={90}
+            step="0.000001"
+            defaultValue={address?.latitude ?? ""}
+            required
+          />
+          <FormField
+            id={address ? `longitude-${address.id}` : "longitude"}
+            name="longitude"
+            label="Longitude"
+            type="number"
+            min={-180}
+            max={180}
+            step="0.000001"
+            defaultValue={address?.longitude ?? ""}
+            required
+          />
+        </div>
+        <Label className="flex items-center gap-2 text-sm font-medium">
+          <Checkbox
+            name="isDefault"
+
+            defaultChecked={address?.isDefault ?? false}
+            disabled={address?.isDefault ?? false}
+          />
+          Use as default address
+        </Label>
+        {error ? <FormError>{error}</FormError> : null}
+        <div className="flex gap-3">
+          <Button type="submit" disabled={pending} className="h-10">
+            {pending ? "Saving…" : address ? "Save changes" : "Add address"}
+          </Button>
+          {onCancel ? (
+            <Button
+              variant="outline"
+              type="button"
+              className="h-10"
+              onClick={onCancel}
+            >
+              Cancel
+            </Button>
+          ) : null}
+        </div>
+      </form>
+    </Card>
   );
 }
 
@@ -237,48 +241,54 @@ export function AddressManager({
           </div>
         ) : null}
         {addresses.length === 0 ? (
-          <p className="mt-4 text-sm text-neutral-600">
+          <p className="mt-4 text-sm text-muted-foreground">
             You have no saved delivery addresses.
           </p>
         ) : (
           <div className="mt-4 space-y-4">
             {addresses.map((item) => (
-              <article key={item.id} className="rounded-xl border p-5">
+              <Card as="article" key={item.id} className="gap-0 p-5">
                 <div className="flex items-start justify-between gap-4">
                   <h3 className="font-semibold">{item.label}</h3>
                   {item.isDefault ? (
-                    <span className="rounded-full bg-neutral-100 px-2 py-1 text-xs font-medium">
-                      Default
-                    </span>
+                    <Badge variant="secondary">Default</Badge>
                   ) : null}
                 </div>
-                <p className="mt-2 text-sm text-neutral-700">{item.address}</p>
-                <p className="mt-2 text-xs text-neutral-500">
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {item.address}
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
                   {item.latitude}, {item.longitude}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3 text-sm font-medium">
-                  <button type="button" onClick={() => setEditingId(item.id)}>
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    onClick={() => setEditingId(item.id)}
+                  >
                     Edit {item.label}
-                  </button>
+                  </Button>
                   {!item.isDefault ? (
-                    <button
+                    <Button
+                      variant="ghost"
                       type="button"
                       disabled={pendingId === item.id}
                       onClick={() => setDefault(item.id)}
                     >
                       Make {item.label} default
-                    </button>
+                    </Button>
                   ) : null}
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     disabled={pendingId === item.id}
-                    className="text-red-700"
+
                     onClick={() => deleteAddress(item.id)}
                   >
                     Delete {item.label}
-                  </button>
+                  </Button>
                 </div>
-              </article>
+              </Card>
             ))}
           </div>
         )}

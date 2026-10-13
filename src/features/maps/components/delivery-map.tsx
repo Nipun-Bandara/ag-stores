@@ -7,6 +7,7 @@ import {
   getPublicMapConfig,
   type PublicMapConfig,
 } from "@/validations/map-env";
+import { Card } from "@/components/ui/card";
 
 export function DeliveryMap({
   data,
@@ -26,14 +27,15 @@ export function DeliveryMap({
       : null;
 
   return (
-    <section
-      className="mt-6 rounded-xl border bg-white p-5"
+    <Card
+      as="section"
+      className="gap-0 mt-6 p-5"
       aria-labelledby="delivery-map-title"
     >
       <h2 id="delivery-map-title" className="text-lg font-semibold">
         Delivery map
       </h2>
-      <p className="mt-2 text-sm text-neutral-600">
+      <p className="mt-2 text-sm text-muted-foreground">
         Stops follow the saved delivery sequence. Road-route optimization is not
         applied.
       </p>
@@ -50,25 +52,25 @@ export function DeliveryMap({
           data-map-provider={provider?.id}
         />
       ) : (
-        <div className="mt-4 rounded-lg border border-dashed bg-neutral-50 p-6 text-sm text-neutral-600">
+        <Card className="gap-0 mt-4 border-dashed p-6 text-muted-foreground border ring-0">
           {data.markers.length === 0
             ? "Map unavailable because no valid coordinates are available."
             : "Map preview is disabled. Configure a public map provider token to enable it."}
-        </div>
+        </Card>
       )}
 
       <ol className="mt-4 grid gap-2 sm:grid-cols-2" aria-label="Map markers">
         {data.markers.map((marker) => (
           <li
             key={`${marker.kind}-${marker.id}`}
-            className="flex items-center gap-3 rounded-lg bg-neutral-50 p-3 text-sm"
+            className="flex items-center gap-3 rounded-lg bg-muted/50 p-3 text-sm"
           >
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 font-semibold text-white">
               {marker.markerLabel}
             </span>
             <span>
               <span className="block font-medium">{marker.label}</span>
-              <span className="block text-xs text-neutral-500">
+              <span className="block text-xs text-muted-foreground">
                 {marker.latitude}, {marker.longitude}
               </span>
             </span>
@@ -82,6 +84,6 @@ export function DeliveryMap({
           {data.omittedLocations.join(", ")}.
         </p>
       ) : null}
-    </section>
+    </Card>
   );
 }

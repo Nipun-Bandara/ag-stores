@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import type { Metadata } from "next";
 
 import Link from "next/link";
@@ -70,27 +71,23 @@ export default async function ProductDetailPage({
             <p className="text-sm font-black tracking-wide text-emerald-700 uppercase">
               {product.shopName}
             </p>
-            <h1 className="mt-3 text-4xl font-black tracking-tight text-emerald-950 sm:text-5xl">
+            <h1 className="mt-3 text-4xl font-black tracking-tight text-foreground sm:text-5xl">
               {name}
             </h1>
-            <p className="mt-7 text-3xl font-black text-emerald-950">
+            <p className="mt-7 text-3xl font-black text-foreground">
               LKR {product.price}
             </p>
             <div className="mt-5">
-              <span
-                className={
-                  product.isOutOfStock
-                    ? "inline-flex rounded-full bg-red-50 px-4 py-2 text-sm font-bold text-red-700"
-                    : "inline-flex rounded-full bg-lime-100 px-4 py-2 text-sm font-bold text-emerald-800"
-                }
-              >
+              <Badge variant={product.isOutOfStock ? "destructive" : "success"}>
                 {product.isOutOfStock
                   ? copy.outOfStock
                   : `${product.stockQuantity} ${copy.inStockCount}`}
-              </span>
+              </Badge>
             </div>
             {description ? (
-              <p className="mt-8 leading-7 text-neutral-600">{description}</p>
+              <p className="mt-8 leading-7 text-muted-foreground">
+                {description}
+              </p>
             ) : null}
             <div className="mt-10">
               <AddToCartButton
@@ -102,7 +99,7 @@ export default async function ProductDetailPage({
                   stockQuantity: product.stockQuantity,
                   imageUrl: product.imageUrl,
                 }}
-                className="rounded-xl bg-emerald-950 px-6 py-3 font-bold text-white disabled:cursor-not-allowed disabled:bg-neutral-300"
+                className="h-10 px-6"
               />
             </div>
           </section>

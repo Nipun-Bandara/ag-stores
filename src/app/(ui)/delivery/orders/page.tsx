@@ -7,6 +7,15 @@ import { AvailableOrderBatchSelector } from "@/features/delivery/components/avai
 import { requireRole } from "@/lib/auth/server";
 import { listAvailableDeliveryOrders } from "@/services/delivery-order.service";
 import { availableDeliveryOrderFiltersSchema } from "@/validations/delivery-order";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
 
 export const metadata: Metadata = { title: "Available orders | AG Stores" };
 
@@ -41,19 +50,19 @@ export default async function DeliveryOrdersPage({
   const data = await listAvailableDeliveryOrders(user, filters);
 
   return (
-    <section className="mx-auto min-h-screen max-w-5xl px-4 py-10 sm:px-6 sm:py-16">
-      <section className="pt-8">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Available orders
-        </h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          Ready orders from {data.shop.name} that have not yet been assigned.
-        </p>
+    <section className="min-w-0 w-full">
+      <h1 className="text-3xl font-semibold tracking-tight">
+        Available orders
+      </h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Ready orders from {data.shop.name} that have not yet been assigned.
+      </p>
 
-        <form className="mt-8 grid gap-4 rounded-xl border p-5 sm:grid-cols-2 lg:grid-cols-5">
-          <label className="text-sm font-medium" htmlFor="maxDistanceKm">
+      <Card className="gap-0 mt-8 p-5">
+        <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <Label className="text-sm font-medium" htmlFor="maxDistanceKm">
             Maximum approximate distance
-            <input
+            <Input
               id="maxDistanceKm"
               name="maxDistanceKm"
               type="number"
@@ -62,69 +71,73 @@ export default async function DeliveryOrdersPage({
               step="0.1"
               defaultValue={filters.maxDistanceKm ?? ""}
               placeholder="Kilometres"
-              className="mt-1.5 h-10 w-full rounded-md border px-3 text-sm"
+              className="mt-1.5 h-10 w-full"
             />
-          </label>
-          <label className="text-sm font-medium" htmlFor="createdAfter">
+          </Label>
+          <Label className="text-sm font-medium" htmlFor="createdAfter">
             Created after
-            <input
+            <Input
               id="createdAfter"
               name="createdAfter"
               type="date"
               defaultValue={filters.createdAfter ?? ""}
-              className="mt-1.5 h-10 w-full rounded-md border px-3 text-sm"
+              className="mt-1.5 h-10 w-full"
             />
-          </label>
-          <label className="text-sm font-medium" htmlFor="sortBy">
+          </Label>
+          <Label className="text-sm font-medium" htmlFor="sortBy">
             Sort by
-            <select
+            <NativeSelect
               id="sortBy"
               name="sortBy"
               defaultValue={filters.sortBy}
-              className="mt-1.5 h-10 w-full rounded-md border bg-white px-3 text-sm"
+              className="mt-1.5 h-10 w-full"
             >
-              <option value="createdAt">Creation time</option>
-              <option value="distance">Approximate distance</option>
-            </select>
-          </label>
-          <label className="text-sm font-medium" htmlFor="direction">
+              <NativeSelectOption value="createdAt">
+                Creation time
+              </NativeSelectOption>
+              <NativeSelectOption value="distance">
+                Approximate distance
+              </NativeSelectOption>
+            </NativeSelect>
+          </Label>
+          <Label className="text-sm font-medium" htmlFor="direction">
             Direction
-            <select
+            <NativeSelect
               id="direction"
               name="direction"
               defaultValue={filters.direction}
-              className="mt-1.5 h-10 w-full rounded-md border bg-white px-3 text-sm"
+              className="mt-1.5 h-10 w-full"
             >
-              <option value="asc">Ascending</option>
-              <option value="desc">Descending</option>
-            </select>
-          </label>
+              <NativeSelectOption value="asc">Ascending</NativeSelectOption>
+              <NativeSelectOption value="desc">Descending</NativeSelectOption>
+            </NativeSelect>
+          </Label>
           <div className="flex items-end gap-2">
-            <button
-              type="submit"
-              className="h-10 rounded-md bg-neutral-950 px-4 text-sm font-medium text-white"
-            >
+            <Button type="submit" className="h-10">
               Apply
-            </button>
+            </Button>
             <Link
               href="/delivery/orders"
-              className="inline-flex h-10 items-center rounded-md border px-4 text-sm font-medium"
+              className={buttonVariants({
+                variant: "outline",
+                className: "inline-flex h-10 items-center",
+              })}
             >
               Clear
             </Link>
           </div>
         </form>
-        {!parsed.success ? (
-          <p role="alert" className="mt-3 text-sm text-red-700">
-            One or more filters were invalid and have been cleared.
-          </p>
-        ) : null}
+      </Card>
+      {!parsed.success ? (
+        <Alert variant="destructive" role="alert" className="mt-3">
+          One or more filters were invalid and have been cleared.
+        </Alert>
+      ) : null}
 
-        <AvailableOrderBatchSelector
-          orders={data.orders}
-          suggestedGroups={data.suggestedGroups}
-        />
-      </section>
+      <AvailableOrderBatchSelector
+        orders={data.orders}
+        suggestedGroups={data.suggestedGroups}
+      />
     </section>
   );
 }

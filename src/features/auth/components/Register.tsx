@@ -30,6 +30,9 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { describeApiError } from "@/utils/apiError";
+import { Alert } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 interface RegisterProps {
   returnTo: string;
@@ -94,22 +97,23 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
       <CardContent>
         <form onSubmit={formik.handleSubmit} className="mt-2 space-y-5">
           {serverError && (
-            <div
+            <Alert
+              variant="destructive"
               role="alert"
-              className="p-3 rounded-md bg-destructive/10 border border-destructive/20 flex items-center gap-3 text-destructive text-sm"
+              className="flex items-center gap-3"
             >
               <AlertCircle className="h-5 w-5 flex-shrink-0" />
               {serverError}
-            </div>
+            </Alert>
           )}
           <div className="space-y-4">
             <div>
-              <label
+              <Label
                 htmlFor="register-email"
                 className="block text-sm font-medium mb-1.5"
               >
                 Email
-              </label>
+              </Label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
                   <Mail className="h-5 w-5" />
@@ -131,12 +135,12 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
             </div>
 
             <div>
-              <label
+              <Label
                 htmlFor="register-name"
                 className="block text-sm font-medium mb-1.5"
               >
                 Name
-              </label>
+              </Label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
                   <User className="h-5 w-5" />
@@ -157,12 +161,12 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
               ) : null}
             </div>
             <div>
-              <label
+              <Label
                 htmlFor="register-password"
                 className="block text-sm font-medium mb-1.5"
               >
                 Password
-              </label>
+              </Label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
                   <Lock className="h-5 w-5" />
@@ -177,11 +181,12 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
                   }
                   placeholder="Enter your password"
                 />
-                <button
+                <Button
+                  variant="ghost"
                   type="button"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
                   tabIndex={-1}
                 >
                   {showPassword ? (
@@ -189,7 +194,7 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
                   ) : (
                     <EyeIcon className="h-5 w-5" />
                   )}
-                </button>
+                </Button>
               </div>
               {formik.touched.password && formik.errors.password ? (
                 <div className="text-destructive text-xs mt-1">
@@ -198,12 +203,12 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
               ) : null}
             </div>
             <div>
-              <label
+              <Label
                 id="register-language-label"
                 className="block text-sm font-medium mb-1.5"
               >
                 Preferred language
-              </label>
+              </Label>
               <Select
                 value={formik.values.preferredLanguage}
                 onValueChange={(value) =>
@@ -226,24 +231,20 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
             </div>
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={formik.isSubmitting}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md text-sm font-semibold text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex justify-center hover:scale-[1.02] active:scale-[0.98]"
           >
             {formik.isSubmitting ? "Creating Account..." : "Register"}
-          </button>
+          </Button>
         </form>
       </CardContent>
       <CardFooter className="flex justify-center">
         <div className="text-center mt-4 text-sm text-muted-foreground">
-          <button
-            type="button"
-            onClick={onSwitchToLogin}
-            className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-          >
+          <Button variant="ghost" type="button" onClick={onSwitchToLogin}>
             Already have an account? Sign in
-          </button>
+          </Button>
         </div>
       </CardFooter>
     </Card>

@@ -4,6 +4,7 @@ import type { Dictionary } from "@/lib/i18n/config";
 
 import React, { useState } from "react";
 import { TestimonialCard } from "./TestimonialCard";
+import { Button } from "@/components/ui/button";
 
 export function Testimonial({ copy }: { copy: Dictionary["landing"] }) {
   const testimonials = [
@@ -63,9 +64,10 @@ export function Testimonial({ copy }: { copy: Dictionary["landing"] }) {
           />
 
           <div className="flex gap-4 mt-8">
-            <button
+            <Button
+              variant="outline"
               onClick={handlePrev}
-              className="p-3 rounded-full bg-background border border-border hover:bg-muted transition-colors text-foreground flex items-center justify-center soft-bloom"
+              className="p-3 text-foreground flex items-center justify-center soft-bloom"
               aria-label={copy.previousTestimonial}
             >
               <span
@@ -74,10 +76,11 @@ export function Testimonial({ copy }: { copy: Dictionary["landing"] }) {
               >
                 arrow_back
               </span>
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
               onClick={handleNext}
-              className="p-3 rounded-full bg-background border border-border hover:bg-muted transition-colors text-foreground flex items-center justify-center soft-bloom"
+              className="p-3 text-foreground flex items-center justify-center soft-bloom"
               aria-label={copy.nextTestimonial}
             >
               <span
@@ -86,7 +89,7 @@ export function Testimonial({ copy }: { copy: Dictionary["landing"] }) {
               >
                 arrow_forward
               </span>
-            </button>
+            </Button>
           </div>
         </div>
       </div>

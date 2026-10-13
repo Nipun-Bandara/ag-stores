@@ -1,5 +1,6 @@
 import type { Dictionary } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
 
 export const Features = ({ copy }: { copy: Dictionary["landing"] }) => {
   const features = [
@@ -100,11 +101,11 @@ export const Features = ({ copy }: { copy: Dictionary["landing"] }) => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 min-[450px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 relative z-10 soft-bloom rounded-3xl overflow-hidden bg-background border border-border">
+      <Card className="gap-0 py-0 grid grid-cols-1 min-[450px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 relative z-10 soft-bloom overflow-hidden bg-background">
         {features.map((feature, index) => (
           <Feature key={feature.title} {...feature} index={index} />
         ))}
-      </div>
+      </Card>
     </div>
   );
 };

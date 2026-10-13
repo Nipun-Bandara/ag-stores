@@ -1,6 +1,7 @@
 import { ProductCard } from "@/features/storefront/components/product-card";
 import type { Locale } from "@/lib/i18n/config";
 import type { StorefrontProductView } from "@/services/storefront.service";
+import { Card } from "@/components/ui/card";
 
 export function ProductGrid({
   products,
@@ -15,9 +16,9 @@ export function ProductGrid({
 }) {
   if (products.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-emerald-950/20 bg-white p-10 text-center text-sm text-neutral-600">
+      <Card className="gap-0 border-dashed p-10 text-center text-muted-foreground border ring-0">
         {emptyMessage}
-      </div>
+      </Card>
     );
   }
 

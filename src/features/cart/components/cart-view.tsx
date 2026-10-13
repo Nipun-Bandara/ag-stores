@@ -5,6 +5,11 @@ import { useState } from "react";
 import Link from "next/link";
 
 import { useCart } from "@/features/cart/cart-store";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Alert } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
 
 interface ValidationPayload {
   data?: { subtotal?: string };
@@ -43,20 +48,23 @@ export function CartView() {
 
   if (items.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-emerald-950/20 bg-white p-10 text-center">
-        <h2 className="text-xl font-black text-emerald-950">
+      <Card className="gap-0 border-dashed p-10 text-center border ring-0">
+        <h2 className="text-xl font-black text-foreground">
           Your cart is empty
         </h2>
-        <p className="mt-2 text-sm text-neutral-600">
+        <p className="mt-2 text-sm text-muted-foreground">
           Browse the storefront to find something you need.
         </p>
         <Link
           href="/products"
-          className="mt-6 inline-flex rounded-xl bg-emerald-950 px-5 py-3 text-sm font-bold text-white"
+          className={buttonVariants({
+            variant: "default",
+            className: "mt-6 inline-flex",
+          })}
         >
           Browse products
         </Link>
-      </div>
+      </Card>
     );
   }
 
@@ -64,10 +72,11 @@ export function CartView() {
     <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
       <section aria-label="Cart items" className="space-y-4">
         {items.map((item) => (
-          <article
+          <Card
+            as="article"
             key={item.id}
             data-testid="cart-item"
-            className="grid gap-4 rounded-2xl border border-emerald-950/10 bg-white p-4 shadow-sm sm:grid-cols-[5rem_1fr_auto] sm:items-center"
+            className="gap-0 grid gap-4 p-4 sm:grid-cols-[5rem_1fr_auto] sm:items-center"
           >
             <div
               className="flex aspect-square w-20 items-center justify-center rounded-xl bg-amber-100 bg-cover bg-center text-2xl font-black text-emerald-900/25"
@@ -80,22 +89,23 @@ export function CartView() {
               {!item.imageUrl ? item.name.charAt(0) : null}
             </div>
             <div>
-              <h2 className="font-bold text-emerald-950">{item.name}</h2>
-              <p className="mt-1 text-sm text-neutral-500">
+              <h2 className="font-bold text-foreground">{item.name}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
                 LKR {item.price} each · {item.stockQuantity} available
               </p>
-              <button
+              <Button
+                variant="ghost"
                 type="button"
                 onClick={() => remove(item.id)}
-                className="mt-3 text-sm font-bold text-red-700 underline underline-offset-4"
+                className="mt-3 underline underline-offset-4"
                 aria-label={`Remove ${item.name}`}
               >
                 Remove
-              </button>
+              </Button>
             </div>
-            <label className="text-sm font-semibold text-emerald-950">
+            <Label className="text-sm font-semibold text-foreground">
               Quantity
-              <input
+              <Input
                 aria-label={`Quantity for ${item.name}`}
                 type="number"
                 min={1}
@@ -104,52 +114,53 @@ export function CartView() {
                 onChange={(event) =>
                   updateQuantity(item.id, Number(event.currentTarget.value))
                 }
-                className="mt-1 block h-10 w-24 rounded-lg border px-3"
+                className="mt-1 block h-10 w-24"
               />
-            </label>
-          </article>
+            </Label>
+          </Card>
         ))}
       </section>
-      <aside className="h-fit rounded-2xl border border-emerald-950/10 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-black text-emerald-950">Summary</h2>
-        <div className="mt-6 flex justify-between border-b pb-5 font-bold text-emerald-950">
+      <Card as="aside" className="gap-0 h-fit p-6">
+        <h2 className="text-xl font-black text-foreground">Summary</h2>
+        <div className="mt-6 flex justify-between border-b pb-5 font-bold text-foreground">
           <span>Subtotal</span>
           <span data-testid="cart-subtotal">LKR {subtotal}</span>
         </div>
-        <p className="mt-3 text-xs leading-5 text-neutral-500">
+        <p className="mt-3 text-xs leading-5 text-muted-foreground">
           Displayed prices are estimates. Availability and current database
           prices are checked by the server before checkout.
         </p>
-        <button
+        <Button
           type="button"
           onClick={validateForCheckout}
           disabled={pending}
-          className="mt-5 w-full rounded-xl bg-emerald-950 px-5 py-3 text-sm font-bold text-white disabled:opacity-60"
+          className="mt-5 w-full"
         >
           {pending ? "Checking…" : "Validate cart for checkout"}
-        </button>
+        </Button>
         <Link
           href="/checkout"
-          className="mt-3 flex w-full justify-center rounded-xl border border-emerald-950 px-5 py-3 text-sm font-bold text-emerald-950"
+          className={buttonVariants({
+            variant: "outline",
+            className: "mt-3 flex w-full justify-center",
+          })}
         >
           Proceed to checkout
         </Link>
         {validationMessage ? (
-          <p
-            className="mt-3 text-sm font-semibold text-emerald-800"
-            role="status"
-          >
+          <Alert variant="success" className="mt-3" role="status">
             {validationMessage}
-          </p>
+          </Alert>
         ) : null}
-        <button
+        <Button
+          variant="ghost"
           type="button"
           onClick={clear}
-          className="mt-4 w-full text-sm font-bold text-red-700 underline underline-offset-4"
+          className="mt-4 w-full underline underline-offset-4"
         >
           Clear cart
-        </button>
-      </aside>
+        </Button>
+      </Card>
     </div>
   );
 }

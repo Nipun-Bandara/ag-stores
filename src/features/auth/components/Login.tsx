@@ -17,6 +17,10 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { describeApiError } from "@/utils/apiError";
+import { Alert } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface LoginProps {
   returnTo: string;
@@ -68,22 +72,23 @@ export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
       <CardContent>
         <form onSubmit={formik.handleSubmit} className="space-y-5">
           {serverError && (
-            <div
+            <Alert
+              variant="destructive"
               role="alert"
-              className="p-3 rounded-md bg-destructive/10 border border-destructive/20 flex items-center gap-3 text-destructive text-sm"
+              className="flex items-center gap-3"
             >
               <AlertCircle className="h-5 w-5 flex-shrink-0" />
               {serverError}
-            </div>
+            </Alert>
           )}
           <div className="space-y-4">
             <div>
-              <label
+              <Label
                 htmlFor="login-identifier"
                 className="block text-sm font-medium mb-1.5"
               >
                 Email or phone
-              </label>
+              </Label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
                   <Mail className="h-5 w-5" />
@@ -108,12 +113,12 @@ export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
             </div>
 
             <div>
-              <label
+              <Label
                 htmlFor="login-password"
                 className="block text-sm font-medium mb-1.5"
               >
                 Password
-              </label>
+              </Label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
                   <Lock className="h-5 w-5" />
@@ -128,11 +133,12 @@ export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
                   }
                   placeholder="Enter your password"
                 />
-                <button
+                <Button
+                  variant="ghost"
                   type="button"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
                   tabIndex={-1}
                 >
                   {showPassword ? (
@@ -140,7 +146,7 @@ export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
                   ) : (
                     <EyeIcon className="h-5 w-5" />
                   )}
-                </button>
+                </Button>
               </div>
               {formik.touched.password && formik.errors.password ? (
                 <div className="text-destructive text-xs mt-1">
@@ -151,43 +157,36 @@ export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
           </div>
 
           <div className="flex items-center justify-between text-sm">
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <input
-                type="checkbox"
-                className="w-4 h-4 rounded border-input text-primary focus:ring-ring focus:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2"
-              />
+            <Label className="flex items-center gap-2 cursor-pointer group">
+              <Checkbox className="w-4 h-4" />
               <span className="text-muted-foreground group-hover:text-foreground transition-colors">
                 Remember me
               </span>
-            </label>
-            <button
+            </Label>
+            <Button
+              variant="ghost"
               type="button"
               onClick={() => router.push("/forgot-password")}
-              className="font-medium text-primary hover:text-primary/80 transition-colors"
             >
               Forgot password?
-            </button>
+            </Button>
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={formik.isSubmitting}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md text-sm font-semibold text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex justify-center hover:scale-[1.02] active:scale-[0.98]"
           >
             {formik.isSubmitting ? "Signing in..." : "Sign in"}
-          </button>
+          </Button>
         </form>
       </CardContent>
       <CardFooter className="flex justify-center">
         <div className="text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
-          <button
-            type="button"
-            onClick={onSwitchToSignup}
-            className="font-medium text-primary hover:text-primary/80 transition-colors"
-          >
+          <Button variant="ghost" type="button" onClick={onSwitchToSignup}>
             Sign up
-          </button>
+          </Button>
         </div>
       </CardFooter>
     </Card>

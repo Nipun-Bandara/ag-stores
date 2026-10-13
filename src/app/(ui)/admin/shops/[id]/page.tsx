@@ -9,6 +9,7 @@ import { AdminShopStatusControl } from "@/features/admin/components/admin-shop-s
 import { requireRole } from "@/lib/auth/server";
 import { AdminShopError, getAdminShop } from "@/services/admin-shop.service";
 import { adminShopIdSchema } from "@/validations/admin-shop";
+import { Card } from "@/components/ui/card";
 
 export const metadata: Metadata = { title: "Shop details | AG Stores" };
 
@@ -31,50 +32,48 @@ export default async function AdminShopDetailPage({
   });
 
   return (
-    <section className="mx-auto min-h-screen max-w-5xl px-4 py-10 sm:px-6 sm:py-16">
-      <section className="pt-8">
-        <Link href="/admin/shops" className="text-sm font-medium underline">
-          ← Back to shops
-        </Link>
-        <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-sm text-neutral-500">Shop details</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-tight">
-              {data.shop.name}
-            </h1>
-            <p className="mt-2 text-sm text-neutral-600">
-              Owned by {data.shop.owner.name}
-            </p>
-          </div>
-          <AdminShopStatusControl
-            shopId={data.shop.id}
-            shopName={data.shop.name}
-            initialIsActive={data.shop.isActive}
-          />
+    <section className="min-w-0 w-full">
+      <Link href="/admin/shops" className="text-sm font-medium underline">
+        ← Back to shops
+      </Link>
+      <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-sm text-muted-foreground">Shop details</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight">
+            {data.shop.name}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Owned by {data.shop.owner.name}
+          </p>
         </div>
+        <AdminShopStatusControl
+          shopId={data.shop.id}
+          shopName={data.shop.name}
+          initialIsActive={data.shop.isActive}
+        />
+      </div>
 
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {(
-            [
-              ["Categories", data.shop.counts.categories],
-              ["Products", data.shop.counts.products],
-              ["Orders", data.shop.counts.orders],
-              ["Delivery personnel", data.shop.counts.deliveryPersonnel],
-            ] as const
-          ).map(([label, count]) => (
-            <div key={label} className="rounded-xl border bg-white p-4">
-              <p className="text-xs font-medium text-neutral-500">{label}</p>
-              <p className="mt-2 text-2xl font-semibold">{count}</p>
-            </div>
-          ))}
-        </div>
+      <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {(
+          [
+            ["Categories", data.shop.counts.categories],
+            ["Products", data.shop.counts.products],
+            ["Orders", data.shop.counts.orders],
+            ["Delivery personnel", data.shop.counts.deliveryPersonnel],
+          ] as const
+        ).map(([label, count]) => (
+          <Card key={label} className="gap-0 p-4">
+            <p className="text-xs font-medium text-muted-foreground">{label}</p>
+            <p className="mt-2 text-2xl font-semibold">{count}</p>
+          </Card>
+        ))}
+      </div>
 
-        <section className="mt-8" aria-labelledby="edit-shop-heading">
-          <h2 id="edit-shop-heading" className="mb-4 text-lg font-semibold">
-            Edit shop
-          </h2>
-          <AdminShopForm owners={data.owners} shop={data.shop} />
-        </section>
+      <section className="mt-8" aria-labelledby="edit-shop-heading">
+        <h2 id="edit-shop-heading" className="mb-4 text-lg font-semibold">
+          Edit shop
+        </h2>
+        <AdminShopForm owners={data.owners} shop={data.shop} />
       </section>
     </section>
   );

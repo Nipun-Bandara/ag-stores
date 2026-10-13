@@ -14,6 +14,14 @@ import {
   productInventoryStatusSchema,
   productSearchSchema,
 } from "@/validations/product";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 export const metadata: Metadata = { title: "Products | AG Stores" };
 
@@ -59,72 +67,75 @@ export default async function OwnerProductsPage({
   ]);
 
   return (
-    <section className="mx-auto min-h-screen max-w-6xl px-6 py-16">
-      <section className="pt-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Products</h1>
-            <p className="mt-2 text-sm text-neutral-600">
-              Manage product details, availability, prices, and stock.
-            </p>
-          </div>
-          <Link
-            href="/owner/products/new"
-            className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white"
-          >
-            Add product
-          </Link>
+    <section className="min-w-0 w-full">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Products</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Manage product details, availability, prices, and stock.
+          </p>
         </div>
-        <form className="mt-8 grid gap-4 rounded-xl border p-5 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto]">
-          <label className="text-sm font-medium" htmlFor="search">
+        <Link
+          href="/owner/products/new"
+          className={buttonVariants({ variant: "default", className: "" })}
+        >
+          Add product
+        </Link>
+      </div>
+      <Card className="gap-0 mt-8 p-5">
+        <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto]">
+          <Label className="text-sm font-medium" htmlFor="search">
             Search
-            <input
+            <Input
               id="search"
               name="search"
               defaultValue={search?.success ? search.data : ""}
               placeholder="Name or description"
-              className="mt-1.5 h-10 w-full rounded-md border px-3 text-sm"
+              className="mt-1.5 h-10 w-full"
             />
-          </label>
-          <label className="text-sm font-medium" htmlFor="categoryId">
+          </Label>
+          <Label className="text-sm font-medium" htmlFor="categoryId">
             Category
-            <select
+            <NativeSelect
               id="categoryId"
               name="categoryId"
               defaultValue={category?.success ? category.data : ""}
-              className="mt-1.5 h-10 w-full rounded-md border bg-white px-3 text-sm"
+              className="mt-1.5 h-10 w-full"
             >
-              <option value="">All categories</option>
+              <NativeSelectOption value="">All categories</NativeSelectOption>
               {options.categories.map((item) => (
-                <option key={item.id} value={item.id}>
+                <NativeSelectOption key={item.id} value={item.id}>
                   {item.nameEn}
-                </option>
+                </NativeSelectOption>
               ))}
-            </select>
-          </label>
-          <label className="text-sm font-medium" htmlFor="inventoryStatus">
+            </NativeSelect>
+          </Label>
+          <Label className="text-sm font-medium" htmlFor="inventoryStatus">
             Inventory
-            <select
+            <NativeSelect
               id="inventoryStatus"
               name="inventoryStatus"
               defaultValue={inventory?.success ? inventory.data : ""}
-              className="mt-1.5 h-10 w-full rounded-md border bg-white px-3 text-sm"
+              className="mt-1.5 h-10 w-full"
             >
-              <option value="">All stock levels</option>
-              <option value="OUT_OF_STOCK">Out of stock</option>
-              <option value="LOW_STOCK">Low stock</option>
-              <option value="AVAILABLE">Available</option>
-            </select>
-          </label>
-          <button
-            type="submit"
-            className="h-10 self-end rounded-md border px-4 text-sm font-medium"
-          >
+              <NativeSelectOption value="">All stock levels</NativeSelectOption>
+              <NativeSelectOption value="OUT_OF_STOCK">
+                Out of stock
+              </NativeSelectOption>
+              <NativeSelectOption value="LOW_STOCK">
+                Low stock
+              </NativeSelectOption>
+              <NativeSelectOption value="AVAILABLE">
+                Available
+              </NativeSelectOption>
+            </NativeSelect>
+          </Label>
+          <Button variant="outline" type="submit" className="h-10 self-end">
             Apply filters
-          </button>
+          </Button>
         </form>
-        <ProductList initialProducts={products} />
-      </section>
+      </Card>
+      <ProductList initialProducts={products} />
     </section>
   );
 }

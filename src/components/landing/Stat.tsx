@@ -2,14 +2,15 @@ import type { Dictionary } from "@/lib/i18n/config";
 import { useId } from "react";
 
 import CountUp from "./CountUp";
+import { Card } from "@/components/ui/card";
 
 export function Stat({ copy }: { copy: Dictionary["landing"] }) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 md:gap-2 pb-12 pt-0 sm:pt-0 md:pt-4 lg:pt-12 px-4 sm:px-6 md:px-12 lg:px-12 w-full max-w-7xl mx-auto">
       {stats.map((feature, idx) => (
-        <div
+        <Card
           key={idx}
-          className="relative flex flex-col border border-border items-center justify-center bg-card p-3 sm:p-6 rounded-3xl overflow-hidden soft-bloom"
+          className="gap-0 relative flex flex-col items-center justify-center bg-card p-3 sm:p-6 overflow-hidden soft-bloom"
         >
           <Grid size={20} />
           <div className="relative z-20 mb-4 text-primary">{feature.icon}</div>
@@ -27,7 +28,7 @@ export function Stat({ copy }: { copy: Dictionary["landing"] }) {
           <p className="text-muted-foreground mt-2 text-base font-normal relative z-20 text-center">
             {copy[feature.description]}
           </p>
-        </div>
+        </Card>
       ))}
     </div>
   );
@@ -176,7 +177,7 @@ export function GridPattern({
       />
       {squares && (
         <svg x={x} y={y} className="overflow-visible">
-          {squares.map(([x, y]: number[], idx: number) => (
+          {squares.map(([x = 0, y = 0]: number[], idx: number) => (
             <rect
               strokeWidth="0"
               className={fillClassName}

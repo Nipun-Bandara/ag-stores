@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   BadgeCheck,
   Bell,
@@ -42,6 +43,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import logo from "@/app/public/logo.svg";
 import { routePath, type Locale } from "@/lib/i18n/config";
+import { Alert } from "@/components/ui/alert";
 
 function AppLogo() {
   return (
@@ -60,7 +62,7 @@ function AppLogo() {
             />
           </div>
           <div className="grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-bold text-lg text-primary">
+            <span className="truncate font-bold text-lg text-sidebar-foreground">
               AG Stores
             </span>
           </div>
@@ -160,9 +162,11 @@ function NavUser({
               />
             }
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-muted bg-secondary overflow-hidden">
-              <User className="h-5 w-5 text-secondary-foreground" />
-            </div>
+            <Avatar>
+              <AvatarFallback>
+                <User className="size-4" />
+              </AvatarFallback>
+            </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">{user.name}</span>
               <span className="truncate text-xs">{user.email}</span>
@@ -178,9 +182,11 @@ function NavUser({
             <DropdownMenuGroup>
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-muted bg-secondary overflow-hidden">
-                    <User className="h-5 w-5 text-secondary-foreground" />
-                  </div>
+                  <Avatar>
+                    <AvatarFallback>
+                      <User className="size-4" />
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{user.name}</span>
                     <span className="truncate text-xs">{user.email}</span>
@@ -223,9 +229,9 @@ function NavUser({
           </DropdownMenuContent>
         </DropdownMenu>
         {logoutError && (
-          <p role="alert" className="p-2 text-sm text-destructive">
+          <Alert variant="destructive" role="alert" className="">
             {logoutError}
-          </p>
+          </Alert>
         )}
       </SidebarMenuItem>
     </SidebarMenu>

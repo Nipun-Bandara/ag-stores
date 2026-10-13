@@ -5,48 +5,49 @@ import {
   orderStatusLabels,
 } from "@/features/orders/order-presentation";
 import type { listCustomerOrders } from "@/services/customer-order.service";
+import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 
 type CustomerOrders = Awaited<ReturnType<typeof listCustomerOrders>>;
 type CustomerOrderSummary = CustomerOrders["activeOrders"][number];
 
 function OrderCard({ order }: { order: CustomerOrderSummary }) {
   return (
-    <article
-      data-testid="customer-order-card"
-      className="rounded-xl border bg-white p-5 shadow-sm"
-    >
+    <Card as="article" data-testid="customer-order-card" className="gap-0 p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+          <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             {order.shopName}
           </p>
           <p className="mt-1 break-all font-mono text-sm font-semibold">
             {order.id}
           </p>
-          <p className="mt-2 text-sm text-neutral-600">
+          <p className="mt-2 text-sm text-muted-foreground">
             {order.itemCount} item{order.itemCount === 1 ? "" : "s"} · Ordered{" "}
             {formatOrderDate(order.createdAt)}
           </p>
           {order.updatedAt !== order.createdAt ? (
-            <p className="mt-1 text-xs text-neutral-500">
+            <p className="mt-1 text-xs text-muted-foreground">
               Updated {formatOrderDate(order.updatedAt)}
             </p>
           ) : null}
         </div>
         <div className="text-right">
-          <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-900">
-            {orderStatusLabels[order.status]}
-          </span>
+          <Badge variant="success">{orderStatusLabels[order.status]}</Badge>
           <p className="mt-2 font-semibold">LKR {order.total}</p>
         </div>
       </div>
       <Link
         href={`/account/orders/${order.id}`}
-        className="mt-4 inline-flex rounded-md border px-4 py-2 text-sm font-medium"
+        className={buttonVariants({
+          variant: "outline",
+          className: "mt-4 inline-flex",
+        })}
       >
         View order details
       </Link>
-    </article>
+    </Card>
   );
 }
 
@@ -72,7 +73,7 @@ function OrderSection({
       >
         {title}
       </h2>
-      <p className="mt-1 text-sm text-neutral-600">{description}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
       {orders.length ? (
         <div className="mt-4 grid gap-4">
           {orders.map((order) => (
@@ -80,9 +81,9 @@ function OrderSection({
           ))}
         </div>
       ) : (
-        <div className="mt-4 rounded-xl border border-dashed p-8 text-center text-sm text-neutral-600">
+        <Card className="gap-0 mt-4 border-dashed p-8 text-center text-muted-foreground border ring-0">
           {emptyMessage}
-        </div>
+        </Card>
       )}
     </section>
   );

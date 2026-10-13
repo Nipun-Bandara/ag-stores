@@ -5,10 +5,12 @@ import type { Dictionary } from "@/lib/i18n/config";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import heroLight from "@/app/public/hero-light.svg";
 import heroDark from "@/app/public/hero-dark.svg";
+
+const subscribeToMount = () => () => {};
 
 export const Hero = ({
   copy,
@@ -19,11 +21,11 @@ export const Hero = ({
 }) => {
   const router = useRouter();
   const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    subscribeToMount,
+    () => true,
+    () => false,
+  );
 
   return (
     <section className="w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-stack-lg pt-20 md:pt-24">
@@ -50,7 +52,7 @@ export const Hero = ({
                   .getElementById("features")
                   ?.scrollIntoView({ behavior: "smooth" })
               }
-              className="border-2 border-secondary text-secondary font-label-md text-label-md px-8 py-4 h-auto rounded-full hover:bg-surface-container-low hover:text-secondary soft-bloom"
+              className="font-label-md text-label-md px-8 py-4 h-auto rounded-full soft-bloom"
             >
               {copy.exploreRoles}
             </Button>

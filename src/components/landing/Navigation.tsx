@@ -5,18 +5,19 @@ import type { Dictionary, Locale } from "@/lib/i18n/config";
 import { LanguageSwitcher } from "@/features/i18n/components/language-switcher";
 
 import { Menu, X } from "lucide-react";
-import {
-  AnimatePresence,
-  motion,
-  useMotionValueEvent,
-  useScroll,
-} from "motion/react";
+import { motion, useMotionValueEvent, useScroll } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import logo from "@/app/public/logo.svg";
 
 export const Navigation = ({
@@ -78,7 +79,7 @@ export const Navigation = ({
         }}
         className="pointer-events-none fixed justify-center top-0 left-0 right-0 h-6 bg-gradient-to-b from-background to-transparent z-40"
       />
-      <header className="pointer-events-none fixed top-0 left-0 right-0 z-[999] w-full px-0 py-4 flex justify-center">
+      <header className="pointer-events-none fixed top-0 left-0 right-0 z-40 w-full px-0 py-4 flex justify-center">
         <motion.nav
           layout
           initial={{
@@ -152,85 +153,74 @@ export const Navigation = ({
                 {copy.launchApp}
               </Button>
             </div>
-            <button
+            <Button
+              variant="ghost"
               aria-label={copy.openMenu}
               onClick={() => setMobileMenuOpen(true)}
-              className="sm:hidden p-2 text-primary"
+              className="sm:hidden p-2"
             >
               <Menu size={24} />
-            </button>
+            </Button>
           </div>
         </motion.nav>
       </header>
 
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setMobileMenuOpen(false)}
-              className="fixed inset-0 z-[1001] bg-black/50 backdrop-blur-sm sm:hidden"
-            />
-            <motion.aside
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed right-0 top-0 bottom-0 z-[1002] w-64 bg-background border-l border-border p-6 sm:hidden flex flex-col gap-6"
+      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <SheetContent side="right" showCloseButton={false} className="w-72 p-6">
+          <SheetTitle className="sr-only">{copy.brand}</SheetTitle>
+          <SheetDescription className="sr-only">
+            {copy.openMenu}
+          </SheetDescription>
+          <div className="flex items-center justify-between">
+            <Link
+              href={homeHref}
+              className="text-title-lg font-title-lg font-bold text-primary flex items-center gap-2"
             >
-              <div className="flex items-center justify-between">
-                <Link
-                  href={homeHref}
-                  className="text-title-lg font-title-lg font-bold text-primary flex items-center gap-2"
-                >
-                  <Image src={logo} alt={copy.logoAlt} width={32} height={32} />
-                  {copy.brand}
-                </Link>
-                <button
-                  aria-label={copy.closeMenu}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="p-2 text-foreground hover:bg-muted rounded-full"
-                >
-                  <X size={24} />
-                </button>
-              </div>
+              <Image src={logo} alt={copy.logoAlt} width={32} height={32} />
+              {copy.brand}
+            </Link>
+            <Button
+              variant="ghost"
+              aria-label={copy.closeMenu}
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-2 text-foreground"
+            >
+              <X size={24} />
+            </Button>
+          </div>
 
-              <ul className="flex flex-col gap-4">
-                {navItems.map((item) => {
-                  const href = getLinkHref(item);
-                  return (
-                    <li key={item.name}>
-                      <Link
-                        href={href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`block text-md ${
-                          pathname === href
-                            ? "text-primary font-bold"
-                            : "text-foreground hover:text-primary"
-                        }`}
-                      >
-                        {item.name}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+          <ul className="flex flex-col gap-4">
+            {navItems.map((item) => {
+              const href = getLinkHref(item);
+              return (
+                <li key={item.name}>
+                  <Link
+                    href={href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`block text-md ${
+                      pathname === href
+                        ? "text-primary font-bold"
+                        : "text-foreground hover:text-primary"
+                    }`}
+                  >
+                    {item.name}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
 
-              <div className="mt-6 flex flex-col gap-4">
-                <LanguageSwitcher locale={locale} label={languageLabel} />
-                <Button
-                  className="w-full flex justify-center bg-primary text-primary-foreground hover:bg-primary/90"
-                  onClick={() => router.push(authHref)}
-                >
-                  {copy.launchApp}
-                </Button>
-              </div>
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
+          <div className="mt-6 flex flex-col gap-4">
+            <LanguageSwitcher locale={locale} label={languageLabel} />
+            <Button
+              className="w-full flex justify-center bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={() => router.push(authHref)}
+            >
+              {copy.launchApp}
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 };

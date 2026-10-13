@@ -5,11 +5,12 @@ import { useState } from "react";
 import { useCart } from "@/features/cart/cart-store";
 import type { CartProduct } from "@/features/cart/cart-state";
 import { getDictionary, type Locale } from "@/lib/i18n/config";
+import { Button } from "@/components/ui/button";
 
 export function AddToCartButton({
   product,
   locale = "en",
-  className = "rounded-xl bg-emerald-950 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-neutral-300",
+  className = "",
 }: {
   product: CartProduct;
   locale?: Locale;
@@ -27,7 +28,7 @@ export function AddToCartButton({
 
   return (
     <div className="text-right">
-      <button
+      <Button
         type="button"
         onClick={handleAdd}
         disabled={outOfStock}
@@ -39,8 +40,11 @@ export function AddToCartButton({
         }
       >
         {outOfStock ? copy.outOfStock : copy.addToCart}
-      </button>
-      <p className="mt-1 min-h-4 text-xs text-neutral-500" aria-live="polite">
+      </Button>
+      <p
+        className="mt-1 min-h-4 text-xs text-muted-foreground"
+        aria-live="polite"
+      >
         {message}
       </p>
     </div>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { routePath, type Locale } from "@/lib/i18n/config";
 import { getNavGroupsForRole, isRole, ROLE_LABELS } from "@/lib/navigation";
+import { Card } from "@/components/ui/card";
 
 export function RoleDashboard({
   locale,
@@ -18,7 +19,7 @@ export function RoleDashboard({
   const groups = getNavGroupsForRole(user.role);
 
   return (
-    <section className="space-y-6">
+    <section className="min-w-0 w-full space-y-6">
       <div>
         <p className="text-sm text-muted-foreground">
           {ROLE_LABELS[user.role]}
@@ -34,7 +35,7 @@ export function RoleDashboard({
             group.items.some((item) => item.group !== "overview"),
           )
           .map((group) => (
-            <section key={group.id} className="rounded-xl border bg-card p-5">
+            <Card as="section" key={group.id} className="gap-0 bg-card p-5">
               <h2 className="font-semibold">{group.label}</h2>
               <ul className="mt-3 space-y-2">
                 {group.items
@@ -50,7 +51,7 @@ export function RoleDashboard({
                     </li>
                   ))}
               </ul>
-            </section>
+            </Card>
           ))}
       </div>
     </section>

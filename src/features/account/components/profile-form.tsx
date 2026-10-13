@@ -10,6 +10,9 @@ import {
   SelectField,
 } from "@/features/auth/components/form-fields";
 import type { AuthenticatedUser } from "@/types/auth";
+import { NativeSelectOption } from "@/components/ui/native-select";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 interface ApiPayload {
   error?: { message?: string };
@@ -87,25 +90,18 @@ export function ProfileForm({ user }: { user: AuthenticatedUser }) {
         label="Preferred language"
         defaultValue={user.preferredLanguage}
       >
-        <option value="EN">English</option>
-        <option value="SI">සිංහල</option>
+        <NativeSelectOption value="EN">English</NativeSelectOption>
+        <NativeSelectOption value="SI">සිංහල</NativeSelectOption>
       </SelectField>
       {error ? <FormError>{error}</FormError> : null}
       {message ? (
-        <p
-          role="status"
-          className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800"
-        >
+        <Alert variant="success" role="status" className="">
           {message}
-        </p>
+        </Alert>
       ) : null}
-      <button
-        type="submit"
-        disabled={pending}
-        className="h-10 rounded-md bg-neutral-950 px-5 text-sm font-medium text-white disabled:opacity-60"
-      >
+      <Button type="submit" disabled={pending} className="h-10">
         {pending ? "Saving…" : "Save profile"}
-      </button>
+      </Button>
     </form>
   );
 }

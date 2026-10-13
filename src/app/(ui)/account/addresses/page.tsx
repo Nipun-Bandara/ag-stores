@@ -12,16 +12,14 @@ export default async function AddressesPage() {
   const addresses = await listCustomerAddresses(user);
 
   return (
-    <section className="mx-auto min-h-screen max-w-5xl px-6 py-16">
-      <section className="pt-8">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Delivery addresses
-        </h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          Save delivery locations and choose the default used at checkout.
-        </p>
-        <AddressManager initialAddresses={addresses} />
-      </section>
+    <section className="min-w-0 w-full">
+      <h1 className="text-3xl font-semibold tracking-tight">
+        Delivery addresses
+      </h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Save delivery locations and choose the default used at checkout.
+      </p>
+      <AddressManager initialAddresses={addresses} />
     </section>
   );
 }

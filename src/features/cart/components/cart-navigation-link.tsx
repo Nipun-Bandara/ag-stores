@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { useCart } from "@/features/cart/cart-store";
 import { routePath, type Locale } from "@/lib/i18n/config";
+import { buttonVariants } from "@/components/ui/button";
 
 export function CartNavigationLink({
   locale = "en",
@@ -25,7 +26,7 @@ export function CartNavigationLink({
   return (
     <Link
       href={routePath("/cart", locale, localizedRoute)}
-      className="rounded-full border border-emerald-950/15 px-3 py-2 font-semibold text-emerald-950"
+      className={buttonVariants({ variant: "outline", className: "" })}
       aria-label={`${cartLabel} ${withLabel} ${itemCount} ${itemCount === 1 ? itemLabel : itemsLabel}`}
     >
       {cartLabel}

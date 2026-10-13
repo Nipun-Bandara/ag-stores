@@ -8,6 +8,15 @@ import { orderStatusLabels } from "@/features/orders/order-presentation";
 import { requireRole } from "@/lib/auth/server";
 import { getOwnerOrderDashboard } from "@/services/owner-order.service";
 import { ownerOrderFiltersSchema } from "@/validations/owner-order";
+import { Label } from "@/components/ui/label";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
+import { Input } from "@/components/ui/input";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
 
 export const metadata: Metadata = { title: "Orders | AG Stores" };
 
@@ -40,94 +49,94 @@ export default async function OwnerOrdersPage({
   const dashboard = await getOwnerOrderDashboard(user, filters);
 
   return (
-    <section className="mx-auto min-h-screen max-w-6xl px-4 py-10 sm:px-6 sm:py-16">
-      <section className="pt-8">
-        <h1 className="text-3xl font-semibold tracking-tight">Orders</h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          Review incoming orders and move them through shop preparation.
-        </p>
+    <section className="min-w-0 w-full">
+      <h1 className="text-3xl font-semibold tracking-tight">Orders</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Review incoming orders and move them through shop preparation.
+      </p>
 
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-          {dashboard.summaries.map((summary) => (
-            <div key={summary.key} className="rounded-xl border bg-white p-4">
-              <p className="text-xs font-medium text-neutral-500">
-                {summary.label}
-              </p>
-              <p className="mt-2 text-2xl font-semibold">{summary.count}</p>
-            </div>
-          ))}
-        </div>
+      <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+        {dashboard.summaries.map((summary) => (
+          <Card key={summary.key} className="gap-0 p-4">
+            <p className="text-xs font-medium text-muted-foreground">
+              {summary.label}
+            </p>
+            <p className="mt-2 text-2xl font-semibold">{summary.count}</p>
+          </Card>
+        ))}
+      </div>
 
-        <form className="mt-8 grid gap-4 rounded-xl border p-5 md:grid-cols-2 lg:grid-cols-5">
-          <label className="text-sm font-medium" htmlFor="status">
+      <Card className="gap-0 mt-8 p-5">
+        <form className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          <Label className="text-sm font-medium" htmlFor="status">
             Status
-            <select
+            <NativeSelect
               id="status"
               name="status"
               defaultValue={filters.status ?? ""}
-              className="mt-1.5 h-10 w-full rounded-md border bg-white px-3 text-sm"
+              className="mt-1.5 h-10 w-full"
             >
-              <option value="">All statuses</option>
+              <NativeSelectOption value="">All statuses</NativeSelectOption>
               {Object.values(OrderStatus).map((status) => (
-                <option key={status} value={status}>
+                <NativeSelectOption key={status} value={status}>
                   {orderStatusLabels[status]}
-                </option>
+                </NativeSelectOption>
               ))}
-            </select>
-          </label>
-          <label className="text-sm font-medium" htmlFor="date">
+            </NativeSelect>
+          </Label>
+          <Label className="text-sm font-medium" htmlFor="date">
             Date
-            <input
+            <Input
               id="date"
               name="date"
               type="date"
               defaultValue={filters.date ?? ""}
-              className="mt-1.5 h-10 w-full rounded-md border px-3 text-sm"
+              className="mt-1.5 h-10 w-full"
             />
-          </label>
-          <label className="text-sm font-medium" htmlFor="customer">
+          </Label>
+          <Label className="text-sm font-medium" htmlFor="customer">
             Customer
-            <input
+            <Input
               id="customer"
               name="customer"
               defaultValue={filters.customer ?? ""}
               placeholder="Name, email, or phone"
-              className="mt-1.5 h-10 w-full rounded-md border px-3 text-sm"
+              className="mt-1.5 h-10 w-full"
             />
-          </label>
-          <label className="text-sm font-medium" htmlFor="orderNumber">
+          </Label>
+          <Label className="text-sm font-medium" htmlFor="orderNumber">
             Order number
-            <input
+            <Input
               id="orderNumber"
               name="orderNumber"
               defaultValue={filters.orderNumber ?? ""}
               placeholder="Full order number"
-              className="mt-1.5 h-10 w-full rounded-md border px-3 font-mono text-sm"
+              className="mt-1.5 h-10 w-full font-mono"
             />
-          </label>
+          </Label>
           <div className="flex items-end gap-2">
-            <button
-              type="submit"
-              className="h-10 rounded-md bg-neutral-950 px-4 text-sm font-medium text-white"
-            >
+            <Button type="submit" className="h-10">
               Apply filters
-            </button>
+            </Button>
             <Link
               href="/owner/orders"
-              className="inline-flex h-10 items-center rounded-md border px-4 text-sm font-medium"
+              className={buttonVariants({
+                variant: "outline",
+                className: "inline-flex h-10 items-center",
+              })}
             >
               Clear
             </Link>
           </div>
         </form>
-        {!parsed.success ? (
-          <p role="alert" className="mt-3 text-sm text-red-700">
-            One or more filters were invalid and have been cleared.
-          </p>
-        ) : null}
+      </Card>
+      {!parsed.success ? (
+        <Alert variant="destructive" role="alert" className="mt-3">
+          One or more filters were invalid and have been cleared.
+        </Alert>
+      ) : null}
 
-        <OwnerOrderList orders={dashboard.orders} />
-      </section>
+      <OwnerOrderList orders={dashboard.orders} />
     </section>
   );
 }

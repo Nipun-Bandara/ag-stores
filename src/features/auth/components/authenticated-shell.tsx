@@ -62,7 +62,7 @@ export function AuthenticatedShell({
         <AppSidebar locale={locale} localizedRoute={localizedRoute} />
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b border-sidebar-border">
-            <div className="flex items-center gap-2 px-4 w-full">
+            <div className="flex min-w-0 w-full items-center gap-2 px-4 lg:px-6">
               <SidebarTrigger className="-ml-1" />
               <div className="ml-auto flex items-center gap-3">
                 <LanguageSwitcher
@@ -73,7 +73,8 @@ export function AuthenticatedShell({
               </div>
             </div>
           </header>
-          <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background text-foreground">
+          {/* Page gutters live here; child pages only manage their internal spacing. */}
+          <div className="flex min-w-0 w-full flex-1 flex-col gap-4 bg-background p-4 text-foreground lg:gap-6 lg:p-6">
             {children}
           </div>
         </SidebarInset>

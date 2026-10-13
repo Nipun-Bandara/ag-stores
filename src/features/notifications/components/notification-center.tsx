@@ -5,6 +5,10 @@ import { useState } from "react";
 
 import type { NotificationType, UserRole } from "@/generated/prisma/client";
 import type { NotificationCenterView } from "@/services/notification.service";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 
 const dateFormatter = new Intl.DateTimeFormat("en-LK", {
   dateStyle: "medium",
@@ -92,47 +96,45 @@ export function NotificationCenter({
           </h2>
           <p
             data-testid="notification-unread-count"
-            className="mt-1 text-sm text-neutral-500"
+            className="mt-1 text-sm text-muted-foreground"
           >
             {unreadCount} unread
           </p>
         </div>
-        <button
+        <Button
+          variant="outline"
           type="button"
           disabled={markingAll || unreadCount === 0}
           onClick={markAllRead}
-          className="rounded-md border px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
           {markingAll ? "Updating…" : "Mark all as read"}
-        </button>
+        </Button>
       </div>
       {error ? (
-        <p role="alert" className="mt-4 text-sm text-red-700">
+        <Alert variant="destructive" role="alert" className="mt-4">
           {error}
-        </p>
+        </Alert>
       ) : null}
       {notifications.length ? (
-        <div className="mt-4 divide-y overflow-hidden rounded-xl border bg-white">
+        <Card className="gap-0 py-0 mt-4 divide-y overflow-hidden">
           {notifications.map((notification) => (
             <article
               key={notification.id}
               data-testid="notification-item"
-              className={`p-5 ${notification.readAt ? "" : "bg-blue-50/60"}`}
+              className={`p-5 ${notification.readAt ? "" : "bg-primary/5"}`}
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <h3 className="font-semibold">{notification.title}</h3>
-                  <p className="mt-1 text-sm text-neutral-700">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     {notification.message}
                   </p>
-                  <p className="mt-2 text-xs text-neutral-500">
+                  <p className="mt-2 text-xs text-muted-foreground">
                     {dateFormatter.format(new Date(notification.createdAt))}
                   </p>
                 </div>
                 {!notification.readAt ? (
-                  <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-900">
-                    Unread
-                  </span>
+                  <Badge variant="info">Unread</Badge>
                 ) : null}
               </div>
               <div className="mt-4 flex flex-wrap gap-4 text-sm font-medium">
@@ -147,7 +149,8 @@ export function NotificationCenter({
                   View related order
                 </Link>
                 {!notification.readAt ? (
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     disabled={pendingId === notification.id}
                     onClick={() => markRead(notification.id)}
@@ -155,16 +158,19 @@ export function NotificationCenter({
                     {pendingId === notification.id
                       ? "Updating…"
                       : "Mark as read"}
-                  </button>
+                  </Button>
                 ) : null}
               </div>
             </article>
           ))}
-        </div>
+        </Card>
       ) : (
-        <p className="mt-4 rounded-xl border border-dashed p-6 text-sm text-neutral-600">
+        <Card
+          as="p"
+          className="gap-0 mt-4 border-dashed p-6 text-sm text-muted-foreground border ring-0"
+        >
           You do not have any notifications yet.
-        </p>
+        </Card>
       )}
     </section>
   );

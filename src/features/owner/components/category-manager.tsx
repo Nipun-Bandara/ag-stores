@@ -11,6 +11,10 @@ import type {
   CategoryManagementView,
   CategoryView,
 } from "@/services/category.service";
+import { NativeSelectOption } from "@/components/ui/native-select";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 
 interface ApiPayload {
   data?: CategoryView;
@@ -70,56 +74,65 @@ function CategoryForm({
   }
 
   return (
-    <form className="space-y-4 rounded-xl border p-5" onSubmit={handleSubmit}>
-      <h2 className="text-lg font-semibold">
-        {category ? `Edit ${category.nameEn}` : "Create a category"}
-      </h2>
-      {!category ? (
-        <SelectField id="shopId" name="shopId" label="Shop" required>
-          {shops.map((shop) => (
-            <option key={shop.id} value={shop.id}>
-              {shop.name}
-            </option>
-          ))}
-        </SelectField>
-      ) : (
-        <p className="text-sm text-neutral-600">Shop: {category.shopName}</p>
-      )}
-      <FormField
-        id={category ? `nameEn-${category.id}` : "nameEn"}
-        name="nameEn"
-        label="English name"
-        defaultValue={category?.nameEn ?? ""}
-        maxLength={120}
-        required
-      />
-      <FormField
-        id={category ? `nameSi-${category.id}` : "nameSi"}
-        name="nameSi"
-        label="Sinhala name"
-        defaultValue={category?.nameSi ?? ""}
-        maxLength={120}
-      />
-      {error ? <FormError>{error}</FormError> : null}
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          disabled={pending || shops.length === 0}
-          className="h-10 rounded-md bg-neutral-950 px-5 text-sm font-medium text-white disabled:opacity-60"
-        >
-          {pending ? "Saving…" : category ? "Save category" : "Create category"}
-        </button>
-        {onCancel ? (
-          <button
-            type="button"
-            className="h-10 rounded-md border px-5 text-sm font-medium"
-            onClick={onCancel}
+    <Card className="gap-0 p-5">
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <h2 className="text-lg font-semibold">
+          {category ? `Edit ${category.nameEn}` : "Create a category"}
+        </h2>
+        {!category ? (
+          <SelectField id="shopId" name="shopId" label="Shop" required>
+            {shops.map((shop) => (
+              <NativeSelectOption key={shop.id} value={shop.id}>
+                {shop.name}
+              </NativeSelectOption>
+            ))}
+          </SelectField>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Shop: {category.shopName}
+          </p>
+        )}
+        <FormField
+          id={category ? `nameEn-${category.id}` : "nameEn"}
+          name="nameEn"
+          label="English name"
+          defaultValue={category?.nameEn ?? ""}
+          maxLength={120}
+          required
+        />
+        <FormField
+          id={category ? `nameSi-${category.id}` : "nameSi"}
+          name="nameSi"
+          label="Sinhala name"
+          defaultValue={category?.nameSi ?? ""}
+          maxLength={120}
+        />
+        {error ? <FormError>{error}</FormError> : null}
+        <div className="flex gap-3">
+          <Button
+            type="submit"
+            disabled={pending || shops.length === 0}
+            className="h-10"
           >
-            Cancel
-          </button>
-        ) : null}
-      </div>
-    </form>
+            {pending
+              ? "Saving…"
+              : category
+                ? "Save category"
+                : "Create category"}
+          </Button>
+          {onCancel ? (
+            <Button
+              variant="outline"
+              type="button"
+              className="h-10"
+              onClick={onCancel}
+            >
+              Cancel
+            </Button>
+          ) : null}
+        </div>
+      </form>
+    </Card>
   );
 }
 
@@ -170,9 +183,9 @@ export function CategoryManager({
   return (
     <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
       {initialData.shops.length === 0 ? (
-        <p className="rounded-xl border p-5 text-sm text-neutral-600">
+        <Card as="p" className="gap-0 p-5 text-sm text-muted-foreground">
           Create a shop before adding product categories.
-        </p>
+        </Card>
       ) : (
         <CategoryForm
           key={editingCategory?.id ?? "new"}
@@ -194,44 +207,46 @@ export function CategoryManager({
           </div>
         ) : null}
         {categories.length === 0 ? (
-          <p className="mt-4 text-sm text-neutral-600">
+          <p className="mt-4 text-sm text-muted-foreground">
             No categories have been created yet.
           </p>
         ) : (
           <div className="mt-4 space-y-4">
             {categories.map((category) => (
-              <article key={category.id} className="rounded-xl border p-5">
+              <Card as="article" key={category.id} className="gap-0 p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h3 className="font-semibold">{category.nameEn}</h3>
                     {category.nameSi ? (
                       <p className="mt-1 text-sm">{category.nameSi}</p>
                     ) : null}
-                    <p className="mt-1 text-xs text-neutral-500">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {category.shopName}
                     </p>
                   </div>
-                  <span className="rounded-full bg-neutral-100 px-2 py-1 text-xs font-medium">
+                  <Badge variant="secondary">
                     {category.status === "ACTIVE" ? "Active" : "Inactive"}
-                  </span>
+                  </Badge>
                 </div>
                 <div className="mt-4 flex gap-4 text-sm font-medium">
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => setEditingId(category.id)}
                   >
                     Edit {category.nameEn}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="ghost"
                     type="button"
                     disabled={pendingId === category.id}
                     onClick={() => changeStatus(category)}
                   >
                     {category.status === "ACTIVE" ? "Deactivate" : "Activate"}{" "}
                     {category.nameEn}
-                  </button>
+                  </Button>
                 </div>
-              </article>
+              </Card>
             ))}
           </div>
         )}

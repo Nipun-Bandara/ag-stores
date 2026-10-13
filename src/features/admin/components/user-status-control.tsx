@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import type { UserStatus } from "@/generated/prisma/client";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 
 interface StatusResponse {
   data?: { status?: UserStatus };
@@ -49,18 +51,18 @@ export function UserStatusControl({
 
   return (
     <div>
-      <button
+      <Button
+        variant="outline"
         type="button"
         disabled={pending}
         onClick={changeStatus}
-        className="rounded-md border px-3 py-2 text-sm font-medium disabled:opacity-60"
       >
         {pending ? "Updating…" : `${action} ${userName}`}
-      </button>
+      </Button>
       {error ? (
-        <p role="alert" className="mt-2 max-w-sm text-sm text-red-700">
+        <Alert variant="destructive" role="alert" className="mt-2 max-w-sm">
           {error}
-        </p>
+        </Alert>
       ) : null}
     </div>
   );

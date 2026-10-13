@@ -11,6 +11,10 @@ import type {
   DeliveryPersonnelManagementView,
   DeliveryPersonnelView,
 } from "@/services/delivery-personnel.service";
+import { NativeSelectOption } from "@/components/ui/native-select";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 
 interface ApiPayload {
   data?:
@@ -85,85 +89,88 @@ function PersonnelForm({
   }
 
   return (
-    <form className="space-y-4 rounded-xl border p-5" onSubmit={handleSubmit}>
-      <h2 className="text-lg font-semibold">
-        {person ? `Edit ${person.name}` : "Create delivery account"}
-      </h2>
-      <FormField
-        id={`delivery-name-${suffix}`}
-        name="name"
-        label="Name"
-        defaultValue={person?.name ?? ""}
-        maxLength={150}
-        required
-      />
-      <FormField
-        id={`delivery-email-${suffix}`}
-        name="email"
-        label="Email"
-        type="email"
-        defaultValue={person?.email ?? ""}
-        maxLength={320}
-        required
-      />
-      <FormField
-        id={`delivery-phone-${suffix}`}
-        name="phone"
-        label="Phone"
-        type="tel"
-        defaultValue={person?.phone ?? ""}
-        placeholder="+94771234567"
-        required
-      />
-      <SelectField
-        id={`delivery-shop-${suffix}`}
-        name="assignedShopId"
-        label="Assigned shop"
-        defaultValue={person?.assignedShopId ?? shops[0]?.id}
-        required
-      >
-        {shops.map((shop) => (
-          <option key={shop.id} value={shop.id}>
-            {shop.name}
-          </option>
-        ))}
-      </SelectField>
-      {!person ? (
+    <Card className="gap-0 p-5">
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <h2 className="text-lg font-semibold">
+          {person ? `Edit ${person.name}` : "Create delivery account"}
+        </h2>
+        <FormField
+          id={`delivery-name-${suffix}`}
+          name="name"
+          label="Name"
+          defaultValue={person?.name ?? ""}
+          maxLength={150}
+          required
+        />
+        <FormField
+          id={`delivery-email-${suffix}`}
+          name="email"
+          label="Email"
+          type="email"
+          defaultValue={person?.email ?? ""}
+          maxLength={320}
+          required
+        />
+        <FormField
+          id={`delivery-phone-${suffix}`}
+          name="phone"
+          label="Phone"
+          type="tel"
+          defaultValue={person?.phone ?? ""}
+          placeholder="+94771234567"
+          required
+        />
         <SelectField
-          id="delivery-status-new"
-          name="status"
-          label="Status"
-          defaultValue="ACTIVE"
+          id={`delivery-shop-${suffix}`}
+          name="assignedShopId"
+          label="Assigned shop"
+          defaultValue={person?.assignedShopId ?? shops[0]?.id}
           required
         >
-          <option value="ACTIVE">Active</option>
-          <option value="INACTIVE">Inactive</option>
+          {shops.map((shop) => (
+            <NativeSelectOption key={shop.id} value={shop.id}>
+              {shop.name}
+            </NativeSelectOption>
+          ))}
         </SelectField>
-      ) : null}
-      {error ? <FormError>{error}</FormError> : null}
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="submit"
-          disabled={pending || shops.length === 0}
-          className="h-10 rounded-md bg-neutral-950 px-5 text-sm font-medium text-white disabled:opacity-60"
-        >
-          {pending
-            ? "Saving…"
-            : person
-              ? "Save delivery person"
-              : "Create delivery account"}
-        </button>
-        {onCancel ? (
-          <button
-            type="button"
-            className="h-10 rounded-md border px-5 text-sm font-medium"
-            onClick={onCancel}
+        {!person ? (
+          <SelectField
+            id="delivery-status-new"
+            name="status"
+            label="Status"
+            defaultValue="ACTIVE"
+            required
           >
-            Cancel
-          </button>
+            <NativeSelectOption value="ACTIVE">Active</NativeSelectOption>
+            <NativeSelectOption value="INACTIVE">Inactive</NativeSelectOption>
+          </SelectField>
         ) : null}
-      </div>
-    </form>
+        {error ? <FormError>{error}</FormError> : null}
+        <div className="flex flex-wrap gap-3">
+          <Button
+            type="submit"
+            disabled={pending || shops.length === 0}
+            className="h-10"
+          >
+            {pending
+              ? "Saving…"
+              : person
+                ? "Save delivery person"
+                : "Create delivery account"}
+          </Button>
+          {onCancel ? (
+            <Button
+              variant="outline"
+              type="button"
+              className="h-10"
+              onClick={onCancel}
+            >
+              Cancel
+            </Button>
+          ) : null}
+        </div>
+      </form>
+    </Card>
   );
 }
 
@@ -229,23 +236,24 @@ export function DeliveryPersonnelManager({
             onTemporaryPassword={setTemporaryPassword}
           />
         ) : (
-          <p className="rounded-xl border p-5 text-sm text-neutral-600">
+          <Card as="p" className="gap-0 p-5 text-sm text-muted-foreground">
             A shop is required before creating delivery accounts.
-          </p>
+          </Card>
         )}
         {temporaryPassword ? (
-          <section
-            className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4"
+          <Card
+            as="section"
+            className="gap-0 mt-4 bg-amber-50 p-4"
             aria-label="Temporary password"
           >
             <h3 className="font-semibold">Temporary password</h3>
             <p className="mt-1 text-sm text-amber-900">
               Share this securely. It is shown only for this creation response.
             </p>
-            <code className="mt-3 block break-all rounded bg-white p-3 text-sm">
+            <code className="mt-3 block break-all rounded bg-background p-3 text-sm">
               {temporaryPassword}
             </code>
-          </section>
+          </Card>
         ) : null}
       </div>
 
@@ -264,43 +272,49 @@ export function DeliveryPersonnelManager({
         {personnel.length ? (
           <div className="mt-4 space-y-4">
             {personnel.map((person) => (
-              <article
+              <Card
+                as="article"
                 key={person.id}
                 data-testid="delivery-person-card"
-                className="rounded-xl border p-5"
+                className="gap-0 p-5"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h3 className="font-semibold">{person.name}</h3>
-                    <p className="mt-1 text-sm text-neutral-600">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       {person.email} · {person.phone}
                     </p>
-                    <p className="mt-1 text-xs text-neutral-500">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {person.assignedShopName ?? "Unassigned"}
                     </p>
                   </div>
-                  <span className="rounded-full bg-neutral-100 px-2 py-1 text-xs font-medium">
+                  <Badge variant="secondary">
                     {person.status === "ACTIVE" ? "Active" : "Inactive"}
-                  </span>
+                  </Badge>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-4 text-sm font-medium">
-                  <button type="button" onClick={() => setEditingId(person.id)}>
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    onClick={() => setEditingId(person.id)}
+                  >
                     Edit {person.name}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="ghost"
                     type="button"
                     disabled={pendingId === person.id}
                     onClick={() => changeStatus(person)}
                   >
                     {person.status === "ACTIVE" ? "Deactivate" : "Activate"}{" "}
                     {person.name}
-                  </button>
+                  </Button>
                 </div>
-              </article>
+              </Card>
             ))}
           </div>
         ) : (
-          <p className="mt-4 text-sm text-neutral-600">
+          <p className="mt-4 text-sm text-muted-foreground">
             No delivery personnel have been assigned yet.
           </p>
         )}

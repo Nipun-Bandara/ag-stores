@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
 import { AddToCartButton } from "@/features/cart/components/add-to-cart-button";
@@ -8,6 +9,7 @@ import {
   type Locale,
 } from "@/lib/i18n/config";
 import type { StorefrontProductView } from "@/services/storefront.service";
+import { Card } from "@/components/ui/card";
 
 export function ProductCard({
   product,
@@ -25,8 +27,9 @@ export function ProductCard({
     : undefined;
 
   return (
-    <article
-      className="overflow-hidden rounded-2xl border border-emerald-950/10 bg-white shadow-sm"
+    <Card
+      as="article"
+      className="gap-0 overflow-hidden py-0"
       data-testid="product-card"
     >
       <div
@@ -47,23 +50,17 @@ export function ProductCard({
                 locale,
               )}
             </p>
-            <h3 className="mt-1 text-lg font-bold text-emerald-950">{name}</h3>
+            <h3 className="mt-1 text-lg font-bold text-foreground">{name}</h3>
           </div>
-          <p className="shrink-0 font-black text-emerald-950">
+          <p className="shrink-0 font-black text-foreground">
             LKR {product.price}
           </p>
         </div>
-        <p className="mt-2 text-xs text-neutral-500">{product.shopName}</p>
+        <p className="mt-2 text-xs text-muted-foreground">{product.shopName}</p>
         <div className="mt-5 flex items-start justify-between gap-3">
-          <span
-            className={
-              product.isOutOfStock
-                ? "rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700"
-                : "rounded-full bg-lime-100 px-3 py-1 text-xs font-bold text-emerald-800"
-            }
-          >
+          <Badge variant={product.isOutOfStock ? "destructive" : "success"}>
             {product.isOutOfStock ? copy.outOfStock : copy.inStock}
-          </span>
+          </Badge>
           <div className="flex flex-col items-end gap-2">
             <Link
               href={routePath(
@@ -88,6 +85,6 @@ export function ProductCard({
           </div>
         </div>
       </div>
-    </article>
+    </Card>
   );
 }

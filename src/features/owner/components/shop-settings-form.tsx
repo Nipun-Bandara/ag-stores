@@ -3,6 +3,13 @@
 import { useState, type FormEvent } from "react";
 
 import type { ShopSettingsView } from "@/services/shop-settings.service";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
 
 interface ResponsePayload {
   data?: ShopSettingsView;
@@ -48,131 +55,128 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
     setPending(false);
   }
 
-  const inputClass =
-    "mt-1.5 h-10 w-full rounded-md border border-neutral-300 px-3 text-sm";
+  const inputClass = "mt-1.5 h-10 w-full";
 
   return (
-    <form onSubmit={submit} className="rounded-xl border bg-white p-5 sm:p-6">
-      {!settings.isActive ? (
-        <p className="mb-5 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-          This shop is administratively inactive. Customers cannot browse or
-          order from it until an administrator reactivates it.
-        </p>
-      ) : null}
-      <div className="grid gap-5 sm:grid-cols-2">
-        <label className="text-sm font-medium sm:col-span-2">
-          Shop name
-          <input
-            name="name"
-            defaultValue={settings.name}
-            className={inputClass}
-            required
-          />
-        </label>
-        <label className="text-sm font-medium sm:col-span-2">
-          Address
-          <textarea
-            name="address"
-            defaultValue={settings.address}
-            className="mt-1.5 min-h-24 w-full rounded-md border border-neutral-300 p-3 text-sm"
-            required
-          />
-        </label>
-        <label className="text-sm font-medium">
-          Phone
-          <input
-            name="phone"
-            type="tel"
-            defaultValue={settings.phone}
-            className={inputClass}
-            required
-          />
-        </label>
-        <label className="flex items-center gap-3 self-end rounded-md border p-3 text-sm font-medium">
-          <input
-            name="isOpen"
-            type="checkbox"
-            disabled={!settings.isActive}
-            defaultChecked={settings.isOpen}
-          />
-          Open for customer orders
-        </label>
-        <label className="text-sm font-medium">
-          Latitude
-          <input
-            name="latitude"
-            type="number"
-            step="0.000001"
-            defaultValue={settings.latitude}
-            className={inputClass}
-            required
-          />
-        </label>
-        <label className="text-sm font-medium">
-          Longitude
-          <input
-            name="longitude"
-            type="number"
-            step="0.000001"
-            defaultValue={settings.longitude}
-            className={inputClass}
-            required
-          />
-        </label>
-        <label className="text-sm font-medium">
-          Minimum order amount (LKR)
-          <input
-            name="minimumOrderAmount"
-            type="number"
-            min="0"
-            step="0.01"
-            defaultValue={settings.minimumOrderAmount}
-            className={inputClass}
-            required
-          />
-        </label>
-        <label className="text-sm font-medium">
-          Delivery fee (LKR)
-          <input
-            name="deliveryFee"
-            type="number"
-            min="0"
-            step="0.01"
-            defaultValue={settings.deliveryFee}
-            className={inputClass}
-            required
-          />
-        </label>
-        <label className="text-sm font-medium sm:col-span-2">
-          Maximum delivery radius (km)
-          <input
-            name="maximumDeliveryRadiusKm"
-            type="number"
-            min="0.01"
-            step="0.01"
-            defaultValue={settings.maximumDeliveryRadiusKm}
-            className={inputClass}
-            required
-          />
-          <span className="mt-1 block text-xs font-normal text-neutral-500">
-            Uses approximate straight-line distance, not road distance.
-          </span>
-        </label>
-      </div>
-      <div className="mt-6 flex flex-wrap items-center gap-4">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-        >
-          {pending ? "Saving…" : "Save settings"}
-        </button>
-        {message ? (
-          <p role="status" className="text-sm text-neutral-700">
-            {message}
+    <Card className="gap-0 p-5 sm:p-6">
+      <form onSubmit={submit} className="">
+        {!settings.isActive ? (
+          <p className="mb-5 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            This shop is administratively inactive. Customers cannot browse or
+            order from it until an administrator reactivates it.
           </p>
         ) : null}
-      </div>
-    </form>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Label className="text-sm font-medium sm:col-span-2">
+            Shop name
+            <Input
+              name="name"
+              defaultValue={settings.name}
+              className={inputClass}
+              required
+            />
+          </Label>
+          <Label className="text-sm font-medium sm:col-span-2">
+            Address
+            <Textarea
+              name="address"
+              defaultValue={settings.address}
+              className="mt-1.5 min-h-24 w-full p-3"
+              required
+            />
+          </Label>
+          <Label className="text-sm font-medium">
+            Phone
+            <Input
+              name="phone"
+              type="tel"
+              defaultValue={settings.phone}
+              className={inputClass}
+              required
+            />
+          </Label>
+          <Label className="flex items-center gap-3 self-end rounded-md border p-3 text-sm font-medium">
+            <Checkbox
+              name="isOpen"
+
+              disabled={!settings.isActive}
+              defaultChecked={settings.isOpen}
+            />
+            Open for customer orders
+          </Label>
+          <Label className="text-sm font-medium">
+            Latitude
+            <Input
+              name="latitude"
+              type="number"
+              step="0.000001"
+              defaultValue={settings.latitude}
+              className={inputClass}
+              required
+            />
+          </Label>
+          <Label className="text-sm font-medium">
+            Longitude
+            <Input
+              name="longitude"
+              type="number"
+              step="0.000001"
+              defaultValue={settings.longitude}
+              className={inputClass}
+              required
+            />
+          </Label>
+          <Label className="text-sm font-medium">
+            Minimum order amount (LKR)
+            <Input
+              name="minimumOrderAmount"
+              type="number"
+              min="0"
+              step="0.01"
+              defaultValue={settings.minimumOrderAmount}
+              className={inputClass}
+              required
+            />
+          </Label>
+          <Label className="text-sm font-medium">
+            Delivery fee (LKR)
+            <Input
+              name="deliveryFee"
+              type="number"
+              min="0"
+              step="0.01"
+              defaultValue={settings.deliveryFee}
+              className={inputClass}
+              required
+            />
+          </Label>
+          <Label className="text-sm font-medium sm:col-span-2">
+            Maximum delivery radius (km)
+            <Input
+              name="maximumDeliveryRadiusKm"
+              type="number"
+              min="0.01"
+              step="0.01"
+              defaultValue={settings.maximumDeliveryRadiusKm}
+              className={inputClass}
+              required
+            />
+            <span className="mt-1 block text-xs font-normal text-muted-foreground">
+              Uses approximate straight-line distance, not road distance.
+            </span>
+          </Label>
+        </div>
+        <div className="mt-6 flex flex-wrap items-center gap-4">
+          <Button type="submit" disabled={pending}>
+            {pending ? "Saving…" : "Save settings"}
+          </Button>
+          {message ? (
+            <Alert variant="success" role="status" className="">
+              {message}
+            </Alert>
+          ) : null}
+        </div>
+      </form>
+    </Card>
   );
 }

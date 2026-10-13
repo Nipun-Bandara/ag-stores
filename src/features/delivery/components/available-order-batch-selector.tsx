@@ -6,6 +6,11 @@ import { useRouter } from "next/navigation";
 
 import { formatOrderDate } from "@/features/orders/order-presentation";
 import type { AvailableDeliveryOrdersView } from "@/services/delivery-order.service";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card } from "@/components/ui/card";
 
 interface BatchApiPayload {
   data?: { id: string; orders: Array<{ orderId: string; sequence: number }> };
@@ -74,17 +79,18 @@ export function AvailableOrderBatchSelector({
 
   if (orders.length === 0) {
     return (
-      <div className="mt-6 rounded-xl border border-dashed p-10 text-center text-sm text-neutral-600">
+      <Card className="gap-0 mt-6 border-dashed p-10 text-center text-muted-foreground border ring-0">
         No ready orders match these filters.
-      </div>
+      </Card>
     );
   }
 
   return (
     <section className="mt-6" aria-label="Available order selection">
       {suggestedGroups.length > 0 ? (
-        <section
-          className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-4"
+        <Card
+          as="section"
+          className="gap-0 mb-4 bg-blue-50 p-4"
           aria-labelledby="route-suggestions-title"
         >
           <h2
@@ -99,15 +105,16 @@ export function AvailableOrderBatchSelector({
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {suggestedGroups.map((group, index) => (
-              <article
+              <Card
+                as="article"
                 key={group.id}
                 data-testid="suggested-delivery-group"
-                className="rounded-lg border border-blue-200 bg-white p-4"
+                className="gap-0 p-4"
               >
                 <p className="text-sm font-semibold">
                   Suggested group {index + 1} · {group.direction}
                 </p>
-                <p className="mt-1 text-xs text-neutral-600">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Stops are within approximately{" "}
                   {group.maximumPairDistanceKm.toFixed(1)} km of each other.
                 </p>
@@ -119,61 +126,61 @@ export function AvailableOrderBatchSelector({
                     </li>
                   ))}
                 </ul>
-                <button
+                <Button
+                  variant="outline"
                   type="button"
                   onClick={() => selectSuggestedGroup(group.orderIds)}
-                  className="mt-3 rounded-md border border-blue-800 px-3 py-2 text-sm font-medium text-blue-950"
+                  className="mt-3 text-blue-950"
                 >
                   Select suggested group {index + 1}
-                </button>
-              </article>
+                </Button>
+              </Card>
             ))}
           </div>
-        </section>
+        </Card>
       ) : null}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-neutral-50 p-4">
+      <Card className="gap-0 flex flex-wrap items-center justify-between gap-3 p-4">
         <p className="text-sm font-medium">
           {selectedIds.length} order{selectedIds.length === 1 ? "" : "s"}{" "}
           selected
         </p>
-        <button
+        <Button
           type="button"
           disabled={pending || selectedIds.length === 0}
           onClick={createBatch}
-          className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
           {pending ? "Creating batch…" : "Create delivery batch"}
-        </button>
-      </div>
+        </Button>
+      </Card>
       {error ? (
-        <p role="alert" className="mt-3 text-sm text-red-700">
+        <Alert variant="destructive" role="alert" className="mt-3">
           {error}
-        </p>
+        </Alert>
       ) : null}
       {success ? (
-        <p role="status" className="mt-3 text-sm text-emerald-700">
+        <Alert variant="success" role="status" className="mt-3">
           {success}
-        </p>
+        </Alert>
       ) : null}
 
       <div className="mt-4 grid gap-4">
         {orders.map((order) => (
-          <article
+          <Card
+            as="article"
             key={order.id}
             data-testid="available-order-card"
-            className="rounded-xl border bg-white p-5 shadow-sm"
+            className="gap-0 p-5"
           >
-            <label className="flex cursor-pointer items-start gap-3">
-              <input
-                type="checkbox"
+            <Label className="flex cursor-pointer items-start gap-3">
+              <Checkbox
                 checked={selectedIds.includes(order.id)}
-                onChange={(event) => toggle(order.id, event.target.checked)}
+                onCheckedChange={(checked) => toggle(order.id, checked)}
                 aria-label={`Select order ${order.id}`}
                 className="mt-1 size-4"
               />
               <span className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-4">
                 <span>
-                  <span className="block text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+                  <span className="block text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                     Order ID
                   </span>
                   <span className="mt-1 block break-all font-mono text-sm font-semibold">
@@ -182,22 +189,22 @@ export function AvailableOrderBatchSelector({
                   <span className="mt-3 block text-sm font-medium">
                     {order.deliveryArea}
                   </span>
-                  <span className="mt-1 block text-sm text-neutral-600">
+                  <span className="mt-1 block text-sm text-muted-foreground">
                     {order.itemCount} item
                     {order.itemCount === 1 ? "" : "s"}
                   </span>
-                  <span className="mt-1 block text-sm text-neutral-600">
+                  <span className="mt-1 block text-sm text-muted-foreground">
                     Approximate straight-line distance:{" "}
                     {order.distanceKm.toFixed(1)} km from shop
                   </span>
-                  <time className="mt-1 block text-xs text-neutral-500">
+                  <time className="mt-1 block text-xs text-muted-foreground">
                     {formatOrderDate(order.createdAt)}
                   </time>
                 </span>
                 <span className="font-semibold">LKR {order.total}</span>
               </span>
-            </label>
-          </article>
+            </Label>
+          </Card>
         ))}
       </div>
     </section>

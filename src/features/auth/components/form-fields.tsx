@@ -3,6 +3,10 @@ import type {
   ReactNode,
   SelectHTMLAttributes,
 } from "react";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Alert } from "@/components/ui/alert";
 
 interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -12,15 +16,13 @@ interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
 export function FormField({ label, hint, id, ...props }: FieldProps) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium">
+      <Label htmlFor={id} className="block text-sm font-medium">
         {label}
-      </label>
-      <input
-        id={id}
-        className="mt-1.5 h-10 w-full rounded-md border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-neutral-900"
-        {...props}
-      />
-      {hint ? <p className="mt-1 text-xs text-neutral-500">{hint}</p> : null}
+      </Label>
+      <Input id={id} className="mt-1.5 h-10 w-full" {...props} />
+      {hint ? (
+        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+      ) : null}
     </div>
   );
 }
@@ -38,27 +40,20 @@ export function SelectField({
 }: SelectFieldProps) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium">
+      <Label htmlFor={id} className="block text-sm font-medium">
         {label}
-      </label>
-      <select
-        id={id}
-        className="mt-1.5 h-10 w-full rounded-md border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-neutral-900"
-        {...props}
-      >
+      </Label>
+      <NativeSelect id={id} className="mt-1.5 h-10 w-full" {...props}>
         {children}
-      </select>
+      </NativeSelect>
     </div>
   );
 }
 
 export function FormError({ children }: { children: ReactNode }) {
   return (
-    <p
-      role="alert"
-      className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700"
-    >
+    <Alert variant="destructive" role="alert" className="">
       {children}
-    </p>
+    </Alert>
   );
 }

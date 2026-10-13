@@ -13,6 +13,11 @@ import type {
   ProductFormOptions,
   ProductView,
 } from "@/services/product.service";
+import { NativeSelectOption } from "@/components/ui/native-select";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 
 interface ApiPayload {
   error?: { message?: string };
@@ -79,7 +84,9 @@ export function ProductForm({
       {product ? (
         <div>
           <p className="text-sm font-medium">Shop</p>
-          <p className="mt-1.5 text-sm text-neutral-600">{product.shopName}</p>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            {product.shopName}
+          </p>
         </div>
       ) : (
         <SelectField
@@ -91,9 +98,9 @@ export function ProductForm({
           required
         >
           {options.shops.map((shop) => (
-            <option key={shop.id} value={shop.id}>
+            <NativeSelectOption key={shop.id} value={shop.id}>
               {shop.name}
-            </option>
+            </NativeSelectOption>
           ))}
         </SelectField>
       )}
@@ -106,10 +113,10 @@ export function ProductForm({
         required
       >
         {categories.map((category) => (
-          <option key={category.id} value={category.id}>
+          <NativeSelectOption key={category.id} value={category.id}>
             {category.nameEn}
             {category.status === "INACTIVE" ? " (inactive)" : ""}
-          </option>
+          </NativeSelectOption>
         ))}
       </SelectField>
       <div className="grid gap-5 sm:grid-cols-3">
@@ -130,26 +137,26 @@ export function ProductForm({
         />
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
-        <label className="block text-sm font-medium" htmlFor="descriptionEn">
+        <Label className="block text-sm font-medium" htmlFor="descriptionEn">
           English description
-          <textarea
+          <Textarea
             id="descriptionEn"
             name="descriptionEn"
             defaultValue={product?.descriptionEn ?? ""}
             maxLength={5000}
-            className="mt-1.5 min-h-28 w-full rounded-md border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900"
+            className="mt-1.5 min-h-28 w-full"
           />
-        </label>
-        <label className="block text-sm font-medium" htmlFor="descriptionSi">
+        </Label>
+        <Label className="block text-sm font-medium" htmlFor="descriptionSi">
           Sinhala description
-          <textarea
+          <Textarea
             id="descriptionSi"
             name="descriptionSi"
             defaultValue={product?.descriptionSi ?? ""}
             maxLength={5000}
-            className="mt-1.5 min-h-28 w-full rounded-md border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900"
+            className="mt-1.5 min-h-28 w-full"
           />
-        </label>
+        </Label>
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
         <FormField
@@ -196,33 +203,34 @@ export function ProductForm({
         placeholder="https://example.com/product.jpg"
         hint="Image uploads are not available yet. Provide a hosted image URL."
       />
-      <label className="flex items-center gap-2 text-sm font-medium">
-        <input
+      <Label className="flex items-center gap-2 text-sm font-medium">
+        <Checkbox
           name="isAvailable"
-          type="checkbox"
+
           defaultChecked={product?.isAvailable ?? true}
         />
         Product is available
-      </label>
+      </Label>
       {categories.length === 0 ? (
         <FormError>Create a category for this shop first.</FormError>
       ) : null}
       {error ? <FormError>{error}</FormError> : null}
       <div className="flex gap-3">
-        <button
+        <Button
           type="submit"
           disabled={pending || categories.length === 0}
-          className="h-10 rounded-md bg-neutral-950 px-5 text-sm font-medium text-white disabled:opacity-60"
+          className="h-10"
         >
           {pending ? "Saving…" : product ? "Save product" : "Create product"}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="outline"
           type="button"
-          className="h-10 rounded-md border px-5 text-sm font-medium"
+          className="h-10"
           onClick={() => router.push("/owner/products")}
         >
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   );

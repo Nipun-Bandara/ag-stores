@@ -1,25 +1,31 @@
 "use client";
 
-import React from "react";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
+const subscribeToMount = () => () => {};
 
-export const ThemeToggle = ({ className, label = "Toggle theme" }: { className?: string; label?: string }) => {
+export const ThemeToggle = ({
+  className,
+  label = "Toggle theme",
+}: {
+  className?: string;
+  label?: string;
+}) => {
   const { setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    subscribeToMount,
+    () => true,
+    () => false,
+  );
 
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={(e) => {
         const newTheme = resolvedTheme === "dark" ? "light" : "dark";
-
 
         if (!document.startViewTransition) {
           setTheme(newTheme);
@@ -118,6 +124,6 @@ export const ThemeToggle = ({ className, label = "Toggle theme" }: { className?:
         </svg>
       </div>
       <span className="sr-only">{label}</span>
-    </button>
+    </Button>
   );
 };

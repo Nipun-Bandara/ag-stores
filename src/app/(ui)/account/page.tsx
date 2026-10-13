@@ -6,6 +6,7 @@ import { UserRole } from "@/generated/prisma/client";
 import { requireRole } from "@/lib/auth/server";
 import { getDictionary, routePath } from "@/lib/i18n/config";
 import { getLocaleContext } from "@/lib/i18n/server";
+import { Card } from "@/components/ui/card";
 
 export const metadata: Metadata = { title: "Account | AG Stores" };
 
@@ -19,25 +20,27 @@ export default async function AccountPage() {
   const href = (path: string) => routePath(path, locale, localizedRoute);
 
   return (
-    <section className="mx-auto min-h-screen max-w-3xl px-6 py-16">
-      <section className="mt-8 rounded-xl border p-6">
+    <section className="min-w-0 w-full">
+      <Card as="section" className="gap-0 p-4 sm:p-6">
         <h1 className="text-2xl font-semibold tracking-tight">
           {copy.account.yourAccount}
         </h1>
         <h2 className="text-xl font-semibold">{user.name}</h2>
         <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
           <div>
-            <dt className="text-neutral-500">{copy.account.contact}</dt>
+            <dt className="text-muted-foreground">{copy.account.contact}</dt>
             <dd className="mt-1 font-medium">{user.email ?? user.phone}</dd>
           </div>
           <div>
-            <dt className="text-neutral-500">{copy.account.accountType}</dt>
+            <dt className="text-muted-foreground">
+              {copy.account.accountType}
+            </dt>
             <dd className="mt-1 font-medium">
               {user.role.replaceAll("_", " ")}
             </dd>
           </div>
           <div>
-            <dt className="text-neutral-500">
+            <dt className="text-muted-foreground">
               {copy.account.preferredLanguage}
             </dt>
             <dd className="mt-1 font-medium">
@@ -56,7 +59,7 @@ export default async function AccountPage() {
             {copy.account.changePassword}
           </Link>
         </div>
-      </section>
+      </Card>
     </section>
   );
 }

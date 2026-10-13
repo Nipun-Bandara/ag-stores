@@ -5,6 +5,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { OrderStatus } from "@/generated/prisma/client";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
 
 const actions: Partial<
   Record<OrderStatus, Array<{ status: OrderStatus; label: string }>>
@@ -59,29 +62,25 @@ export function OwnerOrderStatusActions({
   }
 
   return (
-    <section
-      className="mt-6 rounded-xl border bg-white p-5"
-      aria-label="Order actions"
-    >
+    <Card as="section" className="gap-0 mt-6 p-5" aria-label="Order actions">
       <h2 className="font-semibold">Update order status</h2>
       <div className="mt-4 flex flex-wrap gap-3">
         {availableActions.map((action) => (
-          <button
+          <Button
             key={action.status}
             type="button"
             disabled={pending !== null}
             onClick={() => transition(action.status)}
-            className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
             {pending === action.status ? "Updating…" : action.label}
-          </button>
+          </Button>
         ))}
       </div>
       {error ? (
-        <p role="alert" className="mt-3 text-sm text-red-700">
+        <Alert variant="destructive" role="alert" className="mt-3">
           {error}
-        </p>
+        </Alert>
       ) : null}
-    </section>
+    </Card>
   );
 }

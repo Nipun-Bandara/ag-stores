@@ -6,6 +6,12 @@ import Link from "next/link";
 
 import { FormError } from "@/features/auth/components/form-fields";
 import type { ProductView } from "@/services/product.service";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 
 interface ApiPayload {
   data?: ProductView;
@@ -54,46 +60,47 @@ function StockForm({
       className="mt-4 flex flex-wrap items-end gap-2"
       onSubmit={handleSubmit}
     >
-      <label className="text-xs font-medium" htmlFor={`stock-${product.id}`}>
+      <Label className="text-xs font-medium" htmlFor={`stock-${product.id}`}>
         Stock
-        <input
+        <Input
           id={`stock-${product.id}`}
           name="stockQuantity"
           type="number"
           min="0"
           step="1"
           defaultValue={product.stockQuantity}
-          className="mt-1 block h-9 w-28 rounded-md border px-3 text-sm"
+          className="mt-1 block h-9 w-28"
           required
         />
-      </label>
-      <label
+      </Label>
+      <Label
         className="text-xs font-medium"
         htmlFor={`threshold-${product.id}`}
       >
         Low-stock threshold
-        <input
+        <Input
           id={`threshold-${product.id}`}
           name="lowStockThreshold"
           type="number"
           min="0"
           step="1"
           defaultValue={product.lowStockThreshold}
-          className="mt-1 block h-9 w-36 rounded-md border px-3 text-sm"
+          className="mt-1 block h-9 w-36"
           required
         />
-      </label>
-      <button
+      </Label>
+      <Button
+        variant="outline"
         type="submit"
         disabled={pending}
-        className="h-9 rounded-md border px-3 text-xs font-medium"
+        className="h-9"
       >
         {pending ? "Updating…" : "Update stock"}
-      </button>
+      </Button>
       {error ? (
-        <p role="alert" className="w-full text-xs font-medium text-red-700">
+        <Alert variant="destructive" role="alert" className="w-full">
           {error}
-        </p>
+        </Alert>
       ) : null}
     </form>
   );
@@ -138,9 +145,9 @@ export function ProductList({
 
   if (products.length === 0) {
     return (
-      <p className="mt-6 rounded-xl border p-6 text-sm text-neutral-600">
+      <Card as="p" className="gap-0 mt-6 p-6 text-sm text-muted-foreground">
         No products match the current filters.
-      </p>
+      </Card>
     );
   }
 
@@ -149,41 +156,38 @@ export function ProductList({
       {error ? <FormError>{error}</FormError> : null}
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         {products.map((product) => (
-          <article key={product.id} className="rounded-xl border p-5">
+          <Card as="article" key={product.id} className="gap-0 p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="font-semibold">{product.nameEn}</h2>
-                <p className="mt-1 text-sm text-neutral-600">
+                <p className="mt-1 text-sm text-muted-foreground">
                   {product.categoryName} · {product.shopName}
                 </p>
               </div>
               <div className="flex flex-col items-end gap-2">
-                <span className="rounded-full bg-neutral-100 px-2 py-1 text-xs font-medium">
+                <Badge variant="secondary">
                   {product.isAvailable ? "Available" : "Unavailable"}
-                </span>
-                <span
-                  data-testid="inventory-status"
-                  className="rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900"
-                >
+                </Badge>
+                <Badge variant="warning" data-testid="inventory-status">
                   {product.inventoryStatus === "OUT_OF_STOCK"
                     ? "Out of stock"
                     : product.inventoryStatus === "LOW_STOCK"
                       ? "Low stock"
                       : "In stock"}
-                </span>
+                </Badge>
               </div>
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <div>
-                <dt className="text-neutral-500">Price</dt>
+                <dt className="text-muted-foreground">Price</dt>
                 <dd className="font-medium">{product.price}</dd>
               </div>
               <div>
-                <dt className="text-neutral-500">Stock</dt>
+                <dt className="text-muted-foreground">Stock</dt>
                 <dd className="font-medium">{product.stockQuantity}</dd>
               </div>
               <div>
-                <dt className="text-neutral-500">Low-stock threshold</dt>
+                <dt className="text-muted-foreground">Low-stock threshold</dt>
                 <dd className="font-medium">{product.lowStockThreshold}</dd>
               </div>
             </dl>
@@ -192,20 +196,21 @@ export function ProductList({
               <Link href={`/owner/products/${product.id}/edit`}>
                 Edit {product.nameEn}
               </Link>
-              <button
+              <Button
+                variant="ghost"
                 type="button"
                 disabled={pendingId === product.id}
                 onClick={() => toggleAvailability(product)}
               >
                 {product.isAvailable ? "Mark unavailable" : "Mark available"}
-              </button>
+              </Button>
               {product.imageUrl ? (
                 <a href={product.imageUrl} rel="noreferrer" target="_blank">
                   View image
                 </a>
               ) : null}
             </div>
-          </article>
+          </Card>
         ))}
       </div>
     </div>

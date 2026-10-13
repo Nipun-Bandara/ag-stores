@@ -7,6 +7,24 @@ import { UserStatusControl } from "@/features/admin/components/user-status-contr
 import { requireRole } from "@/lib/auth/server";
 import { listAdminUsers } from "@/services/admin-user.service";
 import { adminUserFiltersSchema } from "@/validations/admin-user";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 
 export const metadata: Metadata = { title: "Users | AG Stores" };
 
@@ -47,140 +65,149 @@ export default async function AdminUsersPage({
   const users = await listAdminUsers(administrator, filters);
 
   return (
-    <section className="mx-auto min-h-screen max-w-6xl px-4 py-10 sm:px-6 sm:py-16">
-      <section className="pt-8">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          User management
-        </h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          Search accounts, review access roles, and manage account status.
-        </p>
+    <section className="min-w-0 w-full">
+      <h1 className="text-3xl font-semibold tracking-tight">User management</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Search accounts, review access roles, and manage account status.
+      </p>
 
-        <form className="mt-8 grid gap-4 rounded-xl border p-5 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_auto_auto]">
-          <label className="text-sm font-medium" htmlFor="search">
+      <Card className="gap-0 mt-8 p-5">
+        <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_auto_auto]">
+          <Label className="text-sm font-medium" htmlFor="search">
             Search users
-            <input
+            <Input
               id="search"
               name="search"
               defaultValue={filters.search ?? ""}
               placeholder="Name, email, or phone"
               maxLength={150}
-              className="mt-1.5 h-10 w-full rounded-md border px-3 text-sm"
+              className="mt-1.5 h-10 w-full"
             />
-          </label>
-          <label className="text-sm font-medium" htmlFor="role">
+          </Label>
+          <Label className="text-sm font-medium" htmlFor="role">
             Role
-            <select
+            <NativeSelect
               id="role"
               name="role"
               defaultValue={filters.role ?? ""}
-              className="mt-1.5 h-10 w-full rounded-md border bg-white px-3 text-sm"
+              className="mt-1.5 h-10 w-full"
             >
-              <option value="">All roles</option>
+              <NativeSelectOption value="">All roles</NativeSelectOption>
               {Object.values(UserRole).map((role) => (
-                <option key={role} value={role}>
+                <NativeSelectOption key={role} value={role}>
                   {roleLabels[role]}
-                </option>
+                </NativeSelectOption>
               ))}
-            </select>
-          </label>
-          <label className="text-sm font-medium" htmlFor="status">
+            </NativeSelect>
+          </Label>
+          <Label className="text-sm font-medium" htmlFor="status">
             Status
-            <select
+            <NativeSelect
               id="status"
               name="status"
               defaultValue={filters.status ?? ""}
-              className="mt-1.5 h-10 w-full rounded-md border bg-white px-3 text-sm"
+              className="mt-1.5 h-10 w-full"
             >
-              <option value="">All statuses</option>
+              <NativeSelectOption value="">All statuses</NativeSelectOption>
               {Object.values(UserStatus).map((status) => (
-                <option key={status} value={status}>
+                <NativeSelectOption key={status} value={status}>
                   {statusLabels[status]}
-                </option>
+                </NativeSelectOption>
               ))}
-            </select>
-          </label>
-          <button
-            type="submit"
-            className="h-10 self-end rounded-md bg-neutral-950 px-4 text-sm font-medium text-white"
-          >
+            </NativeSelect>
+          </Label>
+          <Button type="submit" className="h-10 self-end">
             Apply filters
-          </button>
+          </Button>
           <Link
             href="/admin/users"
-            className="inline-flex h-10 items-center self-end rounded-md border px-4 text-sm font-medium"
+            className={buttonVariants({
+              variant: "outline",
+              className: "inline-flex h-10 items-center self-end",
+            })}
           >
             Clear
           </Link>
         </form>
-        {!parsed.success ? (
-          <p role="alert" className="mt-3 text-sm text-red-700">
-            One or more filters were invalid and have been cleared.
-          </p>
-        ) : null}
+      </Card>
+      {!parsed.success ? (
+        <Alert variant="destructive" role="alert" className="mt-3">
+          One or more filters were invalid and have been cleared.
+        </Alert>
+      ) : null}
 
-        <section className="mt-8" aria-labelledby="users-heading">
-          <div className="flex items-center justify-between gap-4">
-            <h2 id="users-heading" className="text-lg font-semibold">
-              Users
-            </h2>
-            <p className="text-sm text-neutral-500">
-              {users.length} {users.length === 1 ? "account" : "accounts"}
-            </p>
-          </div>
-          {users.length ? (
-            <div className="mt-4 overflow-x-auto rounded-xl border bg-white">
-              <table className="w-full min-w-[760px] text-left text-sm">
-                <thead className="border-b bg-neutral-50 text-neutral-600">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">User</th>
-                    <th className="px-4 py-3 font-medium">Contact</th>
-                    <th className="px-4 py-3 font-medium">Role</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {users.map((user) => (
-                    <tr key={user.id} data-testid="admin-user-row">
-                      <td className="px-4 py-4">
-                        <Link
-                          href={`/admin/users/${user.id}`}
-                          className="font-semibold underline"
-                        >
-                          {user.name}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-4 text-neutral-600">
-                        {user.email ?? user.phone ?? "Not provided"}
-                      </td>
-                      <td className="px-4 py-4">{roleLabels[user.role]}</td>
-                      <td className="px-4 py-4">
-                        <span
-                          data-testid={`user-status-${user.id}`}
-                          className="rounded-full bg-neutral-100 px-2 py-1 text-xs font-medium"
-                        >
-                          {statusLabels[user.status]}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4">
-                        <UserStatusControl
-                          userId={user.id}
-                          userName={user.name}
-                          initialStatus={user.status}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="mt-4 rounded-xl border border-dashed p-5 text-sm text-neutral-600">
-              No users match these filters.
-            </p>
-          )}
-        </section>
+      <section className="mt-8" aria-labelledby="users-heading">
+        <div className="flex items-center justify-between gap-4">
+          <h2 id="users-heading" className="text-lg font-semibold">
+            Users
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {users.length} {users.length === 1 ? "account" : "accounts"}
+          </p>
+        </div>
+        {users.length ? (
+          <Card className="gap-0 mt-4 overflow-x-auto">
+            <Table className="w-full min-w-[760px] text-left text-sm">
+              <TableHeader className="border-b bg-muted/50 text-muted-foreground">
+                <TableRow>
+                  <TableHead className="px-4 py-3 font-medium">User</TableHead>
+                  <TableHead className="px-4 py-3 font-medium">
+                    Contact
+                  </TableHead>
+                  <TableHead className="px-4 py-3 font-medium">Role</TableHead>
+                  <TableHead className="px-4 py-3 font-medium">
+                    Status
+                  </TableHead>
+                  <TableHead className="px-4 py-3 font-medium">
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y">
+                {users.map((user) => (
+                  <TableRow key={user.id} data-testid="admin-user-row">
+                    <TableCell className="px-4 py-4">
+                      <Link
+                        href={`/admin/users/${user.id}`}
+                        className="font-semibold underline"
+                      >
+                        {user.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="px-4 py-4 text-muted-foreground">
+                      {user.email ?? user.phone ?? "Not provided"}
+                    </TableCell>
+                    <TableCell className="px-4 py-4">
+                      {roleLabels[user.role]}
+                    </TableCell>
+                    <TableCell className="px-4 py-4">
+                      <Badge
+                        variant="secondary"
+                        data-testid={`user-status-${user.id}`}
+                      >
+                        {statusLabels[user.status]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-4 py-4">
+                      <UserStatusControl
+                        userId={user.id}
+                        userName={user.name}
+                        initialStatus={user.status}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        ) : (
+          <Card
+            as="p"
+            className="gap-0 mt-4 border-dashed p-5 text-sm text-muted-foreground border ring-0"
+          >
+            No users match these filters.
+          </Card>
+        )}
       </section>
     </section>
   );

@@ -44,10 +44,10 @@ export default async function CategoryPage({
         <p className="text-sm font-bold text-emerald-700">
           {category.shopName}
         </p>
-        <h1 className="mt-1 text-4xl font-black tracking-tight text-emerald-950">
+        <h1 className="mt-1 text-4xl font-black tracking-tight text-foreground">
           {categoryName}
         </h1>
-        <p className="mt-7 text-sm font-semibold text-neutral-500">
+        <p className="mt-7 text-sm font-semibold text-muted-foreground">
           {products.length}{" "}
           {products.length === 1 ? copy.product : copy.productPlural}
         </p>

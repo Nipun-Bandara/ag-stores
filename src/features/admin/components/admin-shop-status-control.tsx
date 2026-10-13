@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 
 export function AdminShopStatusControl({
   shopId,
@@ -43,18 +45,18 @@ export function AdminShopStatusControl({
 
   return (
     <div>
-      <button
+      <Button
+        variant="outline"
         type="button"
         disabled={pending}
         onClick={changeStatus}
-        className="rounded-md border px-3 py-2 text-sm font-medium disabled:opacity-60"
       >
         {pending ? "Updating…" : `${action} ${shopName}`}
-      </button>
+      </Button>
       {error ? (
-        <p role="alert" className="mt-2 text-sm text-red-700">
+        <Alert variant="destructive" role="alert" className="mt-2">
           {error}
-        </p>
+        </Alert>
       ) : null}
     </div>
   );

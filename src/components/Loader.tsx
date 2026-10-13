@@ -1,5 +1,7 @@
 "use client";
 
+import { Spinner } from "@/components/ui/spinner";
+
 type LoaderProps = {
   size?: number;
   stroke?: number;
@@ -17,26 +19,16 @@ export function Loader({
 }: LoaderProps) {
   return (
     <div className={className} role="status" aria-label="Loading">
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        className="animate-spin motion-reduce:animate-none"
-        style={{ animationDuration: `${speed}s`, color }}
+      <Spinner
+        style={{
+          width: size,
+          height: size,
+          animationDuration: `${speed}s`,
+          color,
+        }}
+        strokeWidth={stroke}
         aria-hidden="true"
-      >
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={(size - stroke) / 2}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          pathLength="100"
-          strokeDasharray="75 25"
-        />
-      </svg>
+      />
     </div>
   );
 }

@@ -12,14 +12,12 @@ export default async function CustomerOrdersPage() {
   const orders = await listCustomerOrders(user);
 
   return (
-    <section className="mx-auto min-h-screen max-w-4xl px-4 py-10 sm:px-6 sm:py-16">
-      <section className="pt-8">
-        <h1 className="text-3xl font-semibold tracking-tight">Your orders</h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          Follow active deliveries and review your previous purchases.
-        </p>
-        <CustomerOrderList orders={orders} />
-      </section>
+    <section className="min-w-0 w-full">
+      <h1 className="text-3xl font-semibold tracking-tight">Your orders</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Follow active deliveries and review your previous purchases.
+      </p>
+      <CustomerOrderList orders={orders} />
     </section>
   );
 }

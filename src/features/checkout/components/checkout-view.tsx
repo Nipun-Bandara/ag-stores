@@ -1,8 +1,9 @@
-+"use client";
+"use client";
 
 import { useEffect, useState, type FormEvent } from "react";
 
 import Link from "next/link";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useRouter } from "next/navigation";
 
 import { useCart } from "@/features/cart/cart-store";
@@ -12,6 +13,11 @@ import {
   moneyToMinorUnits,
 } from "@/lib/money";
 import type { CustomerAddressView } from "@/services/customer-address.service";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert } from "@/components/ui/alert";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 interface CheckoutPayload {
   data?: { id?: string };
@@ -107,26 +113,29 @@ export function CheckoutView({
 
   if (items.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-emerald-950/20 bg-white p-10 text-center">
-        <h2 className="text-xl font-black text-emerald-950">
+      <Card className="gap-0 border-dashed p-10 text-center border ring-0">
+        <h2 className="text-xl font-black text-foreground">
           Your cart is empty
         </h2>
-        <p className="mt-2 text-sm text-neutral-600">
+        <p className="mt-2 text-sm text-muted-foreground">
           Add at least one available product before checkout.
         </p>
         <Link
           href="/products"
-          className="mt-6 inline-flex rounded-xl bg-emerald-950 px-5 py-3 text-sm font-bold text-white"
+          className={buttonVariants({
+            variant: "default",
+            className: "mt-6 inline-flex",
+          })}
         >
           Browse products
         </Link>
-      </div>
+      </Card>
     );
   }
 
   if (addresses.length === 0) {
     return (
-      <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8">
+      <Card className="gap-0 bg-amber-50 p-8">
         <h2 className="text-xl font-black text-amber-950">
           Add a delivery address first
         </h2>
@@ -135,11 +144,14 @@ export function CheckoutView({
         </p>
         <Link
           href="/account/addresses"
-          className="mt-5 inline-flex rounded-xl bg-amber-950 px-5 py-3 text-sm font-bold text-white"
+          className={buttonVariants({
+            variant: "default",
+            className: "mt-5 inline-flex",
+          })}
         >
           Manage addresses
         </Link>
-      </div>
+      </Card>
     );
   }
 
@@ -149,40 +161,37 @@ export function CheckoutView({
       className="grid gap-8 lg:grid-cols-[1fr_22rem]"
     >
       <div className="space-y-6">
-        <section className="rounded-2xl border border-emerald-950/10 bg-white p-5 shadow-sm sm:p-6">
-          <h2 className="text-xl font-black text-emerald-950">
+        <Card as="section" className="gap-0 p-5 sm:p-6">
+          <h2 className="text-xl font-black text-foreground">
             Delivery address
           </h2>
-          <div className="mt-4 space-y-3">
+          <RadioGroup
+            className="mt-4"
+            name="deliveryAddressId"
+            defaultValue={defaultAddress?.id ?? addresses[0]?.id}
+            required
+          >
             {addresses.map((address) => (
-              <label
+              <Label
                 key={address.id}
-                className="flex cursor-pointer gap-3 rounded-xl border p-4 has-checked:border-emerald-700 has-checked:bg-emerald-50"
+                className="flex cursor-pointer gap-3 rounded-xl border p-4 has-data-checked:border-primary has-data-checked:bg-primary/5"
               >
-                <input
-                  type="radio"
-                  name="deliveryAddressId"
-                  value={address.id}
-                  defaultChecked={
-                    address.id === (defaultAddress?.id ?? addresses[0]?.id)
-                  }
-                  required
-                />
+                <RadioGroupItem value={address.id} />
                 <span>
-                  <span className="block font-bold text-emerald-950">
+                  <span className="block font-bold text-foreground">
                     {address.label}
                   </span>
-                  <span className="mt-1 block text-sm text-neutral-600">
+                  <span className="mt-1 block text-sm text-muted-foreground">
                     {address.address}
                   </span>
                 </span>
-              </label>
+              </Label>
             ))}
-          </div>
-        </section>
+          </RadioGroup>
+        </Card>
 
-        <section className="rounded-2xl border border-emerald-950/10 bg-white p-5 shadow-sm sm:p-6">
-          <h2 className="text-xl font-black text-emerald-950">
+        <Card as="section" className="gap-0 p-5 sm:p-6">
+          <h2 className="text-xl font-black text-foreground">
             Review products
           </h2>
           <div className="mt-4 divide-y">
@@ -193,40 +202,40 @@ export function CheckoutView({
                 className="flex justify-between gap-4 py-4"
               >
                 <div>
-                  <p className="font-bold text-emerald-950">{item.name}</p>
-                  <p className="text-sm text-neutral-500">
+                  <p className="font-bold text-foreground">{item.name}</p>
+                  <p className="text-sm text-muted-foreground">
                     Quantity {item.quantity}
                   </p>
                 </div>
-                <p className="font-semibold text-emerald-950">
+                <p className="font-semibold text-foreground">
                   LKR {item.price} each
                 </p>
               </div>
             ))}
           </div>
-        </section>
+        </Card>
 
-        <section className="rounded-2xl border border-emerald-950/10 bg-white p-5 shadow-sm sm:p-6">
-          <label
+        <Card as="section" className="gap-0 p-5 sm:p-6">
+          <Label
             htmlFor="deliveryInstructions"
-            className="text-base font-bold text-emerald-950"
+            className="text-base font-bold text-foreground"
           >
             Delivery instructions{" "}
             <span className="font-normal">(optional)</span>
-          </label>
-          <textarea
+          </Label>
+          <Textarea
             id="deliveryInstructions"
             name="deliveryInstructions"
             maxLength={1000}
             rows={4}
             placeholder="Gate code, landmark, or delivery note"
-            className="mt-3 w-full rounded-xl border p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-700"
+            className="mt-3 w-full p-3"
           />
-        </section>
+        </Card>
       </div>
 
-      <aside className="h-fit rounded-2xl border border-emerald-950/10 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-black text-emerald-950">Order summary</h2>
+      <Card as="aside" className="gap-0 h-fit p-6">
+        <h2 className="text-xl font-black text-foreground">Order summary</h2>
         <dl className="mt-6 space-y-4 text-sm">
           <div className="flex justify-between">
             <dt>Subtotal</dt>
@@ -240,34 +249,32 @@ export function CheckoutView({
                 : "Calculated at confirmation"}
             </dd>
           </div>
-          <div className="flex justify-between border-t pt-4 text-base font-black text-emerald-950">
+          <div className="flex justify-between border-t pt-4 text-base font-black text-foreground">
             <dt>Total</dt>
             <dd data-testid="checkout-total">
               {total ? `LKR ${total}` : "Calculated at confirmation"}
             </dd>
           </div>
         </dl>
-        <div className="mt-6 rounded-xl bg-amber-50 p-4 text-sm">
-          <span className="block font-bold text-amber-950">Payment method</span>
-          <span className="mt-1 block text-amber-900">Cash on Delivery</span>
-        </div>
-        <p className="mt-4 text-xs leading-5 text-neutral-500">
+        <Card className="mt-6 gap-0 bg-muted/50 p-4">
+          <span className="block font-bold">Payment method</span>
+          <span className="mt-1 block text-muted-foreground">
+            Cash on Delivery
+          </span>
+        </Card>
+        <p className="mt-4 text-xs leading-5 text-muted-foreground">
           Prices, availability, stock, delivery fee, and total are recalculated
           by the server when you confirm.
         </p>
         {error ? (
-          <p className="mt-4 text-sm font-semibold text-red-700" role="alert">
+          <Alert variant="destructive" className="mt-4" role="alert">
             {error}
-          </p>
+          </Alert>
         ) : null}
-        <button
-          type="submit"
-          disabled={pending}
-          className="mt-6 w-full rounded-xl bg-emerald-950 px-5 py-3 text-sm font-bold text-white disabled:opacity-60"
-        >
+        <Button type="submit" disabled={pending} className="mt-6 w-full">
           {pending ? "Placing order…" : "Confirm Cash on Delivery order"}
-        </button>
-      </aside>
+        </Button>
+      </Card>
     </form>
   );
 }

@@ -12,14 +12,12 @@ export default async function ProfilePage() {
   const user = await getCustomerProfile(sessionUser);
 
   return (
-    <section className="mx-auto min-h-screen max-w-3xl px-6 py-16">
-      <section className="pt-8">
-        <h1 className="text-3xl font-semibold tracking-tight">Profile</h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          Manage your customer name, phone number, and preferred language.
-        </p>
-        <ProfileForm user={user} />
-      </section>
+    <section className="min-w-0 w-full">
+      <h1 className="text-3xl font-semibold tracking-tight">Profile</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Manage your customer name, phone number, and preferred language.
+      </p>
+      <ProfileForm user={user} />
     </section>
   );
 }

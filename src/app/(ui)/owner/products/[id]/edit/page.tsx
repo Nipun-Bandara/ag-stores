@@ -32,14 +32,12 @@ export default async function EditProductPage({
   });
 
   return (
-    <section className="mx-auto min-h-screen max-w-5xl px-6 py-16">
-      <section className="pt-8">
-        <h1 className="text-3xl font-semibold tracking-tight">Edit product</h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          Update product information without changing its shop.
-        </p>
-        <ProductForm options={options} product={product} />
-      </section>
+    <section className="min-w-0 w-full">
+      <h1 className="text-3xl font-semibold tracking-tight">Edit product</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Update product information without changing its shop.
+      </p>
+      <ProductForm options={options} product={product} />
     </section>
   );
 }

@@ -12,16 +12,14 @@ export default async function OwnerCategoriesPage() {
   const data = await getOwnerCategoryManagement(user);
 
   return (
-    <section className="mx-auto min-h-screen max-w-5xl px-6 py-16">
-      <section className="pt-8">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Product categories
-        </h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          Organize each shop&apos;s products in English and Sinhala.
-        </p>
-        <CategoryManager initialData={data} />
-      </section>
+    <section className="min-w-0 w-full">
+      <h1 className="text-3xl font-semibold tracking-tight">
+        Product categories
+      </h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Organize each shop&apos;s products in English and Sinhala.
+      </p>
+      <CategoryManager initialData={data} />
     </section>
   );
 }

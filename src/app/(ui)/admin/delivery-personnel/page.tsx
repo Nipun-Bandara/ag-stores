@@ -12,16 +12,14 @@ export default async function AdminDeliveryPersonnelPage() {
   const data = await getDeliveryPersonnelManagement(user);
 
   return (
-    <section className="mx-auto min-h-screen max-w-5xl px-4 py-10 sm:px-6 sm:py-16">
-      <section className="pt-8">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Delivery personnel administration
-        </h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          View and manage delivery accounts across every shop.
-        </p>
-        <DeliveryPersonnelManager initialData={data} />
-      </section>
+    <section className="min-w-0 w-full">
+      <h1 className="text-3xl font-semibold tracking-tight">
+        Delivery personnel administration
+      </h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        View and manage delivery accounts across every shop.
+      </p>
+      <DeliveryPersonnelManager initialData={data} />
     </section>
   );
 }
