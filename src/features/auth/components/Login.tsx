@@ -1,4 +1,6 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useState } from "react";
 import { useFormik } from "formik";
@@ -28,6 +30,7 @@ interface LoginProps {
 }
 
 export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
+  const t = useText();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const router = useRouter();
@@ -41,20 +44,22 @@ export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
     },
     validationSchema: Yup.object({
       identifier: Yup.string()
-        .min(3, "Enter your email address or phone number")
-        .required("Required"),
-      password: Yup.string().required("Required"),
+        .min(3, t("Enter your email address or phone number"))
+        .required(t("Required")),
+      password: Yup.string().required(t("Required")),
     }),
     onSubmit: async (values) => {
       setServerError(null);
       try {
         await login(values, returnTo);
-        toast.success("Logged in successfully!");
+        toast.success(t("Logged in successfully!"));
       } catch (error: unknown) {
         setServerError(
-          describeApiError(
-            error,
-            "An unexpected error occurred. Please try again.",
+          t(
+            describeApiError(
+              error,
+              t("An unexpected error occurred. Please try again."),
+            ),
           ),
         );
       }
@@ -65,9 +70,11 @@ export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
     <Card className="w-full max-w-md">
       <CardHeader className="text-center lg:text-left space-y-2">
         <CardTitle className="text-3xl lg:text-4xl font-bold font-clash-display">
-          Welcome back
+          <Text value={"Welcome back "} />
         </CardTitle>
-        <CardDescription>Please enter your details to sign in.</CardDescription>
+        <CardDescription>
+          <Text value={t("Please enter your details to sign in.")} />
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={formik.handleSubmit} className="space-y-5">
@@ -87,7 +94,7 @@ export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
                 htmlFor="login-identifier"
                 className="block text-sm font-medium mb-1.5"
               >
-                Email or phone
+                <Text value={"Email or phone "} />
               </Label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
@@ -102,7 +109,7 @@ export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
                   aria-invalid={
                     !!(formik.touched.identifier && formik.errors.identifier)
                   }
-                  placeholder="Email or phone"
+                  placeholder={t("Email or phone")}
                 />
               </div>
               {formik.touched.identifier && formik.errors.identifier ? (
@@ -117,7 +124,7 @@ export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
                 htmlFor="login-password"
                 className="block text-sm font-medium mb-1.5"
               >
-                Password
+                <Text value={"Password "} />
               </Label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
@@ -131,12 +138,14 @@ export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
                   aria-invalid={
                     !!(formik.touched.password && formik.errors.password)
                   }
-                  placeholder="Enter your password"
+                  placeholder={t("Enter your password")}
                 />
                 <Button
                   variant="ghost"
                   type="button"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={
+                    showPassword ? t("Hide password") : t("Show password")
+                  }
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
                   tabIndex={-1}
@@ -160,7 +169,7 @@ export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
             <Label className="flex items-center gap-2 cursor-pointer group">
               <Checkbox className="w-4 h-4" />
               <span className="text-muted-foreground group-hover:text-foreground transition-colors">
-                Remember me
+                <Text value={"Remember me "} />
               </span>
             </Label>
             <Button
@@ -168,7 +177,7 @@ export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
               type="button"
               onClick={() => router.push("/forgot-password")}
             >
-              Forgot password?
+              <Text value={"Forgot password? "} />
             </Button>
           </div>
 
@@ -177,15 +186,15 @@ export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
             disabled={formik.isSubmitting}
             className="w-full flex justify-center hover:scale-[1.02] active:scale-[0.98]"
           >
-            {formik.isSubmitting ? "Signing in..." : "Sign in"}
+            {formik.isSubmitting ? t("Signing in...") : t("Sign in")}
           </Button>
         </form>
       </CardContent>
       <CardFooter className="flex justify-center">
         <div className="text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
+          <Text value={t("Don't have an account?")} />{" "}
           <Button variant="ghost" type="button" onClick={onSwitchToSignup}>
-            Sign up
+            <Text value={"Sign up "} />
           </Button>
         </div>
       </CardFooter>

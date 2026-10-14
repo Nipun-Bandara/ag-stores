@@ -1,3 +1,4 @@
+import { getServerText } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 
 import Link from "next/link";
@@ -8,7 +9,10 @@ import { getDictionary, routePath } from "@/lib/i18n/config";
 import { getLocaleContext } from "@/lib/i18n/server";
 import { Card } from "@/components/ui/card";
 
-export const metadata: Metadata = { title: "Account | AG Stores" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return { title: `${t("Account")} | AG Stores` };
+}
 
 export default async function AccountPage() {
   const [user, localeContext] = await Promise.all([

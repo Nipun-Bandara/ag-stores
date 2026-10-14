@@ -23,7 +23,10 @@ vi.mock("@/components/DotGrid", () => ({ default: () => null }));
 vi.mock("next-themes", () => ({
   useTheme: () => ({ resolvedTheme: "light" }),
 }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => "/si/auth",
+}));
 vi.mock("@/lib/i18n/server", () => ({
   getLocaleContext: async () => ({ locale: "si", localizedRoute: true }),
 }));

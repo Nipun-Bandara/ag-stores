@@ -1,15 +1,17 @@
 import type { Dictionary } from "@/lib/i18n/config";
-import Image from "next/image";
+// import Image from "next/image";
 import Link from "next/link";
-import logo from "@/app/public/logo.svg";
+// import logo from "@/app/public/logo.svg";
 
 export const Footer = ({
   copy,
   authHref,
+  productsHref,
   homeHref,
 }: {
   copy: Dictionary["landing"];
   authHref: string;
+  productsHref: string;
   homeHref: string;
 }) => {
   return (
@@ -19,9 +21,9 @@ export const Footer = ({
           <div className="flex flex-col gap-2">
             <Link
               href={homeHref}
-              className="text-title-lg font-title-lg font-bold text-primary flex items-center gap-2 mb-2"
+              className="text-title-lg font-title-lg font-bold flex items-center gap-2 mb-2"
             >
-              <Image src={logo} alt={copy.logoAlt} width={32} height={32} />
+              {/* <Image src={logo} alt={copy.logoAlt} width={32} height={32} /> */}
               {copy.brand}
             </Link>
             <p className="font-caption text-caption text-on-surface-variant">
@@ -50,16 +52,16 @@ export const Footer = ({
               {copy.resources}
             </h4>
             <Link
-              href={"#features"}
+              href={productsHref}
               className="font-caption text-caption text-on-surface-variant hover:text-primary underline transition-all duration-200"
             >
-              {copy.roleGuide}
+              {copy.browseProducts}
             </Link>
             <Link
-              href={"#market"}
+              href={"#workflow"}
               className="font-caption text-caption text-on-surface-variant hover:text-primary underline transition-all duration-200"
             >
-              {copy.community}
+              {copy.howItWorks}
             </Link>
           </div>
           <div className="flex flex-col gap-2">
@@ -73,7 +75,7 @@ export const Footer = ({
               {copy.getStarted}
             </Link>
             <Link
-              href={"#about"}
+              href={"#workflow"}
               className="font-caption text-caption text-on-surface-variant hover:text-primary underline transition-all duration-200"
             >
               {copy.learnMore}

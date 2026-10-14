@@ -1,4 +1,6 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
 
@@ -26,6 +28,7 @@ async function readPayload(response: Response): Promise<ApiPayload> {
 }
 
 function AddressForm({ address, onCancel, onSaved }: AddressFormProps) {
+  const t = useText();
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
 
@@ -55,7 +58,7 @@ function AddressForm({ address, onCancel, onSaved }: AddressFormProps) {
 
     if (!response?.ok) {
       const payload = response ? await readPayload(response) : {};
-      setError(payload.error?.message ?? "Unable to save this address.");
+      setError(t(payload.error?.message ?? "Unable to save this address."));
       setPending(false);
       return;
     }
@@ -70,13 +73,19 @@ function AddressForm({ address, onCancel, onSaved }: AddressFormProps) {
     <Card className="gap-0 p-5">
       <form className="space-y-4" onSubmit={handleSubmit}>
         <h2 className="text-lg font-semibold">
-          {address ? `Edit ${address.label}` : "Add an address"}
+          {address ? (
+            <>
+              <Text value="Edit" /> {address.label}
+            </>
+          ) : (
+            t("Add an address")
+          )}
         </h2>
         <FormField
           id={address ? `label-${address.id}` : "label"}
           name="label"
           label="Label"
-          placeholder="Home, Office, or Other"
+          placeholder={t("Home, Office, or Other")}
           defaultValue={address?.label ?? ""}
           maxLength={80}
           required
@@ -120,12 +129,16 @@ function AddressForm({ address, onCancel, onSaved }: AddressFormProps) {
             defaultChecked={address?.isDefault ?? false}
             disabled={address?.isDefault ?? false}
           />
-          Use as default address
+          <Text value={"Use as default address "} />
         </Label>
         {error ? <FormError>{error}</FormError> : null}
         <div className="flex gap-3">
           <Button type="submit" disabled={pending} className="h-10">
-            {pending ? "Saving…" : address ? "Save changes" : "Add address"}
+            {pending
+              ? t("Saving…")
+              : address
+                ? t("Save changes")
+                : t("Add address")}
           </Button>
           {onCancel ? (
             <Button
@@ -134,7 +147,7 @@ function AddressForm({ address, onCancel, onSaved }: AddressFormProps) {
               className="h-10"
               onClick={onCancel}
             >
-              Cancel
+              <Text value={"Cancel "} />
             </Button>
           ) : null}
         </div>
@@ -148,6 +161,7 @@ export function AddressManager({
 }: {
   initialAddresses: CustomerAddressView[];
 }) {
+  const t = useText();
   const [addresses, setAddresses] = useState(initialAddresses);
   const [editingId, setEditingId] = useState<string>();
   const [error, setError] = useState<string>();
@@ -180,7 +194,9 @@ export function AddressManager({
 
     if (!response?.ok) {
       const payload = response ? await readPayload(response) : {};
-      setError(payload.error?.message ?? "Unable to set the default address.");
+      setError(
+        t(payload.error?.message ?? "Unable to set the default address."),
+      );
     } else {
       setAddresses((current) =>
         current.map((item) => ({
@@ -201,7 +217,7 @@ export function AddressManager({
 
     if (!response?.ok) {
       const payload = response ? await readPayload(response) : {};
-      setError(payload.error?.message ?? "Unable to delete this address.");
+      setError(t(payload.error?.message ?? "Unable to delete this address."));
     } else {
       const deletedWasDefault = addresses.some(
         (item) => item.id === addressId && item.isDefault,
@@ -233,7 +249,7 @@ export function AddressManager({
       />
       <section aria-labelledby="saved-addresses-heading">
         <h2 id="saved-addresses-heading" className="text-lg font-semibold">
-          Saved addresses
+          <Text value={"Saved addresses "} />
         </h2>
         {error ? (
           <div className="mt-4">
@@ -242,7 +258,7 @@ export function AddressManager({
         ) : null}
         {addresses.length === 0 ? (
           <p className="mt-4 text-sm text-muted-foreground">
-            You have no saved delivery addresses.
+            <Text value={"You have no saved delivery addresses. "} />
           </p>
         ) : (
           <div className="mt-4 space-y-4">
@@ -251,7 +267,9 @@ export function AddressManager({
                 <div className="flex items-start justify-between gap-4">
                   <h3 className="font-semibold">{item.label}</h3>
                   {item.isDefault ? (
-                    <Badge variant="secondary">Default</Badge>
+                    <Badge variant="secondary">
+                      <Text value={t("Default")} />
+                    </Badge>
                   ) : null}
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
@@ -266,7 +284,8 @@ export function AddressManager({
                     type="button"
                     onClick={() => setEditingId(item.id)}
                   >
-                    Edit {item.label}
+                    <Text value={"Edit "} />
+                    {item.label}
                   </Button>
                   {!item.isDefault ? (
                     <Button
@@ -275,7 +294,8 @@ export function AddressManager({
                       disabled={pendingId === item.id}
                       onClick={() => setDefault(item.id)}
                     >
-                      Make {item.label} default
+                      <Text value={"Make "} />
+                      {item.label} <Text value={"default "} />
                     </Button>
                   ) : null}
                   <Button
@@ -285,7 +305,8 @@ export function AddressManager({
 
                     onClick={() => deleteAddress(item.id)}
                   >
-                    Delete {item.label}
+                    <Text value={"Delete "} />
+                    {item.label}
                   </Button>
                 </div>
               </Card>

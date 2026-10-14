@@ -1,4 +1,7 @@
 "use client";
+import { useLocale, useText } from "@/features/i18n/components/locale-provider";
+import { LanguageSwitcher } from "@/features/i18n/components/language-switcher";
+import { Text } from "@/features/i18n/components/text";
 
 import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
@@ -22,6 +25,8 @@ export default function AuthContainer({
   homeHref,
   returnTo,
 }: AuthContainerProps) {
+  const t = useText();
+  const locale = useLocale();
   const [isSignup, setIsSignup] = useState(initialMode === "register");
   const { resolvedTheme } = useTheme();
   const mounted = useSyncExternalStore(
@@ -43,8 +48,11 @@ export default function AuthContainer({
         })}
       >
         <ArrowLeft className="w-4 h-4" />
-        Back to Home
+        <Text value={"Back to Home "} />
       </Link>
+      <div className="absolute top-4 right-4 z-50">
+        <LanguageSwitcher locale={locale} label={t("Language")} />
+      </div>
       {/* Form Container - Scrolls with page */}
       <div
         className={`w-full lg:w-1/2 flex-1 flex items-center justify-center px-8 pt-20 pb-8 lg:p-16 bg-background transition-transform duration-700 ease-in-out z-10 ${
@@ -92,18 +100,22 @@ export default function AuthContainer({
 
         <div className="relative z-10 text-center mt-8 space-y-6">
           <h2 className="text-2xl font-bold text-foreground">
-            {isSignup ? "Already registered?" : "New to the AG Stores?"}
+            {isSignup ? t("Already registered?") : t("New to the AG Stores?")}
           </h2>
           <p className="text-muted-foreground max-w-sm px-8">
             {isSignup
-              ? "If you already have a AG Stores account, sign in to continue to your dashboard."
-              : "Create your AG Stores account to browse products, place orders, and track deliveries."}
+              ? t(
+                  "If you already have a AG Stores account, sign in to continue to your dashboard.",
+                )
+              : t(
+                  "Create your AG Stores account to browse products, place orders, and track deliveries.",
+                )}
           </p>
           <Button
             onClick={() => setIsSignup(!isSignup)}
             className="border-2 rounded-lg"
           >
-            {isSignup ? "Sign In" : "Register"}
+            {isSignup ? t("Sign In") : t("Register")}
           </Button>
         </div>
       </div>

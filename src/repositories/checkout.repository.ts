@@ -38,7 +38,7 @@ const orderConfirmationSelect = {
       productId: true,
       quantity: true,
       unitPrice: true,
-      product: { select: { nameEn: true } },
+      product: { select: { nameEn: true, nameSi: true } },
     },
   },
 } satisfies Prisma.OrderSelect;

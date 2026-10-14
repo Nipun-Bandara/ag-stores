@@ -1,3 +1,4 @@
+import { getServerText } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 
 import { notFound } from "next/navigation";
@@ -13,7 +14,10 @@ import {
 } from "@/services/storefront.service";
 import { categoryIdSchema } from "@/validations/category";
 
-export const metadata: Metadata = { title: "Category | AG Stores" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return { title: `${t("Category")} | AG Stores` };
+}
 
 export default async function CategoryPage({
   params,
@@ -44,7 +48,7 @@ export default async function CategoryPage({
         <p className="text-sm font-bold text-emerald-700">
           {category.shopName}
         </p>
-        <h1 className="mt-1 text-4xl font-black tracking-tight text-foreground">
+        <h1 className="mt-1 break-words text-3xl font-black tracking-tight text-foreground sm:text-4xl">
           {categoryName}
         </h1>
         <p className="mt-7 text-sm font-semibold text-muted-foreground">

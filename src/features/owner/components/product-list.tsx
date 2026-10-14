@@ -1,4 +1,7 @@
 "use client";
+import { BilingualText } from "@/features/i18n/components/bilingual-text";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
 
@@ -29,6 +32,7 @@ function StockForm({
   product: ProductView;
   onSaved: (product: ProductView) => void;
 }) {
+  const t = useText();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
 
@@ -50,7 +54,7 @@ function StockForm({
       if (payload.data) onSaved(payload.data);
     } else {
       const payload = response ? await readPayload(response) : {};
-      setError(payload.error?.message ?? "Unable to update inventory.");
+      setError(t(payload.error?.message ?? "Unable to update inventory."));
     }
     setPending(false);
   }
@@ -61,7 +65,7 @@ function StockForm({
       onSubmit={handleSubmit}
     >
       <Label className="text-xs font-medium" htmlFor={`stock-${product.id}`}>
-        Stock
+        <Text value={"Stock "} />
         <Input
           id={`stock-${product.id}`}
           name="stockQuantity"
@@ -77,7 +81,7 @@ function StockForm({
         className="text-xs font-medium"
         htmlFor={`threshold-${product.id}`}
       >
-        Low-stock threshold
+        <Text value={"Low-stock threshold "} />
         <Input
           id={`threshold-${product.id}`}
           name="lowStockThreshold"
@@ -95,7 +99,7 @@ function StockForm({
         disabled={pending}
         className="h-9"
       >
-        {pending ? "Updating…" : "Update stock"}
+        {pending ? t("Updating…") : t("Update stock")}
       </Button>
       {error ? (
         <Alert variant="destructive" role="alert" className="w-full">
@@ -111,6 +115,7 @@ export function ProductList({
 }: {
   initialProducts: ProductView[];
 }) {
+  const t = useText();
   const [products, setProducts] = useState(initialProducts);
   const [pendingId, setPendingId] = useState<string>();
   const [error, setError] = useState<string>();
@@ -135,7 +140,7 @@ export function ProductList({
 
     if (!response?.ok) {
       const payload = response ? await readPayload(response) : {};
-      setError(payload.error?.message ?? "Unable to update availability.");
+      setError(t(payload.error?.message ?? "Unable to update availability."));
     } else {
       const payload = await readPayload(response);
       if (payload.data) saveProduct(payload.data);
@@ -146,7 +151,7 @@ export function ProductList({
   if (products.length === 0) {
     return (
       <Card as="p" className="gap-0 mt-6 p-6 text-sm text-muted-foreground">
-        No products match the current filters.
+        <Text value={"No products match the current filters. "} />
       </Card>
     );
   }
@@ -159,42 +164,61 @@ export function ProductList({
           <Card as="article" key={product.id} className="gap-0 p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="font-semibold">{product.nameEn}</h2>
+                <h2 className="font-semibold">
+                  <BilingualText
+                    english={product.nameEn}
+                    sinhala={product.nameSi}
+                  />
+                </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {product.categoryName} · {product.shopName}
+                  <BilingualText
+                    english={product.categoryName}
+                    sinhala={product.categoryNameSi}
+                  />{" "}
+                  · {product.shopName}
                 </p>
               </div>
               <div className="flex flex-col items-end gap-2">
                 <Badge variant="secondary">
-                  {product.isAvailable ? "Available" : "Unavailable"}
+                  {product.isAvailable ? t("Available") : t("Unavailable")}
                 </Badge>
                 <Badge variant="warning" data-testid="inventory-status">
                   {product.inventoryStatus === "OUT_OF_STOCK"
-                    ? "Out of stock"
+                    ? t("Out of stock")
                     : product.inventoryStatus === "LOW_STOCK"
-                      ? "Low stock"
-                      : "In stock"}
+                      ? t("Low stock")
+                      : t("In stock")}
                 </Badge>
               </div>
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <div>
-                <dt className="text-muted-foreground">Price</dt>
+                <dt className="text-muted-foreground">
+                  <Text value={t("Price")} />
+                </dt>
                 <dd className="font-medium">{product.price}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Stock</dt>
+                <dt className="text-muted-foreground">
+                  <Text value={t("Stock")} />
+                </dt>
                 <dd className="font-medium">{product.stockQuantity}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Low-stock threshold</dt>
+                <dt className="text-muted-foreground">
+                  <Text value={t("Low-stock threshold")} />
+                </dt>
                 <dd className="font-medium">{product.lowStockThreshold}</dd>
               </div>
             </dl>
             <StockForm product={product} onSaved={saveProduct} />
             <div className="mt-4 flex flex-wrap gap-4 text-sm font-medium">
               <Link href={`/owner/products/${product.id}/edit`}>
-                Edit {product.nameEn}
+                <Text value={"Edit "} />
+                <BilingualText
+                  english={product.nameEn}
+                  sinhala={product.nameSi}
+                />
               </Link>
               <Button
                 variant="ghost"
@@ -202,11 +226,13 @@ export function ProductList({
                 disabled={pendingId === product.id}
                 onClick={() => toggleAvailability(product)}
               >
-                {product.isAvailable ? "Mark unavailable" : "Mark available"}
+                {product.isAvailable
+                  ? t("Mark unavailable")
+                  : t("Mark available")}
               </Button>
               {product.imageUrl ? (
                 <a href={product.imageUrl} rel="noreferrer" target="_blank">
-                  View image
+                  <Text value={"View image "} />
                 </a>
               ) : null}
             </div>

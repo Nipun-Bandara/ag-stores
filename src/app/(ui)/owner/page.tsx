@@ -1,3 +1,6 @@
+import { BilingualText } from "@/features/i18n/components/bilingual-text";
+import { getServerText } from "@/lib/i18n/server";
+import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
 
 import Link from "next/link";
@@ -8,9 +11,13 @@ import { getOwnerDashboard } from "@/services/owner-dashboard.service";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 
-export const metadata: Metadata = { title: "Owner dashboard | AG Stores" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return { title: `${t("Owner dashboard")} | AG Stores` };
+}
 
 export default async function OwnerDashboardPage() {
+  const t = await getServerText();
   const user = await requireRole(UserRole.SHOP_OWNER, "/owner");
   const dashboard = await getOwnerDashboard(user);
   const metrics = [
@@ -54,28 +61,33 @@ export default async function OwnerDashboardPage() {
       <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">
-            Shop owner dashboard
+            <Text value={"Shop owner dashboard "} />
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Track order activity and manage your shop catalog.
+            <Text
+              value={"Track order activity and manage your shop catalog. "}
+            />
           </p>
         </div>
         <Link
           href="/owner/orders"
-          aria-label="Open order workflow"
+          aria-label={t("Open order workflow")}
           className={buttonVariants({ variant: "default", className: "" })}
         >
-          Manage orders
+          <Text value={"Manage orders "} />
         </Link>
       </div>
 
       <section className="mt-8" aria-labelledby="shop-summary-heading">
         <h2 id="shop-summary-heading" className="text-lg font-semibold">
-          Shop overview
+          <Text value={"Shop overview "} />
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Workflow counts are current. Daily totals use Sri Lanka time, and
-          revenue includes delivered orders only.
+          <Text
+            value={
+              "Workflow counts are current. Daily totals use Sri Lanka time, and revenue includes delivered orders only. "
+            }
+          />
         </p>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {metrics.map((metric) => (
@@ -85,7 +97,7 @@ export default async function OwnerDashboardPage() {
               data-testid={`owner-dashboard-metric-${metric.key}`}
             >
               <p className="text-xs font-medium text-muted-foreground">
-                {metric.label}
+                <Text value={metric.label} />
               </p>
               <p className="mt-2 text-2xl font-semibold">{metric.value}</p>
             </Card>
@@ -97,18 +109,21 @@ export default async function OwnerDashboardPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 id="low-stock-heading" className="text-lg font-semibold">
-              Low-stock products
+              <Text value={"Low-stock products "} />
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Products with remaining stock at or below their configured
-              threshold.
+              <Text
+                value={
+                  "Products with remaining stock at or below their configured threshold. "
+                }
+              />
             </p>
           </div>
           <Link
             href="/owner/products?inventoryStatus=LOW_STOCK"
             className="text-sm font-medium underline"
           >
-            Review inventory
+            <Text value={"Review inventory "} />
           </Link>
         </div>
         {dashboard.lowStockProducts.length ? (
@@ -120,7 +135,12 @@ export default async function OwnerDashboardPage() {
                   className="flex flex-wrap items-center justify-between gap-3 p-4"
                 >
                   <div>
-                    <p className="font-medium">{product.nameEn}</p>
+                    <p className="font-medium">
+                      <BilingualText
+                        english={product.nameEn}
+                        sinhala={product.nameSi}
+                      />
+                    </p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {product.shopName}
                     </p>
@@ -129,7 +149,8 @@ export default async function OwnerDashboardPage() {
                     <span className="font-semibold">
                       {product.stockQuantity}
                     </span>{" "}
-                    in stock · threshold {product.lowStockThreshold}
+                    <Text value={"in stock · threshold "} />
+                    {product.lowStockThreshold}
                   </p>
                 </li>
               ))}
@@ -140,7 +161,7 @@ export default async function OwnerDashboardPage() {
             as="p"
             className="gap-0 mt-4 border-dashed p-5 text-sm text-muted-foreground border ring-0"
           >
-            No products are currently low on stock.
+            <Text value={"No products are currently low on stock. "} />
           </Card>
         )}
       </section>
@@ -177,13 +198,15 @@ export default async function OwnerDashboardPage() {
           <Link
             key={href}
             href={href}
-            aria-label={accessibleLabel}
+            aria-label={t(accessibleLabel)}
             className="block rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             <Card className="h-full gap-0 p-5">
-              <h2 className="font-semibold">{title}</h2>
+              <h2 className="font-semibold">
+                <Text value={title} />
+              </h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                {description}
+                <Text value={description} />
               </p>
             </Card>
           </Link>

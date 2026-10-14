@@ -1,4 +1,6 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
@@ -30,6 +32,7 @@ export function AdminShopForm({
   owners: AdminShopManagementView["owners"];
   shop?: AdminShopView;
 }) {
+  const t = useText();
   const router = useRouter();
   const [message, setMessage] = useState<string>();
   const [isError, setIsError] = useState(false);
@@ -66,14 +69,14 @@ export function AdminShopForm({
       : {};
 
     if (!response?.ok || !payload.data) {
-      setMessage(payload.error?.message ?? "Unable to save the shop.");
+      setMessage(t(payload.error?.message ?? "Unable to save the shop."));
       setIsError(true);
       setPending(false);
       return;
     }
 
     if (shop) {
-      setMessage("Shop details saved.");
+      setMessage(t("Shop details saved."));
       router.refresh();
     } else {
       router.push(`/admin/shops/${payload.data.id}`);
@@ -86,7 +89,7 @@ export function AdminShopForm({
       <form onSubmit={submit} className="">
         <div className="grid gap-5 sm:grid-cols-2">
           <Label className="text-sm font-medium sm:col-span-2">
-            Shop owner
+            <Text value={"Shop owner "} />
             <NativeSelect
               name="ownerId"
               defaultValue={shop?.ownerId ?? owners[0]?.id ?? ""}
@@ -95,7 +98,7 @@ export function AdminShopForm({
             >
               {!owners.length ? (
                 <NativeSelectOption value="">
-                  No active owners
+                  <Text value={"No active owners "} />
                 </NativeSelectOption>
               ) : null}
               {owners.map((owner) => (
@@ -106,7 +109,7 @@ export function AdminShopForm({
             </NativeSelect>
           </Label>
           <Label className="text-sm font-medium sm:col-span-2">
-            Shop name
+            <Text value={"Shop name "} />
             <Input
               name="name"
               defaultValue={shop?.name ?? ""}
@@ -116,7 +119,7 @@ export function AdminShopForm({
             />
           </Label>
           <Label className="text-sm font-medium sm:col-span-2">
-            Address
+            <Text value={"Address "} />
             <Textarea
               name="address"
               defaultValue={shop?.address ?? ""}
@@ -125,7 +128,7 @@ export function AdminShopForm({
             />
           </Label>
           <Label className="text-sm font-medium">
-            Phone
+            <Text value={"Phone "} />
             <Input
               name="phone"
               type="tel"
@@ -141,10 +144,10 @@ export function AdminShopForm({
 
               defaultChecked={shop?.isOpen ?? false}
             />
-            Open for customer orders
+            <Text value={"Open for customer orders "} />
           </Label>
           <Label className="text-sm font-medium">
-            Latitude
+            <Text value={"Latitude "} />
             <Input
               name="latitude"
               type="number"
@@ -155,7 +158,7 @@ export function AdminShopForm({
             />
           </Label>
           <Label className="text-sm font-medium">
-            Longitude
+            <Text value={"Longitude "} />
             <Input
               name="longitude"
               type="number"
@@ -166,7 +169,7 @@ export function AdminShopForm({
             />
           </Label>
           <Label className="text-sm font-medium">
-            Minimum order amount (LKR)
+            <Text value={"Minimum order amount (LKR) "} />
             <Input
               name="minimumOrderAmount"
               type="number"
@@ -178,7 +181,7 @@ export function AdminShopForm({
             />
           </Label>
           <Label className="text-sm font-medium">
-            Delivery fee (LKR)
+            <Text value={"Delivery fee (LKR) "} />
             <Input
               name="deliveryFee"
               type="number"
@@ -190,7 +193,7 @@ export function AdminShopForm({
             />
           </Label>
           <Label className="text-sm font-medium sm:col-span-2">
-            Maximum delivery radius (km)
+            <Text value={"Maximum delivery radius (km) "} />
             <Input
               name="maximumDeliveryRadiusKm"
               type="number"
@@ -204,7 +207,7 @@ export function AdminShopForm({
         </div>
         <div className="mt-6 flex flex-wrap items-center gap-4">
           <Button type="submit" disabled={pending || owners.length === 0}>
-            {pending ? "Saving…" : shop ? "Save shop" : "Create shop"}
+            {pending ? t("Saving…") : shop ? t("Save shop") : t("Create shop")}
           </Button>
           {message ? (
             <p

@@ -1,4 +1,6 @@
 "use client";
+import { useLocale, useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useState } from "react";
 import { useFormik } from "formik";
@@ -40,6 +42,8 @@ interface RegisterProps {
 }
 
 export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
+  const locale = useLocale();
+  const t = useText();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const { register } = useAuth();
@@ -49,13 +53,13 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
       email: "",
       name: "",
       password: "",
-      preferredLanguage: "EN" as "EN" | "SI",
+      preferredLanguage: locale === "si" ? ("SI" as const) : ("EN" as const),
     },
     validate: (values) => {
       const result = registrationSchema.safeParse(values);
       if (result.success) return {};
       return Object.fromEntries(
-        result.error.issues.map((issue) => [issue.path[0], issue.message]),
+        result.error.issues.map((issue) => [issue.path[0], t(issue.message)]),
       );
     },
     onSubmit: async (values) => {
@@ -71,12 +75,14 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
           },
           returnTo,
         );
-        toast.success("Account created successfully!");
+        toast.success(t("Account created successfully!"));
       } catch (error: unknown) {
         setServerError(
-          describeApiError(
-            error,
-            "An unexpected error occurred. Please try again.",
+          t(
+            describeApiError(
+              error,
+              t("An unexpected error occurred. Please try again."),
+            ),
           ),
         );
       }
@@ -87,11 +93,14 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
     <Card className="w-full max-w-md">
       <CardHeader className="text-center lg:text-left space-y-2">
         <CardTitle className="text-3xl lg:text-4xl font-bold font-clash-display">
-          Create Account
+          <Text value={"Create Account "} />
         </CardTitle>
         <CardDescription>
-          Create your AG Stores customer account. Staff accounts are created by
-          an administrator.
+          <Text
+            value={
+              "Create your AG Stores customer account. Staff accounts are created by an administrator. "
+            }
+          />
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -112,7 +121,7 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
                 htmlFor="register-email"
                 className="block text-sm font-medium mb-1.5"
               >
-                Email
+                <Text value={"Email "} />
               </Label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
@@ -139,7 +148,7 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
                 htmlFor="register-name"
                 className="block text-sm font-medium mb-1.5"
               >
-                Name
+                <Text value={"Name "} />
               </Label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
@@ -151,7 +160,7 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
                   {...formik.getFieldProps("name")}
                   className="pl-10 h-10"
                   aria-invalid={!!(formik.touched.name && formik.errors.name)}
-                  placeholder="Enter name"
+                  placeholder={t("Enter name")}
                 />
               </div>
               {formik.touched.name && formik.errors.name ? (
@@ -165,7 +174,7 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
                 htmlFor="register-password"
                 className="block text-sm font-medium mb-1.5"
               >
-                Password
+                <Text value={"Password "} />
               </Label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
@@ -179,12 +188,14 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
                   aria-invalid={
                     !!(formik.touched.password && formik.errors.password)
                   }
-                  placeholder="Enter your password"
+                  placeholder={t("Enter your password")}
                 />
                 <Button
                   variant="ghost"
                   type="button"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={
+                    showPassword ? t("Hide password") : t("Show password")
+                  }
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
                   tabIndex={-1}
@@ -207,7 +218,7 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
                 id="register-language-label"
                 className="block text-sm font-medium mb-1.5"
               >
-                Preferred language
+                <Text value={"Preferred language "} />
               </Label>
               <Select
                 value={formik.values.preferredLanguage}
@@ -220,11 +231,13 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
                   className="w-full"
                 >
                   <SelectValue>
-                    {(value) => (value === "SI" ? "සිංහල" : "English")}
+                    {(value) => (value === "SI" ? t("සිංහල") : t("English"))}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="EN">English</SelectItem>
+                  <SelectItem value="EN">
+                    <Text value={t("English")} />
+                  </SelectItem>
                   <SelectItem value="SI">සිංහල</SelectItem>
                 </SelectContent>
               </Select>
@@ -236,14 +249,14 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
             disabled={formik.isSubmitting}
             className="w-full flex justify-center hover:scale-[1.02] active:scale-[0.98]"
           >
-            {formik.isSubmitting ? "Creating Account..." : "Register"}
+            {formik.isSubmitting ? t("Creating Account...") : t("Register")}
           </Button>
         </form>
       </CardContent>
       <CardFooter className="flex justify-center">
         <div className="text-center mt-4 text-sm text-muted-foreground">
           <Button variant="ghost" type="button" onClick={onSwitchToLogin}>
-            Already have an account? Sign in
+            <Text value={"Already have an account? Sign in "} />
           </Button>
         </div>
       </CardFooter>

@@ -42,33 +42,37 @@ export function ProductCard({
       </div>
       <div className="p-5">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-bold tracking-wide text-emerald-700 uppercase">
+          <div className="min-w-0">
+            <p className="break-words text-xs font-bold tracking-wide text-emerald-700 uppercase">
               {localizeBilingual(
                 product.categoryNameEn,
                 product.categoryNameSi,
                 locale,
               )}
             </p>
-            <h3 className="mt-1 text-lg font-bold text-foreground">{name}</h3>
+            <h3 className="mt-1 break-words text-lg font-bold text-foreground">
+              {name}
+            </h3>
           </div>
           <p className="shrink-0 font-black text-foreground">
             LKR {product.price}
           </p>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">{product.shopName}</p>
-        <div className="mt-5 flex items-start justify-between gap-3">
+        <p className="mt-2 break-words text-xs text-muted-foreground">
+          {product.shopName}
+        </p>
+        <div className="mt-5 flex flex-wrap items-start justify-between gap-3">
           <Badge variant={product.isOutOfStock ? "destructive" : "success"}>
             {product.isOutOfStock ? copy.outOfStock : copy.inStock}
           </Badge>
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex min-w-0 flex-col items-end gap-2">
             <Link
               href={routePath(
                 `/products/${product.id}`,
                 locale,
                 localizedRoute,
               )}
-              className="text-sm font-bold text-emerald-800 underline decoration-emerald-300 underline-offset-4"
+              className="break-words text-right text-sm font-bold text-emerald-800 underline decoration-emerald-300 underline-offset-4"
             >
               {copy.viewProduct}
             </Link>
@@ -77,6 +81,8 @@ export function ProductCard({
               product={{
                 id: product.id,
                 name,
+                nameEn: product.nameEn,
+                nameSi: product.nameSi,
                 price: product.price,
                 stockQuantity: product.stockQuantity,
                 imageUrl: product.imageUrl,

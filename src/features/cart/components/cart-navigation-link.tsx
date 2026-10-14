@@ -1,4 +1,5 @@
 "use client";
+import { translate } from "@/lib/i18n/text";
 
 import Link from "next/link";
 
@@ -9,10 +10,10 @@ import { buttonVariants } from "@/components/ui/button";
 export function CartNavigationLink({
   locale = "en",
   localizedRoute = false,
-  cartLabel = "Cart",
-  itemLabel = "item",
-  itemsLabel = "items",
-  withLabel = "with",
+  cartLabel,
+  itemLabel,
+  itemsLabel,
+  withLabel,
 }: {
   locale?: Locale;
   localizedRoute?: boolean;
@@ -22,14 +23,18 @@ export function CartNavigationLink({
   withLabel?: string;
 }) {
   const { itemCount } = useCart();
+  const actualCartLabel = cartLabel ?? translate(locale, "Cart");
+  const actualItemLabel = itemLabel ?? translate(locale, "item");
+  const actualItemsLabel = itemsLabel ?? translate(locale, "items");
+  const actualWithLabel = withLabel ?? translate(locale, "with");
 
   return (
     <Link
       href={routePath("/cart", locale, localizedRoute)}
       className={buttonVariants({ variant: "outline", className: "" })}
-      aria-label={`${cartLabel} ${withLabel} ${itemCount} ${itemCount === 1 ? itemLabel : itemsLabel}`}
+      aria-label={`${actualCartLabel} ${actualWithLabel} ${itemCount} ${itemCount === 1 ? actualItemLabel : actualItemsLabel}`}
     >
-      {cartLabel}
+      {actualCartLabel}
       {itemCount > 0 ? ` (${itemCount})` : ""}
     </Link>
   );

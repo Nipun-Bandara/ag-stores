@@ -1,4 +1,6 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import * as React from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -44,8 +46,10 @@ import Image from "next/image";
 import logo from "@/app/public/logo.svg";
 import { routePath, type Locale } from "@/lib/i18n/config";
 import { Alert } from "@/components/ui/alert";
+import { translate } from "@/lib/i18n/text";
 
 function AppLogo() {
+  const t = useText();
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -56,7 +60,7 @@ function AppLogo() {
           <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-transparent">
             <Image
               src={logo}
-              alt="AG Stores"
+              alt={t("AG Stores")}
               className="size-full object-contain"
               priority
             />
@@ -133,6 +137,7 @@ function NavUser({
     email: string;
   };
 }) {
+  const t = useText();
   const { isMobile, setOpenMobile } = useSidebar();
   const router = useRouter();
   const { logout } = useAuth();
@@ -144,7 +149,7 @@ function NavUser({
     try {
       await logout();
     } catch {
-      setLogoutError("Unable to sign out. Please try again.");
+      setLogoutError(t("Unable to sign out. Please try again."));
     } finally {
       setSigningOut(false);
     }
@@ -204,7 +209,7 @@ function NavUser({
                 className="cursor-pointer"
               >
                 <BadgeCheck className="mr-2 h-4 w-4" />
-                Profile
+                <Text value={"Profile "} />
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
@@ -213,7 +218,7 @@ function NavUser({
                 }}
               >
                 <Bell className="mr-2 h-4 w-4" />
-                Notifications
+                <Text value={"Notifications "} />
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
@@ -223,7 +228,7 @@ function NavUser({
                 onClick={() => void handleLogout()}
               >
                 <LogOut className="mr-2 h-4 w-4" />
-                {signingOut ? "Signing out…" : "Sign out"}
+                {signingOut ? t("Signing out…") : t("Sign out")}
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
@@ -251,9 +256,9 @@ export function AppSidebar({
 
   const navGroups = getNavGroupsForRole(user?.role).map((group) => ({
     id: group.id,
-    label: group.label,
+    label: translate(locale, group.label),
     items: group.items.map((item) => ({
-      title: item.label,
+      title: translate(locale, item.label),
       url: routePath(item.href, locale, localizedRoute),
       icon: ICONS_MAP[item.id] ?? SquareTerminal,
       // Matching on a bare `startsWith` lit up every item whose href is a

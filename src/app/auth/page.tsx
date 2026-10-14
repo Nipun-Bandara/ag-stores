@@ -1,3 +1,4 @@
+import { getServerText } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 
 import AuthContainer from "@/features/auth/components/AuthContainer";
@@ -5,7 +6,10 @@ import { safeAuthReturnTo } from "@/features/auth/return-to";
 import { routePath } from "@/lib/i18n/config";
 import { getLocaleContext } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Sign in or register | AG Stores" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return { title: `${t("Sign in or register")} | AG Stores` };
+}
 
 interface AuthPageProps {
   searchParams: Promise<{

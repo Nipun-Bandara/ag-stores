@@ -1,3 +1,5 @@
+import { getServerText } from "@/lib/i18n/server";
+import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
 
 import Link from "next/link";
@@ -10,7 +12,10 @@ import { getAdminShopManagement } from "@/services/admin-shop.service";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
-export const metadata: Metadata = { title: "Shops | AG Stores" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return { title: `${t("Shops")} | AG Stores` };
+}
 
 export default async function AdminShopsPage() {
   const administrator = await requireRole(UserRole.ADMIN, "/admin/shops");
@@ -18,15 +23,21 @@ export default async function AdminShopsPage() {
 
   return (
     <section className="min-w-0 w-full">
-      <h1 className="text-3xl font-semibold tracking-tight">Shop management</h1>
+      <h1 className="text-3xl font-semibold tracking-tight">
+        <Text value={"Shop management"} />
+      </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Create shops, assign owners, and control customer availability.
+        <Text
+          value={
+            "Create shops, assign owners, and control customer availability. "
+          }
+        />
       </p>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <section aria-labelledby="create-shop-heading">
           <h2 id="create-shop-heading" className="mb-4 text-lg font-semibold">
-            Create shop
+            <Text value={"Create shop "} />
           </h2>
           <AdminShopForm owners={management.owners} />
         </section>
@@ -34,11 +45,11 @@ export default async function AdminShopsPage() {
         <section aria-labelledby="shops-heading">
           <div className="flex items-center justify-between gap-4">
             <h2 id="shops-heading" className="text-lg font-semibold">
-              Shops
+              <Text value={"Shops "} />
             </h2>
             <p className="text-sm text-muted-foreground">
               {management.shops.length}{" "}
-              {management.shops.length === 1 ? "shop" : "shops"}
+              <Text value={management.shops.length === 1 ? "shop" : "shops"} />
             </p>
           </div>
           {management.shops.length ? (
@@ -59,7 +70,8 @@ export default async function AdminShopsPage() {
                         {shop.name}
                       </Link>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Owner: {shop.owner.name}
+                        <Text value={"Owner: "} />
+                        {shop.owner.name}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {shop.address}
@@ -67,10 +79,10 @@ export default async function AdminShopsPage() {
                     </div>
                     <div className="flex gap-2 text-xs font-medium">
                       <Badge variant="secondary">
-                        {shop.isActive ? "Active" : "Inactive"}
+                        <Text value={shop.isActive ? "Active" : "Inactive"} />
                       </Badge>
                       <Badge variant="secondary">
-                        {shop.isOpen ? "Open" : "Closed"}
+                        <Text value={shop.isOpen ? "Open" : "Closed"} />
                       </Badge>
                     </div>
                   </div>
@@ -89,7 +101,7 @@ export default async function AdminShopsPage() {
               as="p"
               className="gap-0 mt-4 border-dashed p-5 text-sm text-muted-foreground border ring-0"
             >
-              No shops have been created.
+              <Text value={"No shops have been created. "} />
             </Card>
           )}
         </section>

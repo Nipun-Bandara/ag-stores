@@ -1,8 +1,16 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
 
 import type { Dictionary, Locale } from "@/lib/i18n/config";
 
-import { LanguageSwitcher } from "@/features/i18n/components/language-switcher";
+import { useLocaleChange } from "@/features/i18n/components/language-switcher";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { Menu, X } from "lucide-react";
 import { motion, useMotionValueEvent, useScroll } from "motion/react";
@@ -18,17 +26,47 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import logo from "@/app/public/logo.svg";
+// import logo from "@/app/public/logo.svg";
+
+function LandingLanguageSelect({
+  locale,
+  label,
+}: {
+  locale: Locale;
+  label: string;
+}) {
+  const t = useText();
+  const { pending, changeLocale } = useLocaleChange(locale);
+  return (
+    <Select
+      value={locale}
+      disabled={pending}
+      onValueChange={(value) => {
+        if (value === "en" || value === "si") void changeLocale(value);
+      }}
+    >
+      <SelectTrigger aria-label={label} className="min-w-28">
+        <SelectValue>{locale === "si" ? t("සිංහල") : t("English")}</SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="en">English</SelectItem>
+        <SelectItem value="si">සිංහල</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
 
 export const Navigation = ({
   copy,
   authHref,
+  productsHref,
   homeHref,
   locale,
   languageLabel,
 }: {
   copy: Dictionary["landing"];
   authHref: string;
+  productsHref: string;
   homeHref: string;
   locale: Locale;
   languageLabel: string;
@@ -36,8 +74,8 @@ export const Navigation = ({
   const navItems = [
     { name: copy.about, href: "#about" },
     { name: copy.features, href: "#features" },
-    { name: copy.community, href: "#market" },
-    { name: copy.contact, href: "#contact" },
+    { name: copy.howItWorks, href: "#workflow" },
+    { name: copy.shopNav, href: productsHref },
   ];
   const [isScrolled, setIsScrolled] = useState(false);
   const router = useRouter(); // Initialize router
@@ -48,8 +86,8 @@ export const Navigation = ({
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
-      if (window.innerWidth >= 640) setMobileMenuOpen(false);
+      setIsMobile(window.innerWidth < 1024);
+      if (window.innerWidth >= 1024) setMobileMenuOpen(false);
     };
     checkMobile();
     window.addEventListener("resize", checkMobile);
@@ -104,12 +142,12 @@ export const Navigation = ({
         >
           <Link
             href={homeHref}
-            className="text-title-lg font-title-lg font-bold text-primary flex items-center gap-2"
+            className="text-title-lg font-title-lg font-bold flex items-center gap-2"
           >
-            <Image src={logo} alt={copy.logoAlt} width={32} height={32} />
+            {/* <Image src={logo} alt={copy.logoAlt} width={32} height={32} /> */}
             {copy.brand}
           </Link>
-          <ul className="hidden font-body-md gap-6 text-sm sm:flex whitespace-nowrap px-16">
+          <ul className="hidden font-body-md gap-6 text-sm lg:flex whitespace-nowrap px-16">
             {navItems.map((item) => {
               const href = getLinkHref(item);
               const isActive = pathname === href;
@@ -147,8 +185,8 @@ export const Navigation = ({
 
           <div className="flex items-center justify-center gap-4">
             <ThemeToggle label={copy.toggleTheme} />
-            <div className="hidden sm:flex gap-4">
-              <LanguageSwitcher locale={locale} label={languageLabel} />
+            <div className="hidden lg:flex gap-4">
+              <LandingLanguageSelect locale={locale} label={languageLabel} />
               <Button onClick={() => router.push(authHref)}>
                 {copy.launchApp}
               </Button>
@@ -157,7 +195,7 @@ export const Navigation = ({
               variant="ghost"
               aria-label={copy.openMenu}
               onClick={() => setMobileMenuOpen(true)}
-              className="sm:hidden p-2"
+              className="lg:hidden p-2"
             >
               <Menu size={24} />
             </Button>
@@ -176,7 +214,7 @@ export const Navigation = ({
               href={homeHref}
               className="text-title-lg font-title-lg font-bold text-primary flex items-center gap-2"
             >
-              <Image src={logo} alt={copy.logoAlt} width={32} height={32} />
+              {/* <Image src={logo} alt={copy.logoAlt} width={32} height={32} /> */}
               {copy.brand}
             </Link>
             <Button
@@ -211,7 +249,7 @@ export const Navigation = ({
           </ul>
 
           <div className="mt-6 flex flex-col gap-4">
-            <LanguageSwitcher locale={locale} label={languageLabel} />
+            <LandingLanguageSelect locale={locale} label={languageLabel} />
             <Button
               className="w-full flex justify-center bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={() => router.push(authHref)}

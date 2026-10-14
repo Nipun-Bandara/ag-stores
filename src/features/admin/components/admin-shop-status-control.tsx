@@ -1,4 +1,5 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -14,11 +15,12 @@ export function AdminShopStatusControl({
   shopName: string;
   initialIsActive: boolean;
 }) {
+  const t = useText();
   const router = useRouter();
   const [isActive, setIsActive] = useState(initialIsActive);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
-  const action = isActive ? "Deactivate" : "Activate";
+  const action = isActive ? t("Deactivate") : t("Activate");
 
   async function changeStatus() {
     setPending(true);
@@ -35,7 +37,7 @@ export function AdminShopStatusControl({
         })
       : {};
     if (!response?.ok || typeof payload.data?.isActive !== "boolean") {
-      setError(payload.error?.message ?? "Unable to update shop status.");
+      setError(t(payload.error?.message ?? "Unable to update shop status."));
     } else {
       setIsActive(payload.data.isActive);
       router.refresh();
@@ -51,7 +53,7 @@ export function AdminShopStatusControl({
         disabled={pending}
         onClick={changeStatus}
       >
-        {pending ? "Updating…" : `${action} ${shopName}`}
+        {pending ? t("Updating…") : `${action} ${shopName}`}
       </Button>
       {error ? (
         <Alert variant="destructive" role="alert" className="mt-2">

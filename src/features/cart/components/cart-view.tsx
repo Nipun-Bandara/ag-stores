@@ -1,4 +1,7 @@
 "use client";
+import { useLocale, useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
+import { BilingualText } from "@/features/i18n/components/bilingual-text";
 
 import { useState } from "react";
 
@@ -10,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
+import { localizeBilingual } from "@/lib/i18n/config";
 
 interface ValidationPayload {
   data?: { subtotal?: string };
@@ -17,6 +21,8 @@ interface ValidationPayload {
 }
 
 export function CartView() {
+  const t = useText();
+  const locale = useLocale();
   const { items, subtotal, updateQuantity, remove, clear } = useCart();
   const [validationMessage, setValidationMessage] = useState<string>();
   const [pending, setPending] = useState(false);
@@ -40,8 +46,10 @@ export function CartView() {
 
     setValidationMessage(
       response?.ok && payload.data?.subtotal
-        ? `Current server-verified subtotal: LKR ${payload.data.subtotal}`
-        : (payload.error?.message ?? "Unable to validate your cart."),
+        ? t("Current server-verified subtotal: LKR {amount}", {
+            amount: payload.data.subtotal,
+          })
+        : t(payload.error?.message ?? "Unable to validate your cart."),
     );
     setPending(false);
   }
@@ -50,10 +58,10 @@ export function CartView() {
     return (
       <Card className="gap-0 border-dashed p-10 text-center border ring-0">
         <h2 className="text-xl font-black text-foreground">
-          Your cart is empty
+          <Text value={"Your cart is empty "} />
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Browse the storefront to find something you need.
+          <Text value={"Browse the storefront to find something you need. "} />
         </p>
         <Link
           href="/products"
@@ -62,7 +70,7 @@ export function CartView() {
             className: "mt-6 inline-flex",
           })}
         >
-          Browse products
+          <Text value={"Browse products "} />
         </Link>
       </Card>
     );
@@ -70,7 +78,7 @@ export function CartView() {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
-      <section aria-label="Cart items" className="space-y-4">
+      <section aria-label={t("Cart items")} className="space-y-4">
         {items.map((item) => (
           <Card
             as="article"
@@ -88,25 +96,43 @@ export function CartView() {
             >
               {!item.imageUrl ? item.name.charAt(0) : null}
             </div>
-            <div>
-              <h2 className="font-bold text-foreground">{item.name}</h2>
+            <div className="min-w-0">
+              <h2 className="break-words font-bold text-foreground">
+                <BilingualText
+                  english={item.nameEn ?? item.name}
+                  sinhala={item.nameSi ?? null}
+                />
+              </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                LKR {item.price} each · {item.stockQuantity} available
+                LKR {item.price} <Text value={"each · "} />
+                {item.stockQuantity} <Text value={"available "} />
               </p>
               <Button
                 variant="ghost"
                 type="button"
                 onClick={() => remove(item.id)}
                 className="mt-3 underline underline-offset-4"
-                aria-label={`Remove ${item.name}`}
+                aria-label={t("Remove {name}", {
+                  name: localizeBilingual(
+                    item.nameEn ?? item.name,
+                    item.nameSi ?? null,
+                    locale,
+                  ),
+                })}
               >
-                Remove
+                <Text value={"Remove "} />
               </Button>
             </div>
             <Label className="text-sm font-semibold text-foreground">
-              Quantity
+              <Text value={"Quantity "} />
               <Input
-                aria-label={`Quantity for ${item.name}`}
+                aria-label={t("Quantity for {name}", {
+                  name: localizeBilingual(
+                    item.nameEn ?? item.name,
+                    item.nameSi ?? null,
+                    locale,
+                  ),
+                })}
                 type="number"
                 min={1}
                 max={item.stockQuantity}
@@ -121,31 +147,39 @@ export function CartView() {
         ))}
       </section>
       <Card as="aside" className="gap-0 h-fit p-6">
-        <h2 className="text-xl font-black text-foreground">Summary</h2>
+        <h2 className="text-xl font-black text-foreground">
+          <Text value={t("Summary")} />
+        </h2>
         <div className="mt-6 flex justify-between border-b pb-5 font-bold text-foreground">
-          <span>Subtotal</span>
+          <span>
+            <Text value={t("Subtotal")} />
+          </span>
           <span data-testid="cart-subtotal">LKR {subtotal}</span>
         </div>
         <p className="mt-3 text-xs leading-5 text-muted-foreground">
-          Displayed prices are estimates. Availability and current database
-          prices are checked by the server before checkout.
+          <Text
+            value={
+              "Displayed prices are estimates. Availability and current database prices are checked by the server before checkout. "
+            }
+          />
         </p>
         <Button
           type="button"
           onClick={validateForCheckout}
           disabled={pending}
-          className="mt-5 w-full"
+          className="mt-5 h-auto min-h-9 w-full whitespace-normal break-words py-2 text-center"
         >
-          {pending ? "Checking…" : "Validate cart for checkout"}
+          {pending ? t("Checking…") : t("Validate cart for checkout")}
         </Button>
         <Link
           href="/checkout"
           className={buttonVariants({
             variant: "outline",
-            className: "mt-3 flex w-full justify-center",
+            className:
+              "mt-3 flex h-auto min-h-9 w-full justify-center whitespace-normal break-words py-2 text-center",
           })}
         >
-          Proceed to checkout
+          <Text value={"Proceed to checkout "} />
         </Link>
         {validationMessage ? (
           <Alert variant="success" className="mt-3" role="status">
@@ -158,7 +192,7 @@ export function CartView() {
           onClick={clear}
           className="mt-4 w-full underline underline-offset-4"
         >
-          Clear cart
+          <Text value={"Clear cart "} />
         </Button>
       </Card>
     </div>

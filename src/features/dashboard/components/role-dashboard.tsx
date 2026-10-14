@@ -1,4 +1,5 @@
 "use client";
+import { Text } from "@/features/i18n/components/text";
 
 import Link from "next/link";
 
@@ -6,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { routePath, type Locale } from "@/lib/i18n/config";
 import { getNavGroupsForRole, isRole, ROLE_LABELS } from "@/lib/navigation";
 import { Card } from "@/components/ui/card";
+import { translate } from "@/lib/i18n/text";
 
 export function RoleDashboard({
   locale,
@@ -22,11 +24,23 @@ export function RoleDashboard({
     <section className="min-w-0 w-full space-y-6">
       <div>
         <p className="text-sm text-muted-foreground">
-          {ROLE_LABELS[user.role]}
+          {translate(locale, ROLE_LABELS[user.role])}
         </p>
-        <h1 className="mt-2 text-3xl font-semibold">{"Delivery dashboard"}</h1>
+        <h1 className="mt-2 text-3xl font-semibold">
+          {translate(
+            locale,
+            {
+              CUSTOMER: "Dashboard",
+              SHOP_OWNER: "Owner dashboard",
+              ADMIN: "Admin dashboard",
+              DELIVERY_PERSON: "Delivery dashboard",
+            }[user.role],
+          )}
+        </h1>
         <p className="mt-2 text-muted-foreground">
-          Welcome, {user.name}. Your workspace is organized around your role.
+          <Text value={"Welcome, "} />
+          {user.name}
+          <Text value={". Your workspace is organized around your role. "} />
         </p>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -36,7 +50,9 @@ export function RoleDashboard({
           )
           .map((group) => (
             <Card as="section" key={group.id} className="gap-0 bg-card p-5">
-              <h2 className="font-semibold">{group.label}</h2>
+              <h2 className="font-semibold">
+                {translate(locale, group.label)}
+              </h2>
               <ul className="mt-3 space-y-2">
                 {group.items
                   .filter((item) => item.group !== "overview")
@@ -46,7 +62,7 @@ export function RoleDashboard({
                         className="text-sm text-primary hover:underline"
                         href={routePath(item.href, locale, localizedRoute)}
                       >
-                        {item.label}
+                        {translate(locale, item.label)}
                       </Link>
                     </li>
                   ))}

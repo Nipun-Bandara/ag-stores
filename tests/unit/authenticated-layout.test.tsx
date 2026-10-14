@@ -49,13 +49,11 @@ beforeEach(() => {
   state.loading = false;
   state.user = null;
   state.path = "/account";
-  window.matchMedia = vi
-    .fn()
-    .mockImplementation(() => ({
-      matches: false,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }));
+  window.matchMedia = vi.fn().mockImplementation(() => ({
+    matches: false,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
 });
 afterEach(cleanup);
 function session(role: Role): AuthenticatedUser {
@@ -136,14 +134,14 @@ describe("authenticated layout", () => {
         Orders
       </AuthenticatedShell>,
     );
-    expect(screen.getByRole("link", { name: "Orders" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "ඇණවුම්" })).toHaveAttribute(
       "aria-current",
       "page",
     );
-    expect(screen.getByRole("link", { name: "Dashboard" })).not.toHaveAttribute(
-      "aria-current",
-    );
-    expect(screen.getByRole("link", { name: "Orders" })).toHaveAttribute(
+    expect(
+      screen.getByRole("link", { name: "පාලක පුවරුව" }),
+    ).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "ඇණවුම්" })).toHaveAttribute(
       "href",
       "/si/owner/orders",
     );

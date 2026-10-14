@@ -1,3 +1,6 @@
+import { getServerText } from "@/lib/i18n/server";
+import { Text } from "@/features/i18n/components/text";
+import { BilingualText } from "@/features/i18n/components/bilingual-text";
 import { Badge } from "@/components/ui/badge";
 import type { Metadata } from "next";
 
@@ -11,7 +14,10 @@ import { orderIdSchema } from "@/validations/checkout";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-export const metadata: Metadata = { title: "Order confirmed | AG Stores" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return { title: `${t("Order confirmed")} | AG Stores` };
+}
 
 export default async function OrderConfirmationPage({
   params,
@@ -32,34 +38,44 @@ export default async function OrderConfirmationPage({
     <section className="min-w-0 w-full">
       <Card as="section" className="gap-0 p-4 sm:p-6">
         <Badge variant="success" className="self-start">
-          Order confirmed
+          <Text value={"Order confirmed "} />
         </Badge>
         <h1 className="mt-5 text-4xl font-black tracking-tight text-foreground">
-          Thank you for your order
+          <Text value={"Thank you for your order "} />
         </h1>
         <p className="mt-3 text-muted-foreground">
-          Pay with cash when your delivery arrives.
+          <Text value={"Pay with cash when your delivery arrives. "} />
         </p>
         <dl className="mt-8 grid gap-4 rounded-2xl bg-muted/50 p-5 text-sm sm:grid-cols-2">
           <div>
-            <dt className="text-muted-foreground">Order number</dt>
+            <dt className="text-muted-foreground">
+              <Text value={"Order number"} />
+            </dt>
             <dd className="mt-1 break-all font-bold text-foreground">
               {order.id}
             </dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">Shop</dt>
+            <dt className="text-muted-foreground">
+              <Text value={"Shop"} />
+            </dt>
             <dd className="mt-1 font-bold text-foreground">{order.shopName}</dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">Delivery address</dt>
+            <dt className="text-muted-foreground">
+              <Text value={"Delivery address"} />
+            </dt>
             <dd className="mt-1 font-bold text-foreground">
               {order.deliveryAddress.label} · {order.deliveryAddress.address}
             </dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">Payment</dt>
-            <dd className="mt-1 font-bold text-foreground">Cash on Delivery</dd>
+            <dt className="text-muted-foreground">
+              <Text value={"Payment"} />
+            </dt>
+            <dd className="mt-1 font-bold text-foreground">
+              <Text value={"Cash on Delivery"} />
+            </dd>
           </div>
         </dl>
 
@@ -68,7 +84,7 @@ export default async function OrderConfirmationPage({
             id="confirmed-items-heading"
             className="text-xl font-black text-foreground"
           >
-            Products
+            <Text value={"Products "} />
           </h2>
           <div className="mt-3 divide-y">
             {order.items.map((item) => (
@@ -78,7 +94,7 @@ export default async function OrderConfirmationPage({
               >
                 <span>
                   <span className="block font-bold text-foreground">
-                    {item.name}
+                    <BilingualText english={item.name} sinhala={item.nameSi} />
                   </span>
                   <span className="text-muted-foreground">
                     {item.quantity} × LKR {item.unitPrice}
@@ -92,21 +108,29 @@ export default async function OrderConfirmationPage({
 
         <dl className="mt-6 space-y-3 border-t pt-6 text-sm">
           <div className="flex justify-between">
-            <dt>Subtotal</dt>
+            <dt>
+              <Text value={"Subtotal"} />
+            </dt>
             <dd>LKR {order.subtotal}</dd>
           </div>
           <div className="flex justify-between">
-            <dt>Delivery fee</dt>
+            <dt>
+              <Text value={"Delivery fee"} />
+            </dt>
             <dd>LKR {order.deliveryFee}</dd>
           </div>
           <div className="flex justify-between text-lg font-black text-foreground">
-            <dt>Total</dt>
+            <dt>
+              <Text value={"Total"} />
+            </dt>
             <dd data-testid="confirmed-total">LKR {order.total}</dd>
           </div>
         </dl>
         {order.deliveryInstructions ? (
           <Card className="gap-0 mt-6 p-4">
-            <p className="font-bold text-foreground">Delivery instructions</p>
+            <p className="font-bold text-foreground">
+              <Text value={"Delivery instructions"} />
+            </p>
             <p className="mt-1 text-muted-foreground">
               {order.deliveryInstructions}
             </p>
@@ -119,7 +143,7 @@ export default async function OrderConfirmationPage({
             className: "mt-8 inline-flex",
           })}
         >
-          Track this order
+          <Text value={"Track this order "} />
         </Link>
         <Link
           href="/products"
@@ -128,7 +152,7 @@ export default async function OrderConfirmationPage({
             className: "mt-8 ml-3 inline-flex",
           })}
         >
-          Continue shopping
+          <Text value={"Continue shopping "} />
         </Link>
       </Card>
     </section>

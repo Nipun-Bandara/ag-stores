@@ -1,4 +1,5 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
 
 import { useState, type FormEvent } from "react";
 
@@ -11,6 +12,7 @@ interface ApiPayload {
 }
 
 export function PasswordForm() {
+  const t = useText();
   const [error, setError] = useState<string>();
   const [message, setMessage] = useState<string>();
   const [pending, setPending] = useState(false);
@@ -37,13 +39,13 @@ export function PasswordForm() {
       const payload = response
         ? ((await response.json().catch(() => ({}))) as ApiPayload)
         : {};
-      setError(payload.error?.message ?? "Unable to change your password.");
+      setError(t(payload.error?.message ?? "Unable to change your password."));
       setPending(false);
       return;
     }
 
     formElement.reset();
-    setMessage("Password changed successfully.");
+    setMessage(t("Password changed successfully."));
     setPending(false);
   }
 
@@ -85,7 +87,7 @@ export function PasswordForm() {
         </Alert>
       ) : null}
       <Button type="submit" disabled={pending} className="h-10">
-        {pending ? "Changing…" : "Change password"}
+        {pending ? t("Changing…") : t("Change password")}
       </Button>
     </form>
   );

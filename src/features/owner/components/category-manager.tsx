@@ -1,4 +1,7 @@
 "use client";
+import { BilingualText } from "@/features/i18n/components/bilingual-text";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
 
@@ -36,6 +39,7 @@ function CategoryForm({
   onSaved: (category: CategoryView) => void;
   onCancel?: () => void;
 }) {
+  const t = useText();
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
 
@@ -62,7 +66,7 @@ function CategoryForm({
 
     if (!response?.ok) {
       const payload = response ? await readPayload(response) : {};
-      setError(payload.error?.message ?? "Unable to save this category.");
+      setError(t(payload.error?.message ?? "Unable to save this category."));
       setPending(false);
       return;
     }
@@ -77,7 +81,17 @@ function CategoryForm({
     <Card className="gap-0 p-5">
       <form className="space-y-4" onSubmit={handleSubmit}>
         <h2 className="text-lg font-semibold">
-          {category ? `Edit ${category.nameEn}` : "Create a category"}
+          {category ? (
+            <>
+              <Text value="Edit" />{" "}
+              <BilingualText
+                english={category.nameEn}
+                sinhala={category.nameSi}
+              />
+            </>
+          ) : (
+            t("Create a category")
+          )}
         </h2>
         {!category ? (
           <SelectField id="shopId" name="shopId" label="Shop" required>
@@ -89,7 +103,8 @@ function CategoryForm({
           </SelectField>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Shop: {category.shopName}
+            <Text value={"Shop: "} />
+            {category.shopName}
           </p>
         )}
         <FormField
@@ -115,10 +130,10 @@ function CategoryForm({
             className="h-10"
           >
             {pending
-              ? "Saving…"
+              ? t("Saving…")
               : category
-                ? "Save category"
-                : "Create category"}
+                ? t("Save category")
+                : t("Create category")}
           </Button>
           {onCancel ? (
             <Button
@@ -127,7 +142,7 @@ function CategoryForm({
               className="h-10"
               onClick={onCancel}
             >
-              Cancel
+              <Text value={"Cancel "} />
             </Button>
           ) : null}
         </div>
@@ -141,6 +156,7 @@ export function CategoryManager({
 }: {
   initialData: CategoryManagementView;
 }) {
+  const t = useText();
   const [categories, setCategories] = useState(initialData.categories);
   const [editingId, setEditingId] = useState<string>();
   const [pendingId, setPendingId] = useState<string>();
@@ -172,7 +188,9 @@ export function CategoryManager({
 
     if (!response?.ok) {
       const payload = response ? await readPayload(response) : {};
-      setError(payload.error?.message ?? "Unable to change category status.");
+      setError(
+        t(payload.error?.message ?? "Unable to change category status."),
+      );
     } else {
       const payload = await readPayload(response);
       if (payload.data) saveCategory(payload.data);
@@ -184,7 +202,7 @@ export function CategoryManager({
     <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
       {initialData.shops.length === 0 ? (
         <Card as="p" className="gap-0 p-5 text-sm text-muted-foreground">
-          Create a shop before adding product categories.
+          <Text value={"Create a shop before adding product categories. "} />
         </Card>
       ) : (
         <CategoryForm
@@ -199,7 +217,7 @@ export function CategoryManager({
       )}
       <section aria-labelledby="category-list-heading">
         <h2 id="category-list-heading" className="text-lg font-semibold">
-          Categories
+          <Text value={"Categories "} />
         </h2>
         {error ? (
           <div className="mt-4">
@@ -208,7 +226,7 @@ export function CategoryManager({
         ) : null}
         {categories.length === 0 ? (
           <p className="mt-4 text-sm text-muted-foreground">
-            No categories have been created yet.
+            <Text value={"No categories have been created yet. "} />
           </p>
         ) : (
           <div className="mt-4 space-y-4">
@@ -216,7 +234,12 @@ export function CategoryManager({
               <Card as="article" key={category.id} className="gap-0 p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="font-semibold">{category.nameEn}</h3>
+                    <h3 className="font-semibold">
+                      <BilingualText
+                        english={category.nameEn}
+                        sinhala={category.nameSi}
+                      />
+                    </h3>
                     {category.nameSi ? (
                       <p className="mt-1 text-sm">{category.nameSi}</p>
                     ) : null}
@@ -225,7 +248,7 @@ export function CategoryManager({
                     </p>
                   </div>
                   <Badge variant="secondary">
-                    {category.status === "ACTIVE" ? "Active" : "Inactive"}
+                    {category.status === "ACTIVE" ? t("Active") : t("Inactive")}
                   </Badge>
                 </div>
                 <div className="mt-4 flex gap-4 text-sm font-medium">
@@ -234,7 +257,11 @@ export function CategoryManager({
                     type="button"
                     onClick={() => setEditingId(category.id)}
                   >
-                    Edit {category.nameEn}
+                    <Text value={"Edit "} />
+                    <BilingualText
+                      english={category.nameEn}
+                      sinhala={category.nameSi}
+                    />
                   </Button>
                   <Button
                     variant="ghost"
@@ -242,8 +269,13 @@ export function CategoryManager({
                     disabled={pendingId === category.id}
                     onClick={() => changeStatus(category)}
                   >
-                    {category.status === "ACTIVE" ? "Deactivate" : "Activate"}{" "}
-                    {category.nameEn}
+                    {category.status === "ACTIVE"
+                      ? t("Deactivate")
+                      : t("Activate")}{" "}
+                    <BilingualText
+                      english={category.nameEn}
+                      sinhala={category.nameSi}
+                    />
                   </Button>
                 </div>
               </Card>

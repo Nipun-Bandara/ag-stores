@@ -1,4 +1,7 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
+import { BilingualText } from "@/features/i18n/components/bilingual-text";
 
 import { useEffect, useState, type FormEvent } from "react";
 
@@ -33,6 +36,7 @@ export function CheckoutView({
 }: {
   addresses: CustomerAddressView[];
 }) {
+  const t = useText();
   const router = useRouter();
   const { items, subtotal, clear } = useCart();
   const [error, setError] = useState<string>();
@@ -102,7 +106,7 @@ export function CheckoutView({
       : {};
 
     if (!response?.ok || !payload.data?.id) {
-      setError(payload.error?.message ?? "Unable to place your order.");
+      setError(t(payload.error?.message ?? "Unable to place your order."));
       setPending(false);
       return;
     }
@@ -115,10 +119,12 @@ export function CheckoutView({
     return (
       <Card className="gap-0 border-dashed p-10 text-center border ring-0">
         <h2 className="text-xl font-black text-foreground">
-          Your cart is empty
+          <Text value={"Your cart is empty "} />
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Add at least one available product before checkout.
+          <Text
+            value={"Add at least one available product before checkout. "}
+          />
         </p>
         <Link
           href="/products"
@@ -127,7 +133,7 @@ export function CheckoutView({
             className: "mt-6 inline-flex",
           })}
         >
-          Browse products
+          <Text value={"Browse products "} />
         </Link>
       </Card>
     );
@@ -137,10 +143,10 @@ export function CheckoutView({
     return (
       <Card className="gap-0 bg-amber-50 p-8">
         <h2 className="text-xl font-black text-amber-950">
-          Add a delivery address first
+          <Text value={"Add a delivery address first "} />
         </h2>
         <p className="mt-2 text-sm text-amber-900">
-          Checkout needs one of your saved addresses.
+          <Text value={"Checkout needs one of your saved addresses. "} />
         </p>
         <Link
           href="/account/addresses"
@@ -149,7 +155,7 @@ export function CheckoutView({
             className: "mt-5 inline-flex",
           })}
         >
-          Manage addresses
+          <Text value={"Manage addresses "} />
         </Link>
       </Card>
     );
@@ -163,7 +169,7 @@ export function CheckoutView({
       <div className="space-y-6">
         <Card as="section" className="gap-0 p-5 sm:p-6">
           <h2 className="text-xl font-black text-foreground">
-            Delivery address
+            <Text value={"Delivery address "} />
           </h2>
           <RadioGroup
             className="mt-4"
@@ -177,7 +183,7 @@ export function CheckoutView({
                 className="flex cursor-pointer gap-3 rounded-xl border p-4 has-data-checked:border-primary has-data-checked:bg-primary/5"
               >
                 <RadioGroupItem value={address.id} />
-                <span>
+                <span className="min-w-0 break-words">
                   <span className="block font-bold text-foreground">
                     {address.label}
                   </span>
@@ -192,7 +198,7 @@ export function CheckoutView({
 
         <Card as="section" className="gap-0 p-5 sm:p-6">
           <h2 className="text-xl font-black text-foreground">
-            Review products
+            <Text value={"Review products "} />
           </h2>
           <div className="mt-4 divide-y">
             {items.map((item) => (
@@ -201,14 +207,20 @@ export function CheckoutView({
                 data-testid="checkout-item"
                 className="flex justify-between gap-4 py-4"
               >
-                <div>
-                  <p className="font-bold text-foreground">{item.name}</p>
+                <div className="min-w-0">
+                  <p className="break-words font-bold text-foreground">
+                    <BilingualText
+                      english={item.nameEn ?? item.name}
+                      sinhala={item.nameSi ?? null}
+                    />
+                  </p>
                   <p className="text-sm text-muted-foreground">
-                    Quantity {item.quantity}
+                    <Text value={"Quantity "} />
+                    {item.quantity}
                   </p>
                 </div>
-                <p className="font-semibold text-foreground">
-                  LKR {item.price} each
+                <p className="shrink-0 font-semibold text-foreground">
+                  LKR {item.price} <Text value={"each "} />
                 </p>
               </div>
             ))}
@@ -220,59 +232,78 @@ export function CheckoutView({
             htmlFor="deliveryInstructions"
             className="text-base font-bold text-foreground"
           >
-            Delivery instructions{" "}
-            <span className="font-normal">(optional)</span>
+            <Text value={t("Delivery instructions")} />{" "}
+            <span className="font-normal">
+              <Text value={t("(optional)")} />
+            </span>
           </Label>
           <Textarea
             id="deliveryInstructions"
             name="deliveryInstructions"
             maxLength={1000}
             rows={4}
-            placeholder="Gate code, landmark, or delivery note"
+            placeholder={t("Gate code, landmark, or delivery note")}
             className="mt-3 w-full p-3"
           />
         </Card>
       </div>
 
       <Card as="aside" className="gap-0 h-fit p-6">
-        <h2 className="text-xl font-black text-foreground">Order summary</h2>
+        <h2 className="text-xl font-black text-foreground">
+          <Text value={t("Order summary")} />
+        </h2>
         <dl className="mt-6 space-y-4 text-sm">
           <div className="flex justify-between">
-            <dt>Subtotal</dt>
+            <dt>
+              <Text value={t("Subtotal")} />
+            </dt>
             <dd data-testid="checkout-subtotal">LKR {quotedSubtotal}</dd>
           </div>
           <div className="flex justify-between">
-            <dt>Delivery fee</dt>
+            <dt>
+              <Text value={t("Delivery fee")} />
+            </dt>
             <dd data-testid="checkout-delivery-fee">
               {deliveryFee
                 ? `LKR ${deliveryFee}`
-                : "Calculated at confirmation"}
+                : t("Calculated at confirmation")}
             </dd>
           </div>
           <div className="flex justify-between border-t pt-4 text-base font-black text-foreground">
-            <dt>Total</dt>
+            <dt>
+              <Text value={t("Total")} />
+            </dt>
             <dd data-testid="checkout-total">
-              {total ? `LKR ${total}` : "Calculated at confirmation"}
+              {total ? `LKR ${total}` : t("Calculated at confirmation")}
             </dd>
           </div>
         </dl>
         <Card className="mt-6 gap-0 bg-muted/50 p-4">
-          <span className="block font-bold">Payment method</span>
+          <span className="block font-bold">
+            <Text value={t("Payment method")} />
+          </span>
           <span className="mt-1 block text-muted-foreground">
-            Cash on Delivery
+            <Text value={"Cash on Delivery "} />
           </span>
         </Card>
         <p className="mt-4 text-xs leading-5 text-muted-foreground">
-          Prices, availability, stock, delivery fee, and total are recalculated
-          by the server when you confirm.
+          <Text
+            value={
+              "Prices, availability, stock, delivery fee, and total are recalculated by the server when you confirm. "
+            }
+          />
         </p>
         {error ? (
           <Alert variant="destructive" className="mt-4" role="alert">
             {error}
           </Alert>
         ) : null}
-        <Button type="submit" disabled={pending} className="mt-6 w-full">
-          {pending ? "Placing order…" : "Confirm Cash on Delivery order"}
+        <Button
+          type="submit"
+          disabled={pending}
+          className="mt-6 h-auto min-h-9 w-full whitespace-normal break-words py-2 text-center"
+        >
+          {pending ? t("Placing order…") : t("Confirm Cash on Delivery order")}
         </Button>
       </Card>
     </form>

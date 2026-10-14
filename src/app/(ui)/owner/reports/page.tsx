@@ -1,3 +1,6 @@
+import { BilingualText } from "@/features/i18n/components/bilingual-text";
+import { getServerText } from "@/lib/i18n/server";
+import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -24,7 +27,10 @@ import {
 } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 
-export const metadata: Metadata = { title: "Reports | AG Stores" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return { title: `${t("Reports")} | AG Stores` };
+}
 
 interface OwnerReportsPageProps {
   searchParams: Promise<{
@@ -59,16 +65,21 @@ export default async function OwnerReportsPage({
 
   return (
     <section className="min-w-0 w-full">
-      <h1 className="text-3xl font-semibold tracking-tight">Reports</h1>
+      <h1 className="text-3xl font-semibold tracking-tight">
+        <Text value={"Reports"} />
+      </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Basic order, revenue, delivery, product, and stock reporting for your
-        shops.
+        <Text
+          value={
+            "Basic order, revenue, delivery, product, and stock reporting for your shops. "
+          }
+        />
       </p>
 
       <Card className="gap-0 mt-8 p-5">
         <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Label className="text-sm font-medium" htmlFor="from">
-            From
+            <Text value={"From "} />
             <Input
               id="from"
               name="from"
@@ -78,7 +89,7 @@ export default async function OwnerReportsPage({
             />
           </Label>
           <Label className="text-sm font-medium" htmlFor="to">
-            To
+            <Text value={"To "} />
             <Input
               id="to"
               name="to"
@@ -88,24 +99,26 @@ export default async function OwnerReportsPage({
             />
           </Label>
           <Label className="text-sm font-medium" htmlFor="status">
-            Status
+            <Text value={"Status "} />
             <NativeSelect
               id="status"
               name="status"
               defaultValue={reports.filters.status ?? ""}
               className="mt-1.5 h-10 w-full"
             >
-              <NativeSelectOption value="">All statuses</NativeSelectOption>
+              <NativeSelectOption value="">
+                <Text value={"All statuses"} />
+              </NativeSelectOption>
               {Object.values(OrderStatus).map((status) => (
                 <NativeSelectOption key={status} value={status}>
-                  {orderStatusLabels[status]}
+                  <Text value={orderStatusLabels[status]} />
                 </NativeSelectOption>
               ))}
             </NativeSelect>
           </Label>
           <div className="flex items-end gap-2">
             <Button type="submit" className="h-10">
-              Apply filters
+              <Text value={"Apply filters "} />
             </Button>
             <Link
               href="/owner/reports"
@@ -114,14 +127,16 @@ export default async function OwnerReportsPage({
                 className: "inline-flex h-10 items-center",
               })}
             >
-              Reset
+              <Text value={"Reset "} />
             </Link>
           </div>
         </form>
       </Card>
       {!parsed.success ? (
         <Alert variant="destructive" role="alert" className="mt-3">
-          Invalid report filters were reset to the default range.
+          <Text
+            value={"Invalid report filters were reset to the default range. "}
+          />
         </Alert>
       ) : null}
 
@@ -145,7 +160,9 @@ export default async function OwnerReportsPage({
             data-testid={`owner-report-${key}`}
             className="gap-0 p-4"
           >
-            <p className="text-xs font-medium text-muted-foreground">{label}</p>
+            <p className="text-xs font-medium text-muted-foreground">
+              <Text value={String(label)} />
+            </p>
             <p className="mt-2 text-2xl font-semibold">{value}</p>
           </Card>
         ))}
@@ -153,15 +170,23 @@ export default async function OwnerReportsPage({
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <Card as="section" className="gap-0 p-5">
-          <h2 className="text-lg font-semibold">Daily orders and revenue</h2>
+          <h2 className="text-lg font-semibold">
+            <Text value={"Daily orders and revenue"} />
+          </h2>
           {reports.dailyOrders.length ? (
             <div className="mt-4 overflow-x-auto">
               <Table className="min-w-full text-left text-sm">
                 <TableHeader className="border-b text-muted-foreground">
                   <TableRow>
-                    <TableHead className="py-2 font-medium">Date</TableHead>
-                    <TableHead className="py-2 font-medium">Orders</TableHead>
-                    <TableHead className="py-2 font-medium">Revenue</TableHead>
+                    <TableHead className="py-2 font-medium">
+                      <Text value={"Date"} />
+                    </TableHead>
+                    <TableHead className="py-2 font-medium">
+                      <Text value={"Orders"} />
+                    </TableHead>
+                    <TableHead className="py-2 font-medium">
+                      <Text value={"Revenue"} />
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y">
@@ -179,13 +204,15 @@ export default async function OwnerReportsPage({
             </div>
           ) : (
             <p className="mt-4 text-sm text-muted-foreground">
-              No orders were found for this period.
+              <Text value={"No orders were found for this period. "} />
             </p>
           )}
         </Card>
 
         <Card as="section" className="gap-0 p-5">
-          <h2 className="text-lg font-semibold">Orders by status</h2>
+          <h2 className="text-lg font-semibold">
+            <Text value={"Orders by status"} />
+          </h2>
           {reports.ordersByStatus.length ? (
             <ul className="mt-4 divide-y">
               {reports.ordersByStatus.map((metric) => (
@@ -193,20 +220,24 @@ export default async function OwnerReportsPage({
                   key={metric.status}
                   className="flex justify-between gap-4 py-3 text-sm"
                 >
-                  <span>{orderStatusLabels[metric.status]}</span>
+                  <span>
+                    <Text value={orderStatusLabels[metric.status]} />
+                  </span>
                   <span className="font-semibold">{metric.orders}</span>
                 </li>
               ))}
             </ul>
           ) : (
             <p className="mt-4 text-sm text-muted-foreground">
-              No status totals are available.
+              <Text value={"No status totals are available. "} />
             </p>
           )}
         </Card>
 
         <Card as="section" className="gap-0 p-5">
-          <h2 className="text-lg font-semibold">Best-selling products</h2>
+          <h2 className="text-lg font-semibold">
+            <Text value={"Best-selling products"} />
+          </h2>
           {reports.bestSellingProducts.length ? (
             <ol className="mt-4 divide-y">
               {reports.bestSellingProducts.map((product) => (
@@ -215,26 +246,33 @@ export default async function OwnerReportsPage({
                   className="flex justify-between gap-4 py-3 text-sm"
                 >
                   <span>
-                    <span className="font-medium">{product.nameEn}</span>
+                    <span className="font-medium">
+                      <BilingualText
+                        english={product.nameEn}
+                        sinhala={product.nameSi}
+                      />
+                    </span>
                     <span className="block text-xs text-muted-foreground">
                       {product.shopName}
                     </span>
                   </span>
                   <span className="font-semibold">
-                    {product.quantitySold} sold
+                    {product.quantitySold} <Text value={"sold "} />
                   </span>
                 </li>
               ))}
             </ol>
           ) : (
             <p className="mt-4 text-sm text-muted-foreground">
-              No product sales were found for this period.
+              <Text value={"No product sales were found for this period. "} />
             </p>
           )}
         </Card>
 
         <Card as="section" className="gap-0 p-5">
-          <h2 className="text-lg font-semibold">Low-stock products</h2>
+          <h2 className="text-lg font-semibold">
+            <Text value={"Low-stock products"} />
+          </h2>
           {reports.lowStockProducts.length ? (
             <ul className="mt-4 divide-y">
               {reports.lowStockProducts.map((product) => (
@@ -243,7 +281,12 @@ export default async function OwnerReportsPage({
                   className="flex justify-between gap-4 py-3 text-sm"
                 >
                   <span>
-                    <span className="font-medium">{product.nameEn}</span>
+                    <span className="font-medium">
+                      <BilingualText
+                        english={product.nameEn}
+                        sinhala={product.nameSi}
+                      />
+                    </span>
                     <span className="block text-xs text-muted-foreground">
                       {product.shopName}
                     </span>
@@ -256,7 +299,7 @@ export default async function OwnerReportsPage({
             </ul>
           ) : (
             <p className="mt-4 text-sm text-muted-foreground">
-              No products are currently low on stock.
+              <Text value={"No products are currently low on stock. "} />
             </p>
           )}
         </Card>

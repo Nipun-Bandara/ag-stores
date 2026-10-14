@@ -5,6 +5,7 @@ import { LanguageSwitcher } from "@/features/i18n/components/language-switcher";
 import { LocaleDocument } from "@/features/i18n/components/locale-document";
 import { getDictionary, routePath, type Locale } from "@/lib/i18n/config";
 import { buttonVariants } from "@/components/ui/button";
+import { translate } from "@/lib/i18n/text";
 
 export function StorefrontHeader({
   locale = "en",
@@ -26,7 +27,7 @@ export function StorefrontHeader({
           {copy.brand}
         </Link>
         <nav
-          aria-label="Storefront navigation"
+          aria-label={translate(locale, "Storefront navigation")}
           className="order-3 flex w-full items-center gap-5 text-sm font-semibold text-foreground sm:order-2 sm:w-auto"
         >
           <Link href={routePath("/products", locale, localizedRoute)}>

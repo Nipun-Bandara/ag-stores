@@ -56,7 +56,7 @@ test("English route renders English navigation and storefront text", async ({
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: "Your neighborhood market, delivered.",
+      name: "One platform for shopping and delivery",
     }),
   ).toBeVisible();
   await expect(
@@ -73,7 +73,7 @@ test("Sinhala route renders Sinhala text and translated product fields", async (
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: "ඔබේ අසල්වැසි වෙළඳපොළ, නිවසටම.",
+      name: "මිලදී ගැනීම් සහ බෙදාහැරීම් සඳහා එකම වේදිකාවක්",
     }),
   ).toBeVisible();
   await expect(page.getByText("ලංකා තේ", { exact: true })).toBeVisible();
@@ -82,7 +82,8 @@ test("Sinhala route renders Sinhala text and translated product fields", async (
 
 test("language switcher changes the locale route", async ({ page }) => {
   await page.goto("/en/products");
-  await page.getByLabel("Language").selectOption("si");
+  await page.getByRole("combobox", { name: "Language" }).click();
+  await page.getByRole("option", { name: "සිංහල" }).click();
 
   await expect(page).toHaveURL(/\/si\/products$/);
   await expect(
@@ -107,13 +108,15 @@ test("signed-in customer language preference is remembered", async ({
   customerIds.push((await registration.json()).data.id);
 
   await page.goto("/en/account");
-  await page.getByLabel("Language").selectOption("si");
+  await page.getByRole("combobox", { name: "Language" }).click();
+  await page.getByRole("option", { name: "සිංහල" }).click();
   await expect(page).toHaveURL(/\/si\/account$/);
   await expect(page.getByRole("heading", { name: "ඔබේ ගිණුම" })).toBeVisible();
 
-  await page.getByRole("button", { name: "ඉවත් වන්න" }).click();
+  await page.getByRole("button", { name: /Localized E2E Customer/ }).click();
+  await page.getByRole("menuitem", { name: "ඉවත් වන්න" }).click();
   await page.context().clearCookies({ name: "ag_stores_locale" });
-  await page.goto("/login");
+  await page.goto("/auth");
   await page.getByLabel("Email or phone").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();

@@ -1,3 +1,5 @@
+import { getServerText } from "@/lib/i18n/server";
+import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
 
 import { notFound } from "next/navigation";
@@ -12,7 +14,10 @@ import {
 } from "@/services/product.service";
 import { productIdSchema } from "@/validations/product";
 
-export const metadata: Metadata = { title: "Edit product | AG Stores" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return { title: `${t("Edit product")} | AG Stores` };
+}
 
 export default async function EditProductPage({
   params,
@@ -33,9 +38,13 @@ export default async function EditProductPage({
 
   return (
     <section className="min-w-0 w-full">
-      <h1 className="text-3xl font-semibold tracking-tight">Edit product</h1>
+      <h1 className="text-3xl font-semibold tracking-tight">
+        <Text value={"Edit product"} />
+      </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Update product information without changing its shop.
+        <Text
+          value={"Update product information without changing its shop. "}
+        />
       </p>
       <ProductForm options={options} product={product} />
     </section>

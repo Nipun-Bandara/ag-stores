@@ -1,4 +1,6 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
 
@@ -43,6 +45,7 @@ function PersonnelForm({
   onCancel?: () => void;
   onTemporaryPassword: (password: string) => void;
 }) {
+  const t = useText();
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
   const suffix = person?.id ?? "new";
@@ -72,7 +75,9 @@ function PersonnelForm({
 
     if (!response?.ok) {
       const payload = response ? await readPayload(response) : {};
-      setError(payload.error?.message ?? "Unable to save delivery personnel.");
+      setError(
+        t(payload.error?.message ?? "Unable to save delivery personnel."),
+      );
       setPending(false);
       return;
     }
@@ -92,7 +97,7 @@ function PersonnelForm({
     <Card className="gap-0 p-5">
       <form className="space-y-4" onSubmit={handleSubmit}>
         <h2 className="text-lg font-semibold">
-          {person ? `Edit ${person.name}` : "Create delivery account"}
+          {person ? `Edit ${person.name}` : t("Create delivery account")}
         </h2>
         <FormField
           id={`delivery-name-${suffix}`}
@@ -141,8 +146,12 @@ function PersonnelForm({
             defaultValue="ACTIVE"
             required
           >
-            <NativeSelectOption value="ACTIVE">Active</NativeSelectOption>
-            <NativeSelectOption value="INACTIVE">Inactive</NativeSelectOption>
+            <NativeSelectOption value="ACTIVE">
+              <Text value={t("Active")} />
+            </NativeSelectOption>
+            <NativeSelectOption value="INACTIVE">
+              <Text value={t("Inactive")} />
+            </NativeSelectOption>
           </SelectField>
         ) : null}
         {error ? <FormError>{error}</FormError> : null}
@@ -153,10 +162,10 @@ function PersonnelForm({
             className="h-10"
           >
             {pending
-              ? "Saving…"
+              ? t("Saving…")
               : person
-                ? "Save delivery person"
-                : "Create delivery account"}
+                ? t("Save delivery person")
+                : t("Create delivery account")}
           </Button>
           {onCancel ? (
             <Button
@@ -165,7 +174,7 @@ function PersonnelForm({
               className="h-10"
               onClick={onCancel}
             >
-              Cancel
+              <Text value={"Cancel "} />
             </Button>
           ) : null}
         </div>
@@ -179,6 +188,7 @@ export function DeliveryPersonnelManager({
 }: {
   initialData: DeliveryPersonnelManagementView;
 }) {
+  const t = useText();
   const [personnel, setPersonnel] = useState(initialData.personnel);
   const [editingId, setEditingId] = useState<string>();
   const [pendingId, setPendingId] = useState<string>();
@@ -211,7 +221,7 @@ export function DeliveryPersonnelManager({
 
     if (!response?.ok) {
       const payload = response ? await readPayload(response) : {};
-      setError(payload.error?.message ?? "Unable to update account status.");
+      setError(t(payload.error?.message ?? "Unable to update account status."));
     } else {
       const payload = await readPayload(response);
       if (payload.data && !("personnel" in payload.data)) {
@@ -237,18 +247,26 @@ export function DeliveryPersonnelManager({
           />
         ) : (
           <Card as="p" className="gap-0 p-5 text-sm text-muted-foreground">
-            A shop is required before creating delivery accounts.
+            <Text
+              value={"A shop is required before creating delivery accounts. "}
+            />
           </Card>
         )}
         {temporaryPassword ? (
           <Card
             as="section"
             className="gap-0 mt-4 bg-amber-50 p-4"
-            aria-label="Temporary password"
+            aria-label={t("Temporary password")}
           >
-            <h3 className="font-semibold">Temporary password</h3>
+            <h3 className="font-semibold">
+              <Text value={t("Temporary password")} />
+            </h3>
             <p className="mt-1 text-sm text-amber-900">
-              Share this securely. It is shown only for this creation response.
+              <Text
+                value={
+                  "Share this securely. It is shown only for this creation response. "
+                }
+              />
             </p>
             <code className="mt-3 block break-all rounded bg-background p-3 text-sm">
               {temporaryPassword}
@@ -262,7 +280,7 @@ export function DeliveryPersonnelManager({
           id="delivery-personnel-list-heading"
           className="text-lg font-semibold"
         >
-          Delivery personnel
+          <Text value={"Delivery personnel "} />
         </h2>
         {error ? (
           <div className="mt-4">
@@ -285,11 +303,11 @@ export function DeliveryPersonnelManager({
                       {person.email} · {person.phone}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {person.assignedShopName ?? "Unassigned"}
+                      {person.assignedShopName ?? t("Unassigned")}
                     </p>
                   </div>
                   <Badge variant="secondary">
-                    {person.status === "ACTIVE" ? "Active" : "Inactive"}
+                    {person.status === "ACTIVE" ? t("Active") : t("Inactive")}
                   </Badge>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-4 text-sm font-medium">
@@ -298,7 +316,8 @@ export function DeliveryPersonnelManager({
                     type="button"
                     onClick={() => setEditingId(person.id)}
                   >
-                    Edit {person.name}
+                    <Text value={"Edit "} />
+                    {person.name}
                   </Button>
                   <Button
                     variant="ghost"
@@ -306,7 +325,9 @@ export function DeliveryPersonnelManager({
                     disabled={pendingId === person.id}
                     onClick={() => changeStatus(person)}
                   >
-                    {person.status === "ACTIVE" ? "Deactivate" : "Activate"}{" "}
+                    {person.status === "ACTIVE"
+                      ? t("Deactivate")
+                      : t("Activate")}{" "}
                     {person.name}
                   </Button>
                 </div>
@@ -315,7 +336,7 @@ export function DeliveryPersonnelManager({
           </div>
         ) : (
           <p className="mt-4 text-sm text-muted-foreground">
-            No delivery personnel have been assigned yet.
+            <Text value={"No delivery personnel have been assigned yet. "} />
           </p>
         )}
       </section>

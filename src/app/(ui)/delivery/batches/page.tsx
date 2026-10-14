@@ -1,16 +1,22 @@
+import { getServerText } from "@/lib/i18n/server";
+import { CountNoun } from "@/features/i18n/components/count-noun";
+import { DateText } from "@/features/i18n/components/date-text";
+import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
 
 import Link from "next/link";
 
 import { UserRole } from "@/generated/prisma/client";
-import { formatOrderDate } from "@/features/orders/order-presentation";
 import { requireRole } from "@/lib/auth/server";
 import { listActiveDeliveryBatches } from "@/services/delivery-batch-management.service";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 
-export const metadata: Metadata = { title: "Delivery batches | AG Stores" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return { title: `${t("Delivery batches")} | AG Stores` };
+}
 
 export default async function DeliveryBatchesPage() {
   const user = await requireRole(UserRole.DELIVERY_PERSON, "/delivery/batches");
@@ -21,18 +27,24 @@ export default async function DeliveryBatchesPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-muted-foreground">
-            Delivery workspace
+            <Text value={"Delivery workspace "} />
           </p>
-          <h1 className="mt-2 text-3xl font-semibold">Active batches</h1>
+          <h1 className="mt-2 text-3xl font-semibold">
+            <Text value={"Active batches"} />
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Review pending routes and deliveries currently in progress.
+            <Text
+              value={
+                "Review pending routes and deliveries currently in progress. "
+              }
+            />
           </p>
         </div>
         <Link
           href="/delivery/orders"
           className={buttonVariants({ variant: "default", className: "" })}
         >
-          Find available orders
+          <Text value={"Find available orders "} />
         </Link>
       </div>
 
@@ -48,24 +60,33 @@ export default async function DeliveryBatchesPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                      {batch.status === "PENDING" ? "Pending" : "In progress"}
+                      <Text
+                        value={
+                          batch.status === "PENDING" ? "Pending" : "In progress"
+                        }
+                      />
                     </p>
                     <p className="mt-2 break-all font-mono text-sm font-semibold">
                       {batch.id}
                     </p>
                   </div>
                   <Badge variant="secondary">
-                    {batch.orderCount} order
-                    {batch.orderCount === 1 ? "" : "s"}
+                    {batch.orderCount}{" "}
+                    <CountNoun
+                      count={batch.orderCount}
+                      singular="order"
+                      plural="orders"
+                    />
                   </Badge>
                 </div>
                 <p className="mt-4 text-sm text-muted-foreground">
-                  Created {formatOrderDate(batch.createdAt)}
+                  <Text value={"Created "} />
+                  <DateText value={batch.createdAt} />
                 </p>
                 {batch.status === "IN_PROGRESS" ? (
                   <p className="mt-2 text-sm text-muted-foreground">
-                    {batch.deliveredCount} delivered · {batch.failedCount}{" "}
-                    failed
+                    {batch.deliveredCount} <Text value={"delivered · "} />
+                    {batch.failedCount} <Text value={"failed "} />
                   </p>
                 ) : null}
               </Card>
@@ -74,7 +95,7 @@ export default async function DeliveryBatchesPage() {
         </div>
       ) : (
         <Card className="gap-0 mt-6 border-dashed p-10 text-center text-muted-foreground border ring-0">
-          No active delivery batches.
+          <Text value={"No active delivery batches. "} />
         </Card>
       )}
     </section>

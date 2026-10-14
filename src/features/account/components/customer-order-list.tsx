@@ -1,9 +1,9 @@
+import { CountNoun } from "@/features/i18n/components/count-noun";
+import { DateText } from "@/features/i18n/components/date-text";
+import { Text } from "@/features/i18n/components/text";
 import Link from "next/link";
 
-import {
-  formatOrderDate,
-  orderStatusLabels,
-} from "@/features/orders/order-presentation";
+import { orderStatusLabels } from "@/features/orders/order-presentation";
 import type { listCustomerOrders } from "@/services/customer-order.service";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,17 +24,21 @@ function OrderCard({ order }: { order: CustomerOrderSummary }) {
             {order.id}
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            {order.itemCount} item{order.itemCount === 1 ? "" : "s"} · Ordered{" "}
-            {formatOrderDate(order.createdAt)}
+            {order.itemCount}{" "}
+            <CountNoun count={order.itemCount} singular="item" plural="items" />{" "}
+            <Text value={"· Ordered"} /> <DateText value={order.createdAt} />
           </p>
           {order.updatedAt !== order.createdAt ? (
             <p className="mt-1 text-xs text-muted-foreground">
-              Updated {formatOrderDate(order.updatedAt)}
+              <Text value={"Updated "} />
+              <DateText value={order.updatedAt} />
             </p>
           ) : null}
         </div>
         <div className="text-right">
-          <Badge variant="success">{orderStatusLabels[order.status]}</Badge>
+          <Badge variant="success">
+            <Text value={orderStatusLabels[order.status]} />
+          </Badge>
           <p className="mt-2 font-semibold">LKR {order.total}</p>
         </div>
       </div>
@@ -45,7 +49,7 @@ function OrderCard({ order }: { order: CustomerOrderSummary }) {
           className: "mt-4 inline-flex",
         })}
       >
-        View order details
+        <Text value={"View order details "} />
       </Link>
     </Card>
   );
@@ -71,9 +75,11 @@ function OrderSection({
         id={`${title.replaceAll(" ", "-").toLowerCase()}-heading`}
         className="text-xl font-semibold"
       >
-        {title}
+        <Text value={title} />
       </h2>
-      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        <Text value={description} />
+      </p>
       {orders.length ? (
         <div className="mt-4 grid gap-4">
           {orders.map((order) => (
@@ -82,7 +88,7 @@ function OrderSection({
         </div>
       ) : (
         <Card className="gap-0 mt-4 border-dashed p-8 text-center text-muted-foreground border ring-0">
-          {emptyMessage}
+          <Text value={emptyMessage} />
         </Card>
       )}
     </section>

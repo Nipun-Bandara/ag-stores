@@ -1,4 +1,6 @@
 import type { OrderStatus } from "@/generated/prisma/client";
+import type { Locale } from "@/lib/i18n/config";
+import { formatLocaleDate } from "@/lib/i18n/text";
 
 export const orderStatusLabels: Record<OrderStatus, string> = {
   PLACED: "Placed",
@@ -13,10 +15,6 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
   FAILED_DELIVERY: "Failed delivery",
 };
 
-export function formatOrderDate(value: string): string {
-  return new Intl.DateTimeFormat("en-LK", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Colombo",
-  }).format(new Date(value));
+export function formatOrderDate(value: string, locale: Locale = "en"): string {
+  return formatLocaleDate(locale, value);
 }

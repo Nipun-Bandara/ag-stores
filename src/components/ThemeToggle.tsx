@@ -1,4 +1,5 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
 
 import { useTheme } from "next-themes";
 import { useSyncExternalStore } from "react";
@@ -9,11 +10,12 @@ const subscribeToMount = () => () => {};
 
 export const ThemeToggle = ({
   className,
-  label = "Toggle theme",
+  label,
 }: {
   className?: string;
   label?: string;
 }) => {
+  const t = useText();
   const { setTheme, resolvedTheme } = useTheme();
   const mounted = useSyncExternalStore(
     subscribeToMount,
@@ -123,7 +125,7 @@ export const ThemeToggle = ({
           <path d="m19.07 4.93-1.41 1.41"></path>
         </svg>
       </div>
-      <span className="sr-only">{label}</span>
+      <span className="sr-only">{label ?? t("Toggle theme")}</span>
     </Button>
   );
 };

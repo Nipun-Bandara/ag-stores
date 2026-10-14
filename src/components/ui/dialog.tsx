@@ -5,6 +5,7 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Text } from "@/features/i18n/components/text";
 
 const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
@@ -23,7 +24,7 @@ function DialogContent({ className, children, ...props }: DialogPrimitive.Popup.
       >
         {children}
         <DialogPrimitive.Close render={<Button variant="ghost" size="icon-sm" className="absolute right-3 top-3" />}>
-          <X /><span className="sr-only">Close</span>
+          <X /><span className="sr-only"><Text value="Close" /></span>
         </DialogPrimitive.Close>
       </DialogPrimitive.Popup>
     </DialogPrimitive.Portal>

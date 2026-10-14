@@ -18,9 +18,6 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
   usePathname: () => "/",
 }));
-vi.mock("@/components/landing/CountUp", () => ({
-  default: ({ to }: { to: number }) => <span>{to}</span>,
-}));
 afterEach(cleanup);
 
 vi.mock("@/services/storefront.service", () => ({
@@ -37,6 +34,7 @@ vi.mock("@/lib/i18n/server", () => ({
 
 vi.mock("@/features/i18n/components/language-switcher", () => ({
   LanguageSwitcher: () => <select aria-label="Language" />,
+  useLocaleChange: () => ({ pending: false, changeLocale: vi.fn() }),
 }));
 
 describe("application", () => {
@@ -49,6 +47,26 @@ describe("application", () => {
         name: getDictionary("en").landing.heroTitle,
       }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Built for local commerce" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "How an order moves" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Browse products" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/farmer|tractor|testimonial/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("uses matching English and Sinhala landing copy", () => {
+    const english = getDictionary("en").landing;
+    const sinhala = getDictionary("si").landing;
+    expect(Object.keys(sinhala)).toEqual(Object.keys(english));
+    expect(sinhala.heroTitle).not.toBe(english.heroTitle);
+    expect(sinhala.flowTitle).not.toBe(english.flowTitle);
   });
 
   it("opens the shared mobile sheet and closes it after choosing a destination", async () => {

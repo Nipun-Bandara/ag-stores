@@ -1,4 +1,6 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useState } from "react";
 
@@ -10,6 +12,7 @@ import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 
 export function CustomerOrderCancellation({ orderId }: { orderId: string }) {
+  const t = useText();
   const router = useRouter();
   const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
@@ -26,12 +29,12 @@ export function CustomerOrderCancellation({ orderId }: { orderId: string }) {
       });
       const payload = await response.json();
       if (!response.ok) {
-        setError(payload.error?.message ?? "Unable to cancel this order.");
+        setError(t(payload.error?.message ?? "Unable to cancel this order."));
         return;
       }
       router.refresh();
     } catch {
-      setError("Unable to cancel this order.");
+      setError(t("Unable to cancel this order."));
     } finally {
       setPending(false);
     }
@@ -41,14 +44,20 @@ export function CustomerOrderCancellation({ orderId }: { orderId: string }) {
     <Card
       as="section"
       className="gap-0 mt-6 bg-red-50 p-5"
-      aria-label="Cancel order"
+      aria-label={t("Cancel order")}
     >
-      <h2 className="font-semibold text-red-950">Cancel this order</h2>
+      <h2 className="font-semibold text-red-950">
+        <Text value={t("Cancel this order")} />
+      </h2>
       <p className="mt-1 text-sm text-red-800">
-        Cancellation is available only before the shop confirms the order.
+        <Text
+          value={
+            "Cancellation is available only before the shop confirms the order. "
+          }
+        />
       </p>
       <Label className="mt-4 block text-sm font-medium text-red-950">
-        Cancellation reason (optional)
+        <Text value={"Cancellation reason (optional) "} />
         <Textarea
           value={reason}
           maxLength={500}
@@ -63,7 +72,7 @@ export function CustomerOrderCancellation({ orderId }: { orderId: string }) {
         onClick={cancelOrder}
         className="mt-4"
       >
-        {pending ? "Cancelling…" : "Cancel order"}
+        {pending ? t("Cancelling…") : t("Cancel order")}
       </Button>
       {error ? (
         <Alert variant="destructive" role="alert" className="mt-3">

@@ -1,3 +1,5 @@
+import { getServerText } from "@/lib/i18n/server";
+import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
 
 import Link from "next/link";
@@ -18,7 +20,10 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 
-export const metadata: Metadata = { title: "Orders | AG Stores" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return { title: `${t("Orders")} | AG Stores` };
+}
 
 interface OwnerOrdersPageProps {
   searchParams: Promise<{
@@ -36,6 +41,7 @@ function first(value: string | string[] | undefined): string | undefined {
 export default async function OwnerOrdersPage({
   searchParams,
 }: OwnerOrdersPageProps) {
+  const t = await getServerText();
   const user = await requireRole(UserRole.SHOP_OWNER, "/owner/orders");
   const query = await searchParams;
   const rawFilters = {
@@ -50,9 +56,15 @@ export default async function OwnerOrdersPage({
 
   return (
     <section className="min-w-0 w-full">
-      <h1 className="text-3xl font-semibold tracking-tight">Orders</h1>
+      <h1 className="text-3xl font-semibold tracking-tight">
+        <Text value={"Orders"} />
+      </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Review incoming orders and move them through shop preparation.
+        <Text
+          value={
+            "Review incoming orders and move them through shop preparation. "
+          }
+        />
       </p>
 
       <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
@@ -69,23 +81,25 @@ export default async function OwnerOrdersPage({
       <Card className="gap-0 mt-8 p-5">
         <form className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <Label className="text-sm font-medium" htmlFor="status">
-            Status
+            <Text value={"Status "} />
             <NativeSelect
               id="status"
               name="status"
               defaultValue={filters.status ?? ""}
               className="mt-1.5 h-10 w-full"
             >
-              <NativeSelectOption value="">All statuses</NativeSelectOption>
+              <NativeSelectOption value="">
+                <Text value={"All statuses"} />
+              </NativeSelectOption>
               {Object.values(OrderStatus).map((status) => (
                 <NativeSelectOption key={status} value={status}>
-                  {orderStatusLabels[status]}
+                  <Text value={orderStatusLabels[status]} />
                 </NativeSelectOption>
               ))}
             </NativeSelect>
           </Label>
           <Label className="text-sm font-medium" htmlFor="date">
-            Date
+            <Text value={"Date "} />
             <Input
               id="date"
               name="date"
@@ -95,28 +109,28 @@ export default async function OwnerOrdersPage({
             />
           </Label>
           <Label className="text-sm font-medium" htmlFor="customer">
-            Customer
+            <Text value={"Customer "} />
             <Input
               id="customer"
               name="customer"
               defaultValue={filters.customer ?? ""}
-              placeholder="Name, email, or phone"
+              placeholder={t("Name, email, or phone")}
               className="mt-1.5 h-10 w-full"
             />
           </Label>
           <Label className="text-sm font-medium" htmlFor="orderNumber">
-            Order number
+            <Text value={"Order number "} />
             <Input
               id="orderNumber"
               name="orderNumber"
               defaultValue={filters.orderNumber ?? ""}
-              placeholder="Full order number"
+              placeholder={t("Full order number")}
               className="mt-1.5 h-10 w-full font-mono"
             />
           </Label>
           <div className="flex items-end gap-2">
             <Button type="submit" className="h-10">
-              Apply filters
+              <Text value={"Apply filters "} />
             </Button>
             <Link
               href="/owner/orders"
@@ -125,14 +139,16 @@ export default async function OwnerOrdersPage({
                 className: "inline-flex h-10 items-center",
               })}
             >
-              Clear
+              <Text value={"Clear "} />
             </Link>
           </div>
         </form>
       </Card>
       {!parsed.success ? (
         <Alert variant="destructive" role="alert" className="mt-3">
-          One or more filters were invalid and have been cleared.
+          <Text
+            value={"One or more filters were invalid and have been cleared. "}
+          />
         </Alert>
       ) : null}
 

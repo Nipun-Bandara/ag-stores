@@ -1,4 +1,6 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useState } from "react";
 
@@ -32,6 +34,7 @@ export function OwnerOrderStatusActions({
   orderId: string;
   status: OrderStatus;
 }) {
+  const t = useText();
   const router = useRouter();
   const [pending, setPending] = useState<OrderStatus | null>(null);
   const [error, setError] = useState("");
@@ -50,20 +53,26 @@ export function OwnerOrderStatusActions({
       });
       const payload = await response.json();
       if (!response.ok) {
-        setError(payload.error?.message ?? "Unable to update this order.");
+        setError(t(payload.error?.message ?? "Unable to update this order."));
         return;
       }
       router.refresh();
     } catch {
-      setError("Unable to update this order.");
+      setError(t("Unable to update this order."));
     } finally {
       setPending(null);
     }
   }
 
   return (
-    <Card as="section" className="gap-0 mt-6 p-5" aria-label="Order actions">
-      <h2 className="font-semibold">Update order status</h2>
+    <Card
+      as="section"
+      className="gap-0 mt-6 p-5"
+      aria-label={t("Order actions")}
+    >
+      <h2 className="font-semibold">
+        <Text value={t("Update order status")} />
+      </h2>
       <div className="mt-4 flex flex-wrap gap-3">
         {availableActions.map((action) => (
           <Button
@@ -72,7 +81,7 @@ export function OwnerOrderStatusActions({
             disabled={pending !== null}
             onClick={() => transition(action.status)}
           >
-            {pending === action.status ? "Updating…" : action.label}
+            {pending === action.status ? t("Updating…") : t(action.label)}
           </Button>
         ))}
       </div>

@@ -1,4 +1,6 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useState } from "react";
 
@@ -11,6 +13,7 @@ import type {
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
+import { orderStatusLabels } from "@/features/orders/order-presentation";
 
 interface BatchActionOrder {
   id: string;
@@ -32,6 +35,7 @@ export function DeliveryBatchActions({
   status: DeliveryBatchStatus;
   orders: BatchActionOrder[];
 }) {
+  const t = useText();
   const router = useRouter();
   const [sequence, setSequence] = useState(() => orders.map(({ id }) => id));
   const [pending, setPending] = useState("");
@@ -71,13 +75,13 @@ export function DeliveryBatchActions({
       });
       const payload = (await response.json()) as ApiPayload;
       if (!response.ok) {
-        setError(payload.error?.message ?? "Unable to update this batch.");
+        setError(t(payload.error?.message ?? "Unable to update this batch."));
         return false;
       }
       router.refresh();
       return true;
     } catch {
-      setError("Unable to update this batch.");
+      setError(t("Unable to update this batch."));
       return false;
     } finally {
       setPending("");
@@ -90,7 +94,7 @@ export function DeliveryBatchActions({
       "PATCH",
       { orderIds: sequence },
     );
-    if (succeeded) setMessage("Delivery sequence saved.");
+    if (succeeded) setMessage(t("Delivery sequence saved."));
   }
 
   async function startBatch() {
@@ -110,12 +114,17 @@ export function DeliveryBatchActions({
 
   return (
     <Card as="section" className="gap-0 mt-6 p-5">
-      <h2 className="text-lg font-semibold">Batch actions</h2>
+      <h2 className="text-lg font-semibold">
+        <Text value={t("Batch actions")} />
+      </h2>
       {status === "PENDING" ? (
         <>
           <p className="mt-2 text-sm text-muted-foreground">
-            Arrange every stop before starting. The sequence locks when delivery
-            begins.
+            <Text
+              value={
+                "Arrange every stop before starting. The sequence locks when delivery begins. "
+              }
+            />
           </p>
           <ol className="mt-4 space-y-3">
             {sequence.map((orderId, index) => {
@@ -129,7 +138,8 @@ export function DeliveryBatchActions({
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">
-                      Stop {index + 1} · {order.deliveryLocation.label}
+                      <Text value={"Stop "} />
+                      {index + 1} · {order.deliveryLocation.label}
                     </p>
                     <p className="truncate text-sm text-muted-foreground">
                       {order.deliveryLocation.address}
@@ -139,7 +149,7 @@ export function DeliveryBatchActions({
                     <Button
                       variant="outline"
                       type="button"
-                      aria-label={`Move order ${orderId} up`}
+                      aria-label={t("Move order {id} up", { id: orderId })}
                       disabled={index === 0 || pending !== ""}
                       onClick={() => move(index, -1)}
                     >
@@ -148,7 +158,7 @@ export function DeliveryBatchActions({
                     <Button
                       variant="outline"
                       type="button"
-                      aria-label={`Move order ${orderId} down`}
+                      aria-label={t("Move order {id} down", { id: orderId })}
                       disabled={index === sequence.length - 1 || pending !== ""}
                       onClick={() => move(index, 1)}
                     >
@@ -166,14 +176,18 @@ export function DeliveryBatchActions({
               disabled={pending !== ""}
               onClick={saveSequence}
             >
-              {pending.endsWith("/sequence") ? "Saving…" : "Save sequence"}
+              {pending.endsWith("/sequence")
+                ? t("Saving…")
+                : t("Save sequence")}
             </Button>
             <Button
               type="button"
               disabled={pending !== ""}
               onClick={startBatch}
             >
-              {pending.endsWith("/start") ? "Starting…" : "Start delivery"}
+              {pending.endsWith("/start")
+                ? t("Starting…")
+                : t("Start delivery")}
             </Button>
           </div>
         </>
@@ -188,10 +202,11 @@ export function DeliveryBatchActions({
             >
               <div>
                 <p className="text-sm font-semibold">
-                  Stop {order.sequence} · {order.deliveryLocation.label}
+                  <Text value={"Stop "} />
+                  {order.sequence} · {order.deliveryLocation.label}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {order.status.replaceAll("_", " ")}
+                  {t(orderStatusLabels[order.status])}
                 </p>
               </div>
               {order.status === "OUT_FOR_DELIVERY" ? (
@@ -201,7 +216,7 @@ export function DeliveryBatchActions({
                     disabled={pending !== ""}
                     onClick={() => finishOrder(order.id, "DELIVERED")}
                   >
-                    Mark delivered
+                    <Text value={"Mark delivered "} />
                   </Button>
                   <Button
                     variant="destructive"
@@ -209,7 +224,7 @@ export function DeliveryBatchActions({
                     disabled={pending !== ""}
                     onClick={() => finishOrder(order.id, "FAILED_DELIVERY")}
                   >
-                    Mark failed
+                    <Text value={"Mark failed "} />
                   </Button>
                 </div>
               ) : null}

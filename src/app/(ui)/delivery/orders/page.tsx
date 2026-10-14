@@ -1,3 +1,5 @@
+import { getServerText } from "@/lib/i18n/server";
+import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
 
 import Link from "next/link";
@@ -17,7 +19,10 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 
-export const metadata: Metadata = { title: "Available orders | AG Stores" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return { title: `${t("Available orders")} | AG Stores` };
+}
 
 interface DeliveryOrdersPageProps {
   searchParams: Promise<{
@@ -35,6 +40,7 @@ function first(value: string | string[] | undefined): string | undefined {
 export default async function DeliveryOrdersPage({
   searchParams,
 }: DeliveryOrdersPageProps) {
+  const t = await getServerText();
   const user = await requireRole(UserRole.DELIVERY_PERSON, "/delivery/orders");
   const query = await searchParams;
   const rawFilters = Object.fromEntries(
@@ -52,16 +58,17 @@ export default async function DeliveryOrdersPage({
   return (
     <section className="min-w-0 w-full">
       <h1 className="text-3xl font-semibold tracking-tight">
-        Available orders
+        <Text value={"Available orders "} />
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Ready orders from {data.shop.name} that have not yet been assigned.
+        <Text value={"Ready orders from "} />
+        {data.shop.name} <Text value={"that have not yet been assigned. "} />
       </p>
 
       <Card className="gap-0 mt-8 p-5">
         <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <Label className="text-sm font-medium" htmlFor="maxDistanceKm">
-            Maximum approximate distance
+            <Text value={"Maximum approximate distance "} />
             <Input
               id="maxDistanceKm"
               name="maxDistanceKm"
@@ -70,12 +77,12 @@ export default async function DeliveryOrdersPage({
               max="500"
               step="0.1"
               defaultValue={filters.maxDistanceKm ?? ""}
-              placeholder="Kilometres"
+              placeholder={t("Kilometres")}
               className="mt-1.5 h-10 w-full"
             />
           </Label>
           <Label className="text-sm font-medium" htmlFor="createdAfter">
-            Created after
+            <Text value={"Created after "} />
             <Input
               id="createdAfter"
               name="createdAfter"
@@ -85,7 +92,7 @@ export default async function DeliveryOrdersPage({
             />
           </Label>
           <Label className="text-sm font-medium" htmlFor="sortBy">
-            Sort by
+            <Text value={"Sort by "} />
             <NativeSelect
               id="sortBy"
               name="sortBy"
@@ -93,28 +100,32 @@ export default async function DeliveryOrdersPage({
               className="mt-1.5 h-10 w-full"
             >
               <NativeSelectOption value="createdAt">
-                Creation time
+                <Text value={"Creation time "} />
               </NativeSelectOption>
               <NativeSelectOption value="distance">
-                Approximate distance
+                <Text value={"Approximate distance "} />
               </NativeSelectOption>
             </NativeSelect>
           </Label>
           <Label className="text-sm font-medium" htmlFor="direction">
-            Direction
+            <Text value={"Direction "} />
             <NativeSelect
               id="direction"
               name="direction"
               defaultValue={filters.direction}
               className="mt-1.5 h-10 w-full"
             >
-              <NativeSelectOption value="asc">Ascending</NativeSelectOption>
-              <NativeSelectOption value="desc">Descending</NativeSelectOption>
+              <NativeSelectOption value="asc">
+                <Text value={"Ascending"} />
+              </NativeSelectOption>
+              <NativeSelectOption value="desc">
+                <Text value={"Descending"} />
+              </NativeSelectOption>
             </NativeSelect>
           </Label>
           <div className="flex items-end gap-2">
             <Button type="submit" className="h-10">
-              Apply
+              <Text value={"Apply "} />
             </Button>
             <Link
               href="/delivery/orders"
@@ -123,14 +134,16 @@ export default async function DeliveryOrdersPage({
                 className: "inline-flex h-10 items-center",
               })}
             >
-              Clear
+              <Text value={"Clear "} />
             </Link>
           </div>
         </form>
       </Card>
       {!parsed.success ? (
         <Alert variant="destructive" role="alert" className="mt-3">
-          One or more filters were invalid and have been cleared.
+          <Text
+            value={"One or more filters were invalid and have been cleared. "}
+          />
         </Alert>
       ) : null}
 

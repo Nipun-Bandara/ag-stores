@@ -1,3 +1,4 @@
+import { getServerText } from "@/lib/i18n/server";
 import { Badge } from "@/components/ui/badge";
 import type { Metadata } from "next";
 
@@ -12,7 +13,10 @@ import { getLocaleContext } from "@/lib/i18n/server";
 import { getStorefrontProduct } from "@/services/storefront.service";
 import { productIdSchema } from "@/validations/product";
 
-export const metadata: Metadata = { title: "Product | AG Stores" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return { title: `${t("Product")} | AG Stores` };
+}
 
 export default async function ProductDetailPage({
   params,
@@ -67,11 +71,11 @@ export default async function ProductDetailPage({
           >
             {!product.imageUrl ? name.charAt(0).toUpperCase() : null}
           </div>
-          <section className="self-center">
-            <p className="text-sm font-black tracking-wide text-emerald-700 uppercase">
+          <section className="min-w-0 self-center">
+            <p className="break-words text-sm font-black tracking-wide text-emerald-700 uppercase">
               {product.shopName}
             </p>
-            <h1 className="mt-3 text-4xl font-black tracking-tight text-foreground sm:text-5xl">
+            <h1 className="mt-3 break-words text-3xl font-black tracking-tight text-foreground sm:text-5xl">
               {name}
             </h1>
             <p className="mt-7 text-3xl font-black text-foreground">
@@ -85,7 +89,7 @@ export default async function ProductDetailPage({
               </Badge>
             </div>
             {description ? (
-              <p className="mt-8 leading-7 text-muted-foreground">
+              <p className="mt-8 break-words leading-7 text-muted-foreground">
                 {description}
               </p>
             ) : null}
@@ -95,6 +99,8 @@ export default async function ProductDetailPage({
                 product={{
                   id: product.id,
                   name,
+                  nameEn: product.nameEn,
+                  nameSi: product.nameSi,
                   price: product.price,
                   stockQuantity: product.stockQuantity,
                   imageUrl: product.imageUrl,

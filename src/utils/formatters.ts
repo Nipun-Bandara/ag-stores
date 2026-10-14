@@ -6,7 +6,7 @@
  * different screens.
  */
 
-/** Everything in BhumiSaara is weighed in kilograms; one token is one kg. */
+/** Everything in AG Stores is weighed in kilograms; one token is one kg. */
 export const formatKg = (kg: number | null | undefined) =>
   `${Math.round(Number(kg ?? 0)).toLocaleString()} kg`;
 

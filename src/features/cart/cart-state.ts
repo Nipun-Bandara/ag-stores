@@ -8,6 +8,8 @@ import {
 export interface CartProduct {
   id: string;
   name: string;
+  nameEn?: string;
+  nameSi?: string | null;
   price: string;
   stockQuantity: number;
   imageUrl: string | null;

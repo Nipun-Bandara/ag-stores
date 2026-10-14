@@ -1,4 +1,7 @@
 "use client";
+import { BilingualText } from "@/features/i18n/components/bilingual-text";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useMemo, useState, type FormEvent } from "react";
 
@@ -30,6 +33,7 @@ export function ProductForm({
   options: ProductFormOptions;
   product?: ProductView;
 }) {
+  const t = useText();
   const router = useRouter();
   const initialShopId = product?.shopId ?? options.shops[0]?.id ?? "";
   const [shopId, setShopId] = useState(initialShopId);
@@ -70,7 +74,7 @@ export function ProductForm({
       const payload = response
         ? ((await response.json().catch(() => ({}))) as ApiPayload)
         : {};
-      setError(payload.error?.message ?? "Unable to save this product.");
+      setError(t(payload.error?.message ?? "Unable to save this product."));
       setPending(false);
       return;
     }
@@ -83,7 +87,9 @@ export function ProductForm({
     <form className="mt-8 max-w-3xl space-y-5" onSubmit={handleSubmit}>
       {product ? (
         <div>
-          <p className="text-sm font-medium">Shop</p>
+          <p className="text-sm font-medium">
+            <Text value={t("Shop")} />
+          </p>
           <p className="mt-1.5 text-sm text-muted-foreground">
             {product.shopName}
           </p>
@@ -114,8 +120,11 @@ export function ProductForm({
       >
         {categories.map((category) => (
           <NativeSelectOption key={category.id} value={category.id}>
-            {category.nameEn}
-            {category.status === "INACTIVE" ? " (inactive)" : ""}
+            <BilingualText
+              english={category.nameEn}
+              sinhala={category.nameSi}
+            />
+            {category.status === "INACTIVE" ? t(" (inactive)") : ""}
           </NativeSelectOption>
         ))}
       </SelectField>
@@ -138,7 +147,7 @@ export function ProductForm({
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
         <Label className="block text-sm font-medium" htmlFor="descriptionEn">
-          English description
+          <Text value={"English description "} />
           <Textarea
             id="descriptionEn"
             name="descriptionEn"
@@ -148,7 +157,7 @@ export function ProductForm({
           />
         </Label>
         <Label className="block text-sm font-medium" htmlFor="descriptionSi">
-          Sinhala description
+          <Text value={"Sinhala description "} />
           <Textarea
             id="descriptionSi"
             name="descriptionSi"
@@ -209,10 +218,12 @@ export function ProductForm({
 
           defaultChecked={product?.isAvailable ?? true}
         />
-        Product is available
+        <Text value={"Product is available "} />
       </Label>
       {categories.length === 0 ? (
-        <FormError>Create a category for this shop first.</FormError>
+        <FormError>
+          <Text value={t("Create a category for this shop first.")} />
+        </FormError>
       ) : null}
       {error ? <FormError>{error}</FormError> : null}
       <div className="flex gap-3">
@@ -221,7 +232,11 @@ export function ProductForm({
           disabled={pending || categories.length === 0}
           className="h-10"
         >
-          {pending ? "Saving…" : product ? "Save product" : "Create product"}
+          {pending
+            ? t("Saving…")
+            : product
+              ? t("Save product")
+              : t("Create product")}
         </Button>
         <Button
           variant="outline"
@@ -229,7 +244,7 @@ export function ProductForm({
           className="h-10"
           onClick={() => router.push("/owner/products")}
         >
-          Cancel
+          <Text value={"Cancel "} />
         </Button>
       </div>
     </form>

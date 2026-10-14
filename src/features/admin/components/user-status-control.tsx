@@ -1,4 +1,5 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -21,12 +22,13 @@ export function UserStatusControl({
   userName: string;
   initialStatus: UserStatus;
 }) {
+  const t = useText();
   const router = useRouter();
   const [status, setStatus] = useState(initialStatus);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
   const nextStatus: UserStatus = status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
-  const action = nextStatus === "ACTIVE" ? "Activate" : "Deactivate";
+  const action = nextStatus === "ACTIVE" ? t("Activate") : t("Deactivate");
 
   async function changeStatus() {
     setPending(true);
@@ -41,7 +43,7 @@ export function UserStatusControl({
       : {};
 
     if (!response?.ok || !payload.data?.status) {
-      setError(payload.error?.message ?? "Unable to update account status.");
+      setError(t(payload.error?.message ?? "Unable to update account status."));
     } else {
       setStatus(payload.data.status);
       router.refresh();
@@ -57,7 +59,7 @@ export function UserStatusControl({
         disabled={pending}
         onClick={changeStatus}
       >
-        {pending ? "Updating…" : `${action} ${userName}`}
+        {pending ? t("Updating…") : `${action} ${userName}`}
       </Button>
       {error ? (
         <Alert variant="destructive" role="alert" className="mt-2 max-w-sm">

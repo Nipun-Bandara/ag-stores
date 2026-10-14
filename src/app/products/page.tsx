@@ -4,7 +4,7 @@ import { ProductGrid } from "@/features/storefront/components/product-grid";
 import { StorefrontFooter } from "@/features/storefront/components/storefront-footer";
 import { StorefrontHeader } from "@/features/storefront/components/storefront-header";
 import { getDictionary, localizeBilingual } from "@/lib/i18n/config";
-import { getLocaleContext } from "@/lib/i18n/server";
+import { getLocaleContext, getServerText } from "@/lib/i18n/server";
 import {
   listStorefrontCategories,
   listStorefrontProducts,
@@ -22,10 +22,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-export const metadata: Metadata = {
-  title: "Products | AG Stores",
-  description: "Browse available products from local shops.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return {
+    title: `${t("Products")} | AG Stores`,
+    description: t("Browse available products from local shops."),
+  };
+}
 
 export default async function ProductsPage({
   searchParams,

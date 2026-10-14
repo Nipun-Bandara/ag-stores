@@ -1,4 +1,5 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
 
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -27,6 +28,7 @@ export function AuthenticatedShell({
   locale: Locale;
   localizedRoute: boolean;
 }) {
+  const t = useText();
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -67,7 +69,7 @@ export function AuthenticatedShell({
               <div className="ml-auto flex items-center gap-3">
                 <LanguageSwitcher
                   locale={locale}
-                  label={locale === "si" ? "භාෂාව" : "Language"}
+                  label={locale === "si" ? "භාෂාව" : t("Language")}
                 />
                 <ThemeToggle />
               </div>

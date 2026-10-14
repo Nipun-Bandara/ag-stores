@@ -1,3 +1,5 @@
+import { getServerText } from "@/lib/i18n/server";
+import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
 
 import { UserRole } from "@/generated/prisma/client";
@@ -5,7 +7,10 @@ import { DeliveryPersonnelManager } from "@/features/delivery/components/deliver
 import { requireRole } from "@/lib/auth/server";
 import { getDeliveryPersonnelManagement } from "@/services/delivery-personnel.service";
 
-export const metadata: Metadata = { title: "Delivery personnel | AG Stores" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return { title: `${t("Delivery personnel")} | AG Stores` };
+}
 
 export default async function AdminDeliveryPersonnelPage() {
   const user = await requireRole(UserRole.ADMIN, "/admin/delivery-personnel");
@@ -14,10 +19,10 @@ export default async function AdminDeliveryPersonnelPage() {
   return (
     <section className="min-w-0 w-full">
       <h1 className="text-3xl font-semibold tracking-tight">
-        Delivery personnel administration
+        <Text value={"Delivery personnel administration "} />
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        View and manage delivery accounts across every shop.
+        <Text value={"View and manage delivery accounts across every shop. "} />
       </p>
       <DeliveryPersonnelManager initialData={data} />
     </section>

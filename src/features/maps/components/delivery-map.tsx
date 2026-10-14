@@ -1,3 +1,4 @@
+import { Text } from "@/features/i18n/components/text";
 import { createMapProvider } from "@/features/maps/map-provider.factory";
 import type {
   DeliveryMapData,
@@ -8,16 +9,21 @@ import {
   type PublicMapConfig,
 } from "@/validations/map-env";
 import { Card } from "@/components/ui/card";
+import type { Locale } from "@/lib/i18n/config";
+import { translate } from "@/lib/i18n/text";
 
 export function DeliveryMap({
   data,
   config = getPublicMapConfig(),
   provider = createMapProvider(config),
+  locale = "en",
 }: {
   data: DeliveryMapData;
   config?: PublicMapConfig;
   provider?: MapProviderAdapter | null;
+  locale?: Locale;
 }) {
+  const t = (english: string) => translate(locale, english);
   const mapUrl =
     provider && data.markers.length > 0
       ? provider.buildStaticMapUrl(data.markers, {
@@ -33,11 +39,14 @@ export function DeliveryMap({
       aria-labelledby="delivery-map-title"
     >
       <h2 id="delivery-map-title" className="text-lg font-semibold">
-        Delivery map
+        <Text value={"Delivery map "} />
       </h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        Stops follow the saved delivery sequence. Road-route optimization is not
-        applied.
+        <Text
+          value={
+            "Stops follow the saved delivery sequence. Road-route optimization is not applied. "
+          }
+        />
       </p>
 
       {mapUrl ? (
@@ -45,7 +54,7 @@ export function DeliveryMap({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={mapUrl}
-          alt="Map showing the shop and numbered delivery stops"
+          alt={t("Map showing the shop and numbered delivery stops")}
           width={1000}
           height={500}
           className="mt-4 aspect-2/1 w-full rounded-lg border object-cover"
@@ -53,13 +62,20 @@ export function DeliveryMap({
         />
       ) : (
         <Card className="gap-0 mt-4 border-dashed p-6 text-muted-foreground border ring-0">
-          {data.markers.length === 0
-            ? "Map unavailable because no valid coordinates are available."
-            : "Map preview is disabled. Configure a public map provider token to enable it."}
+          <Text
+            value={
+              data.markers.length === 0
+                ? "Map unavailable because no valid coordinates are available."
+                : "Map preview is disabled. Configure a public map provider token to enable it."
+            }
+          />
         </Card>
       )}
 
-      <ol className="mt-4 grid gap-2 sm:grid-cols-2" aria-label="Map markers">
+      <ol
+        className="mt-4 grid gap-2 sm:grid-cols-2"
+        aria-label={t("Map markers")}
+      >
         {data.markers.map((marker) => (
           <li
             key={`${marker.kind}-${marker.id}`}
@@ -80,7 +96,9 @@ export function DeliveryMap({
 
       {data.omittedLocations.length > 0 ? (
         <p role="note" className="mt-4 text-sm text-amber-800">
-          Not shown because coordinates are missing or invalid:{" "}
+          <Text
+            value={"Not shown because coordinates are missing or invalid:"}
+          />{" "}
           {data.omittedLocations.join(", ")}.
         </p>
       ) : null}

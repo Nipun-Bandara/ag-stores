@@ -1,4 +1,6 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
 
@@ -17,6 +19,7 @@ interface ResponsePayload {
 }
 
 export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
+  const t = useText();
   const [settings, setSettings] = useState(initial);
   const [message, setMessage] = useState<string>();
   const [pending, setPending] = useState(false);
@@ -46,12 +49,12 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
       .json()
       .catch(() => ({}))) as ResponsePayload;
     if (!response.ok || !payload.data) {
-      setMessage(payload.error?.message ?? "Unable to save shop settings.");
+      setMessage(t(payload.error?.message ?? "Unable to save shop settings."));
       setPending(false);
       return;
     }
     setSettings(payload.data);
-    setMessage("Shop settings saved.");
+    setMessage(t("Shop settings saved."));
     setPending(false);
   }
 
@@ -62,13 +65,16 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
       <form onSubmit={submit} className="">
         {!settings.isActive ? (
           <p className="mb-5 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-            This shop is administratively inactive. Customers cannot browse or
-            order from it until an administrator reactivates it.
+            <Text
+              value={
+                "This shop is administratively inactive. Customers cannot browse or order from it until an administrator reactivates it. "
+              }
+            />
           </p>
         ) : null}
         <div className="grid gap-5 sm:grid-cols-2">
           <Label className="text-sm font-medium sm:col-span-2">
-            Shop name
+            <Text value={"Shop name "} />
             <Input
               name="name"
               defaultValue={settings.name}
@@ -77,7 +83,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
             />
           </Label>
           <Label className="text-sm font-medium sm:col-span-2">
-            Address
+            <Text value={"Address "} />
             <Textarea
               name="address"
               defaultValue={settings.address}
@@ -86,7 +92,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
             />
           </Label>
           <Label className="text-sm font-medium">
-            Phone
+            <Text value={"Phone "} />
             <Input
               name="phone"
               type="tel"
@@ -102,10 +108,10 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
               disabled={!settings.isActive}
               defaultChecked={settings.isOpen}
             />
-            Open for customer orders
+            <Text value={"Open for customer orders "} />
           </Label>
           <Label className="text-sm font-medium">
-            Latitude
+            <Text value={"Latitude "} />
             <Input
               name="latitude"
               type="number"
@@ -116,7 +122,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
             />
           </Label>
           <Label className="text-sm font-medium">
-            Longitude
+            <Text value={"Longitude "} />
             <Input
               name="longitude"
               type="number"
@@ -127,7 +133,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
             />
           </Label>
           <Label className="text-sm font-medium">
-            Minimum order amount (LKR)
+            <Text value={"Minimum order amount (LKR) "} />
             <Input
               name="minimumOrderAmount"
               type="number"
@@ -139,7 +145,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
             />
           </Label>
           <Label className="text-sm font-medium">
-            Delivery fee (LKR)
+            <Text value={"Delivery fee (LKR) "} />
             <Input
               name="deliveryFee"
               type="number"
@@ -151,7 +157,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
             />
           </Label>
           <Label className="text-sm font-medium sm:col-span-2">
-            Maximum delivery radius (km)
+            <Text value={"Maximum delivery radius (km) "} />
             <Input
               name="maximumDeliveryRadiusKm"
               type="number"
@@ -162,13 +168,17 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
               required
             />
             <span className="mt-1 block text-xs font-normal text-muted-foreground">
-              Uses approximate straight-line distance, not road distance.
+              <Text
+                value={
+                  "Uses approximate straight-line distance, not road distance. "
+                }
+              />
             </span>
           </Label>
         </div>
         <div className="mt-6 flex flex-wrap items-center gap-4">
           <Button type="submit" disabled={pending}>
-            {pending ? "Saving…" : "Save settings"}
+            {pending ? t("Saving…") : t("Save settings")}
           </Button>
           {message ? (
             <Alert variant="success" role="status" className="">

@@ -1,3 +1,5 @@
+import { getServerText } from "@/lib/i18n/server";
+import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
 
 import Link from "next/link";
@@ -11,7 +13,10 @@ import { AdminShopError, getAdminShop } from "@/services/admin-shop.service";
 import { adminShopIdSchema } from "@/validations/admin-shop";
 import { Card } from "@/components/ui/card";
 
-export const metadata: Metadata = { title: "Shop details | AG Stores" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return { title: `${t("Shop details")} | AG Stores` };
+}
 
 export default async function AdminShopDetailPage({
   params,
@@ -34,16 +39,19 @@ export default async function AdminShopDetailPage({
   return (
     <section className="min-w-0 w-full">
       <Link href="/admin/shops" className="text-sm font-medium underline">
-        ← Back to shops
+        <Text value={"← Back to shops "} />
       </Link>
       <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground">Shop details</p>
+          <p className="text-sm text-muted-foreground">
+            <Text value={"Shop details"} />
+          </p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight">
             {data.shop.name}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Owned by {data.shop.owner.name}
+            <Text value={"Owned by "} />
+            {data.shop.owner.name}
           </p>
         </div>
         <AdminShopStatusControl
@@ -71,7 +79,7 @@ export default async function AdminShopDetailPage({
 
       <section className="mt-8" aria-labelledby="edit-shop-heading">
         <h2 id="edit-shop-heading" className="mb-4 text-lg font-semibold">
-          Edit shop
+          <Text value={"Edit shop "} />
         </h2>
         <AdminShopForm owners={data.owners} shop={data.shop} />
       </section>

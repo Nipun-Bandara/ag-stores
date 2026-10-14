@@ -1,4 +1,5 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
 
 import { Spinner } from "@/components/ui/spinner";
 
@@ -17,8 +18,9 @@ export function Loader({
   color = "var(--primary)",
   className,
 }: LoaderProps) {
+  const t = useText();
   return (
-    <div className={className} role="status" aria-label="Loading">
+    <div className={className} role="status" aria-label={t("Loading")}>
       <Spinner
         style={{
           width: size,

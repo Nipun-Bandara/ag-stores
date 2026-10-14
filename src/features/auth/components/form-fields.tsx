@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Alert } from "@/components/ui/alert";
+import { Text } from "@/features/i18n/components/text";
 
 interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -17,11 +18,13 @@ export function FormField({ label, hint, id, ...props }: FieldProps) {
   return (
     <div>
       <Label htmlFor={id} className="block text-sm font-medium">
-        {label}
+        <Text value={label} />
       </Label>
       <Input id={id} className="mt-1.5 h-10 w-full" {...props} />
       {hint ? (
-        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          <Text value={hint} />
+        </p>
       ) : null}
     </div>
   );
@@ -41,7 +44,7 @@ export function SelectField({
   return (
     <div>
       <Label htmlFor={id} className="block text-sm font-medium">
-        {label}
+        <Text value={label} />
       </Label>
       <NativeSelect id={id} className="mt-1.5 h-10 w-full" {...props}>
         {children}
@@ -53,7 +56,7 @@ export function SelectField({
 export function FormError({ children }: { children: ReactNode }) {
   return (
     <Alert variant="destructive" role="alert" className="">
-      {children}
+      {typeof children === "string" ? <Text value={children} /> : children}
     </Alert>
   );
 }

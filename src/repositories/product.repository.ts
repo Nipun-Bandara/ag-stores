@@ -30,7 +30,7 @@ const productSelect = {
   createdAt: true,
   updatedAt: true,
   shop: { select: { name: true } },
-  category: { select: { nameEn: true, status: true } },
+  category: { select: { nameEn: true, nameSi: true, status: true } },
 } satisfies Prisma.ProductSelect;
 
 export type ProductRecord = Prisma.ProductGetPayload<{
@@ -46,6 +46,7 @@ export interface ProductCategoryRecord {
   id: string;
   shopId: string;
   nameEn: string;
+  nameSi: string | null;
   status: "ACTIVE" | "INACTIVE";
 }
 
@@ -105,7 +106,13 @@ export class PrismaProductRepository implements ProductRepository {
     return this.prisma.category.findMany({
       where: { shop: { ownerId } },
       orderBy: [{ shop: { name: "asc" } }, { nameEn: "asc" }],
-      select: { id: true, shopId: true, nameEn: true, status: true },
+      select: {
+        id: true,
+        shopId: true,
+        nameEn: true,
+        nameSi: true,
+        status: true,
+      },
     });
   }
 

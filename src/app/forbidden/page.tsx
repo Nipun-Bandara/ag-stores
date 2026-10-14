@@ -1,3 +1,4 @@
+import { Text } from "@/features/i18n/components/text";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -8,9 +9,13 @@ export default function ForbiddenPage() {
         <p className="text-sm font-medium tracking-widest text-muted-foreground uppercase">
           403
         </p>
-        <h1 className="mt-3 text-3xl font-semibold">Access denied</h1>
+        <h1 className="mt-3 text-3xl font-semibold">
+          <Text value={"Access denied"} />
+        </h1>
         <p className="mt-3 text-muted-foreground">
-          Your account does not have permission to open that page.
+          <Text
+            value={"Your account does not have permission to open that page. "}
+          />
         </p>
         <Link
           className={buttonVariants({
@@ -19,7 +24,7 @@ export default function ForbiddenPage() {
           })}
           href="/"
         >
-          Return home
+          <Text value={"Return home "} />
         </Link>
       </section>
     </main>

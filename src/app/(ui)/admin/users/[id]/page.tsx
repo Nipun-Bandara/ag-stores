@@ -1,3 +1,5 @@
+import { getServerText } from "@/lib/i18n/server";
+import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
 
 import Link from "next/link";
@@ -9,14 +11,14 @@ import { requireRole } from "@/lib/auth/server";
 import { AdminUserError, getAdminUser } from "@/services/admin-user.service";
 import { adminUserIdSchema } from "@/validations/admin-user";
 import { Card } from "@/components/ui/card";
+import { getCurrentLocale } from "@/lib/i18n/server";
+import { formatLocaleDate } from "@/lib/i18n/text";
+import { ROLE_LABELS } from "@/lib/navigation";
 
-export const metadata: Metadata = { title: "User details | AG Stores" };
-
-const dateFormatter = new Intl.DateTimeFormat("en-LK", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "Asia/Colombo",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return { title: `${t("User details")} | AG Stores` };
+}
 
 export default async function AdminUserDetailPage({
   params,
@@ -35,15 +37,18 @@ export default async function AdminUserDetailPage({
     }
     throw error;
   });
+  const locale = await getCurrentLocale();
 
   return (
     <section className="min-w-0 w-full">
       <Link href="/admin/users" className="text-sm font-medium underline">
-        ← Back to users
+        <Text value={"← Back to users "} />
       </Link>
       <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground">Account details</p>
+          <p className="text-sm text-muted-foreground">
+            <Text value={"Account details"} />
+          </p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight">
             {user.name}
           </h1>
@@ -60,12 +65,23 @@ export default async function AdminUserDetailPage({
 
       <div className="mt-8 grid gap-6 md:grid-cols-2">
         <Card as="section" className="gap-0 p-5">
-          <h2 className="text-lg font-semibold">Identity and access</h2>
+          <h2 className="text-lg font-semibold">
+            <Text value={"Identity and access"} />
+          </h2>
           <dl className="mt-4 space-y-3 text-sm">
             <Detail label="Email" value={user.email ?? "Not provided"} />
             <Detail label="Phone" value={user.phone ?? "Not provided"} />
-            <Detail label="Role" value={user.role.replaceAll("_", " ")} />
-            <Detail label="Status" value={user.status} />
+            <Detail label="Role" value={ROLE_LABELS[user.role]} />
+            <Detail
+              label="Status"
+              value={
+                {
+                  ACTIVE: "Active",
+                  INACTIVE: "Inactive",
+                  SUSPENDED: "Suspended",
+                }[user.status]
+              }
+            />
             <Detail
               label="Preferred language"
               value={user.preferredLanguage === "SI" ? "Sinhala" : "English"}
@@ -74,15 +90,17 @@ export default async function AdminUserDetailPage({
         </Card>
 
         <Card as="section" className="gap-0 p-5">
-          <h2 className="text-lg font-semibold">Account activity</h2>
+          <h2 className="text-lg font-semibold">
+            <Text value={"Account activity"} />
+          </h2>
           <dl className="mt-4 space-y-3 text-sm">
             <Detail
               label="Created"
-              value={dateFormatter.format(new Date(user.createdAt))}
+              value={formatLocaleDate(locale, user.createdAt)}
             />
             <Detail
               label="Last updated"
-              value={dateFormatter.format(new Date(user.updatedAt))}
+              value={formatLocaleDate(locale, user.updatedAt)}
             />
             <Detail
               label="Saved addresses"
@@ -102,15 +120,20 @@ export default async function AdminUserDetailPage({
 
       {user.assignedShop || user.ownedShops.length ? (
         <Card as="section" className="gap-0 mt-6 p-5">
-          <h2 className="text-lg font-semibold">Shop relationships</h2>
+          <h2 className="text-lg font-semibold">
+            <Text value={"Shop relationships"} />
+          </h2>
           {user.assignedShop ? (
             <p className="mt-3 text-sm">
-              Assigned shop: <strong>{user.assignedShop.name}</strong>
+              <Text value={"Assigned shop: "} />
+              <strong>{user.assignedShop.name}</strong>
             </p>
           ) : null}
           {user.ownedShops.length ? (
             <div className="mt-3 text-sm">
-              <p className="text-muted-foreground">Owned shops</p>
+              <p className="text-muted-foreground">
+                <Text value={"Owned shops"} />
+              </p>
               <ul className="mt-1 list-inside list-disc">
                 {user.ownedShops.map((shop) => (
                   <li key={shop.id}>{shop.name}</li>
@@ -127,8 +150,12 @@ export default async function AdminUserDetailPage({
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 font-medium">{value}</dd>
+      <dt className="text-muted-foreground">
+        <Text value={label} />
+      </dt>
+      <dd className="mt-0.5 font-medium">
+        <Text value={value} />
+      </dd>
     </div>
   );
 }

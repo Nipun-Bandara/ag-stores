@@ -28,6 +28,7 @@ export interface ProductView {
   shopName: string;
   categoryId: string;
   categoryName: string;
+  categoryNameSi: string | null;
   categoryStatus: "ACTIVE" | "INACTIVE";
   nameEn: string;
   nameSi: string | null;
@@ -82,6 +83,7 @@ function toProductView(product: ProductRecord): ProductView {
     shopName: product.shop.name,
     categoryId: product.categoryId,
     categoryName: product.category.nameEn,
+    categoryNameSi: product.category.nameSi,
     categoryStatus: product.category.status,
     nameEn: product.nameEn,
     nameSi: product.nameSi,

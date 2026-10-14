@@ -1,4 +1,5 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -10,7 +11,7 @@ import {
   isRole,
   navigationPath,
 } from "@/lib/navigation";
-import { isLocale, routePath } from "@/lib/i18n/config";
+import { isLocale, localeFromPreference, routePath } from "@/lib/i18n/config";
 import type { AuthenticatedUser } from "@/types/auth";
 import type { RegistrationInput } from "@/validations/auth";
 
@@ -32,6 +33,7 @@ interface AuthResponse {
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const t = useText();
   const [user, setUser] = useState<AuthenticatedUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const sessionVersion = useRef(0);
@@ -76,7 +78,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const payload = (await response.json()) as AuthResponse;
     if (!response.ok || !payload.data || !isRole(payload.data.role)) {
       throw new Error(
-        payload.error?.message ?? "Unable to sign in. Please try again.",
+        t(payload.error?.message ?? "Unable to sign in. Please try again."),
       );
     }
     sessionVersion.current += 1;
@@ -89,13 +91,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       ? requestedLocale
       : isLocale(currentLocale)
         ? currentLocale
-        : "en";
+        : localeFromPreference(payload.data.preferredLanguage);
     const localized = isLocale(requestedLocale) || isLocale(currentLocale);
     const target =
       requested &&
       navigationPath(requested.split("?")[0]!) !== "/dashboard" &&
       canAccessWorkspace(payload.data.role, requested.split("?")[0]!)
-        ? requested
+        ? routePath(navigationPath(requested), locale, localized)
         : routePath(DASHBOARD_BY_ROLE[payload.data.role], locale, localized);
     router.replace(target);
     router.refresh();
@@ -107,7 +109,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     startSession("/api/auth/register", payload, returnTo);
   const logout = async () => {
     const response = await fetch("/api/auth/logout", { method: "POST" });
-    if (!response.ok) throw new Error("Unable to sign out. Please try again.");
+    if (!response.ok)
+      throw new Error(t("Unable to sign out. Please try again."));
     sessionVersion.current += 1;
     setUser(null);
     setIsLoading(false);

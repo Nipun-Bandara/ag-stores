@@ -1,4 +1,6 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
 
@@ -19,6 +21,7 @@ interface ApiPayload {
 }
 
 export function ProfileForm({ user }: { user: AuthenticatedUser }) {
+  const t = useText();
   const router = useRouter();
   const [error, setError] = useState<string>();
   const [message, setMessage] = useState<string>();
@@ -45,12 +48,12 @@ export function ProfileForm({ user }: { user: AuthenticatedUser }) {
       const payload = response
         ? ((await response.json().catch(() => ({}))) as ApiPayload)
         : {};
-      setError(payload.error?.message ?? "Unable to update your profile.");
+      setError(t(payload.error?.message ?? "Unable to update your profile."));
       setPending(false);
       return;
     }
 
-    setMessage("Profile updated.");
+    setMessage(t("Profile updated."));
     setPending(false);
     router.refresh();
   }
@@ -71,7 +74,7 @@ export function ProfileForm({ user }: { user: AuthenticatedUser }) {
         id="email"
         label="Email"
         type="email"
-        value={user.email ?? "Not provided"}
+        value={user.email ?? t("Not provided")}
         disabled
         hint="Email changes are not available from this page."
       />
@@ -90,7 +93,9 @@ export function ProfileForm({ user }: { user: AuthenticatedUser }) {
         label="Preferred language"
         defaultValue={user.preferredLanguage}
       >
-        <NativeSelectOption value="EN">English</NativeSelectOption>
+        <NativeSelectOption value="EN">
+          <Text value={t("English")} />
+        </NativeSelectOption>
         <NativeSelectOption value="SI">සිංහල</NativeSelectOption>
       </SelectField>
       {error ? <FormError>{error}</FormError> : null}
@@ -100,7 +105,7 @@ export function ProfileForm({ user }: { user: AuthenticatedUser }) {
         </Alert>
       ) : null}
       <Button type="submit" disabled={pending} className="h-10">
-        {pending ? "Saving…" : "Save profile"}
+        {pending ? t("Saving…") : t("Save profile")}
       </Button>
     </form>
   );

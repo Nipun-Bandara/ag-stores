@@ -36,6 +36,7 @@ export interface BestSellingProductMetric {
 export interface ReportLowStockProduct {
   productId: string;
   nameEn: string;
+  nameSi: string | null;
   shopName: string;
   stockQuantity: number;
   lowStockThreshold: number;
@@ -178,6 +179,7 @@ export class PrismaOwnerReportRepository implements OwnerReportRepository {
         select: {
           id: true,
           nameEn: true,
+          nameSi: true,
           stockQuantity: true,
           lowStockThreshold: true,
           shop: { select: { name: true } },

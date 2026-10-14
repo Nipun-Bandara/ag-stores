@@ -1,3 +1,5 @@
+import { getServerText } from "@/lib/i18n/server";
+import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
 
 import Link from "next/link";
@@ -26,7 +28,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
-export const metadata: Metadata = { title: "Users | AG Stores" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return { title: `${t("Users")} | AG Stores` };
+}
 
 const roleLabels: Record<UserRole, string> = {
   CUSTOMER: "Customer",
@@ -54,6 +59,7 @@ export default async function AdminUsersPage({
     status?: string | string[];
   }>;
 }) {
+  const t = await getServerText();
   const administrator = await requireRole(UserRole.ADMIN, "/admin/users");
   const query = await searchParams;
   const parsed = adminUserFiltersSchema.safeParse({
@@ -66,58 +72,68 @@ export default async function AdminUsersPage({
 
   return (
     <section className="min-w-0 w-full">
-      <h1 className="text-3xl font-semibold tracking-tight">User management</h1>
+      <h1 className="text-3xl font-semibold tracking-tight">
+        <Text value={"User management"} />
+      </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Search accounts, review access roles, and manage account status.
+        <Text
+          value={
+            "Search accounts, review access roles, and manage account status. "
+          }
+        />
       </p>
 
       <Card className="gap-0 mt-8 p-5">
         <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_auto_auto]">
           <Label className="text-sm font-medium" htmlFor="search">
-            Search users
+            <Text value={"Search users "} />
             <Input
               id="search"
               name="search"
               defaultValue={filters.search ?? ""}
-              placeholder="Name, email, or phone"
+              placeholder={t("Name, email, or phone")}
               maxLength={150}
               className="mt-1.5 h-10 w-full"
             />
           </Label>
           <Label className="text-sm font-medium" htmlFor="role">
-            Role
+            <Text value={"Role "} />
             <NativeSelect
               id="role"
               name="role"
               defaultValue={filters.role ?? ""}
               className="mt-1.5 h-10 w-full"
             >
-              <NativeSelectOption value="">All roles</NativeSelectOption>
+              <NativeSelectOption value="">
+                <Text value={"All roles"} />
+              </NativeSelectOption>
               {Object.values(UserRole).map((role) => (
                 <NativeSelectOption key={role} value={role}>
-                  {roleLabels[role]}
+                  <Text value={roleLabels[role]} />
                 </NativeSelectOption>
               ))}
             </NativeSelect>
           </Label>
           <Label className="text-sm font-medium" htmlFor="status">
-            Status
+            <Text value={"Status "} />
             <NativeSelect
               id="status"
               name="status"
               defaultValue={filters.status ?? ""}
               className="mt-1.5 h-10 w-full"
             >
-              <NativeSelectOption value="">All statuses</NativeSelectOption>
+              <NativeSelectOption value="">
+                <Text value={"All statuses"} />
+              </NativeSelectOption>
               {Object.values(UserStatus).map((status) => (
                 <NativeSelectOption key={status} value={status}>
-                  {statusLabels[status]}
+                  <Text value={statusLabels[status]} />
                 </NativeSelectOption>
               ))}
             </NativeSelect>
           </Label>
           <Button type="submit" className="h-10 self-end">
-            Apply filters
+            <Text value={"Apply filters "} />
           </Button>
           <Link
             href="/admin/users"
@@ -126,23 +142,26 @@ export default async function AdminUsersPage({
               className: "inline-flex h-10 items-center self-end",
             })}
           >
-            Clear
+            <Text value={"Clear "} />
           </Link>
         </form>
       </Card>
       {!parsed.success ? (
         <Alert variant="destructive" role="alert" className="mt-3">
-          One or more filters were invalid and have been cleared.
+          <Text
+            value={"One or more filters were invalid and have been cleared. "}
+          />
         </Alert>
       ) : null}
 
       <section className="mt-8" aria-labelledby="users-heading">
         <div className="flex items-center justify-between gap-4">
           <h2 id="users-heading" className="text-lg font-semibold">
-            Users
+            <Text value={"Users "} />
           </h2>
           <p className="text-sm text-muted-foreground">
-            {users.length} {users.length === 1 ? "account" : "accounts"}
+            {users.length}{" "}
+            <Text value={users.length === 1 ? "account" : "accounts"} />
           </p>
         </div>
         {users.length ? (
@@ -150,16 +169,20 @@ export default async function AdminUsersPage({
             <Table className="w-full min-w-[760px] text-left text-sm">
               <TableHeader className="border-b bg-muted/50 text-muted-foreground">
                 <TableRow>
-                  <TableHead className="px-4 py-3 font-medium">User</TableHead>
                   <TableHead className="px-4 py-3 font-medium">
-                    Contact
-                  </TableHead>
-                  <TableHead className="px-4 py-3 font-medium">Role</TableHead>
-                  <TableHead className="px-4 py-3 font-medium">
-                    Status
+                    <Text value={"User"} />
                   </TableHead>
                   <TableHead className="px-4 py-3 font-medium">
-                    Actions
+                    <Text value={"Contact "} />
+                  </TableHead>
+                  <TableHead className="px-4 py-3 font-medium">
+                    <Text value={"Role"} />
+                  </TableHead>
+                  <TableHead className="px-4 py-3 font-medium">
+                    <Text value={"Status "} />
+                  </TableHead>
+                  <TableHead className="px-4 py-3 font-medium">
+                    <Text value={"Actions "} />
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -175,17 +198,19 @@ export default async function AdminUsersPage({
                       </Link>
                     </TableCell>
                     <TableCell className="px-4 py-4 text-muted-foreground">
-                      {user.email ?? user.phone ?? "Not provided"}
+                      {user.email ?? user.phone ?? (
+                        <Text value="Not provided" />
+                      )}
                     </TableCell>
                     <TableCell className="px-4 py-4">
-                      {roleLabels[user.role]}
+                      <Text value={roleLabels[user.role]} />
                     </TableCell>
                     <TableCell className="px-4 py-4">
                       <Badge
                         variant="secondary"
                         data-testid={`user-status-${user.id}`}
                       >
-                        {statusLabels[user.status]}
+                        <Text value={statusLabels[user.status]} />
                       </Badge>
                     </TableCell>
                     <TableCell className="px-4 py-4">
@@ -205,7 +230,7 @@ export default async function AdminUsersPage({
             as="p"
             className="gap-0 mt-4 border-dashed p-5 text-sm text-muted-foreground border ring-0"
           >
-            No users match these filters.
+            <Text value={"No users match these filters. "} />
           </Card>
         )}
       </section>

@@ -13,13 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export function LanguageSwitcher({
-  locale,
-  label,
-}: {
-  locale: Locale;
-  label: string;
-}) {
+export function useLocaleChange(locale: Locale) {
   const pathname = usePathname();
   const [pending, setPending] = useState(false);
 
@@ -37,6 +31,18 @@ export function LanguageSwitcher({
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign(`${localizedPath(pathname, nextLocale)}${query}`);
   }
+
+  return { pending, changeLocale };
+}
+
+export function LanguageSwitcher({
+  locale,
+  label,
+}: {
+  locale: Locale;
+  label: string;
+}) {
+  const { pending, changeLocale } = useLocaleChange(locale);
 
   return (
     <Select
