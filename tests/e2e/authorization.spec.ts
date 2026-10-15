@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 const password = "ChangeMe123!";
 
 async function signIn(page: Page, email: string, expectedPath: string) {
-  await page.goto("/login");
+  await page.goto("/auth");
   await page.getByLabel("Email or phone").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
@@ -17,7 +17,7 @@ test.describe.serial("role-based page authorization", () => {
     for (const path of ["/account", "/owner", "/delivery", "/admin"]) {
       await page.goto(path);
       await expect(page).toHaveURL(
-        new RegExp(`/login\\?returnTo=${encodeURIComponent(path)}$`),
+        new RegExp(`/auth\\?returnTo=${encodeURIComponent(path)}$`),
       );
     }
   });

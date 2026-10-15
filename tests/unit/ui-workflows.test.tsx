@@ -72,12 +72,10 @@ describe("shared UI form workflows", () => {
   });
 
   it("submits a checked default-address checkbox as the existing API boolean", async () => {
-    const fetcher = vi
-      .fn()
-      .mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: { message: "Test validation response" } }),
-      });
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: { message: "Test validation response" } }),
+    });
     vi.stubGlobal("fetch", fetcher);
     render(<AddressManager initialAddresses={[]} />);
     fireEvent.change(screen.getByLabelText("Label"), {
@@ -102,6 +100,43 @@ describe("shared UI form workflows", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Test validation response",
     );
+  });
+
+  it("keeps an address default when editing its details", async () => {
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          id: "home",
+          label: "Home",
+          address: "12 Main Road",
+          latitude: "6.9",
+          longitude: "79.8",
+          isDefault: true,
+        },
+      }),
+    });
+    vi.stubGlobal("fetch", fetcher);
+    render(
+      <AddressManager
+        initialAddresses={[
+          {
+            id: "home",
+            label: "Home",
+            address: "12 Main Road",
+            latitude: "6.9",
+            longitude: "79.8",
+            isDefault: true,
+          },
+        ]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Edit Home" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(fetcher).toHaveBeenCalled());
+    expect(JSON.parse(fetcher.mock.calls[0]![1].body)).toMatchObject({
+      isDefault: true,
+    });
   });
 
   it("preserves profile values and the selected language on submission", async () => {
@@ -135,18 +170,16 @@ describe("shared UI form workflows", () => {
   });
 
   it("submits only the selected checkout address and retains delivery notes", async () => {
-    const fetcher = vi
-      .fn()
-      .mockImplementation(async (url: string) =>
-        url.endsWith("validate")
-          ? {
-              ok: true,
-              json: async () => ({
-                data: { subtotal: "200.00", deliveryFee: "50.00" },
-              }),
-            }
-          : { ok: true, json: async () => ({ data: { id: "order-1" } }) },
-      );
+    const fetcher = vi.fn().mockImplementation(async (url: string) =>
+      url.endsWith("validate")
+        ? {
+            ok: true,
+            json: async () => ({
+              data: { subtotal: "200.00", deliveryFee: "50.00" },
+            }),
+          }
+        : { ok: true, json: async () => ({ data: { id: "order-1" } }) },
+    );
     vi.stubGlobal("fetch", fetcher);
     render(
       <CheckoutView
@@ -194,17 +227,15 @@ describe("shared UI form workflows", () => {
   });
 
   it("updates delivery batch selection through the shared checkbox", async () => {
-    const fetcher = vi
-      .fn()
-      .mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          data: {
-            id: "batch-1",
-            orders: [{ orderId: "order-1", sequence: 1 }],
-          },
-        }),
-      });
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          id: "batch-1",
+          orders: [{ orderId: "order-1", sequence: 1 }],
+        },
+      }),
+    });
     vi.stubGlobal("fetch", fetcher);
     render(
       <AvailableOrderBatchSelector

@@ -51,7 +51,8 @@ function AddressForm({ address, onCancel, onSaved }: AddressFormProps) {
           address: form.get("address"),
           latitude: form.get("latitude"),
           longitude: form.get("longitude"),
-          isDefault: form.get("isDefault") === "on",
+          isDefault:
+            Boolean(address?.isDefault) || form.get("isDefault") === "on",
         }),
       },
     ).catch(() => null);
@@ -125,14 +126,13 @@ function AddressForm({ address, onCancel, onSaved }: AddressFormProps) {
         <Label className="flex items-center gap-2 text-sm font-medium">
           <Checkbox
             name="isDefault"
-
             defaultChecked={address?.isDefault ?? false}
             disabled={address?.isDefault ?? false}
           />
           <Text value={"Use as default address "} />
         </Label>
         {error ? <FormError>{error}</FormError> : null}
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Button type="submit" disabled={pending} className="h-10">
             {pending
               ? t("Saving…")
@@ -264,15 +264,17 @@ export function AddressManager({
           <div className="mt-4 space-y-4">
             {addresses.map((item) => (
               <Card as="article" key={item.id} className="gap-0 p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <h3 className="font-semibold">{item.label}</h3>
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <h3 className="min-w-0 break-words font-semibold">
+                    {item.label}
+                  </h3>
                   {item.isDefault ? (
                     <Badge variant="secondary">
                       <Text value={t("Default")} />
                     </Badge>
                   ) : null}
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="mt-2 break-words text-sm text-muted-foreground">
                   {item.address}
                 </p>
                 <p className="mt-2 text-xs text-muted-foreground">
@@ -282,6 +284,7 @@ export function AddressManager({
                   <Button
                     variant="ghost"
                     type="button"
+                    className="h-auto max-w-full whitespace-normal break-words text-left"
                     onClick={() => setEditingId(item.id)}
                   >
                     <Text value={"Edit "} />
@@ -291,6 +294,7 @@ export function AddressManager({
                     <Button
                       variant="ghost"
                       type="button"
+                      className="h-auto max-w-full whitespace-normal break-words text-left"
                       disabled={pendingId === item.id}
                       onClick={() => setDefault(item.id)}
                     >
@@ -301,8 +305,8 @@ export function AddressManager({
                   <Button
                     variant="ghost"
                     type="button"
+                    className="h-auto max-w-full whitespace-normal break-words text-left"
                     disabled={pendingId === item.id}
-
                     onClick={() => deleteAddress(item.id)}
                   >
                     <Text value={"Delete "} />

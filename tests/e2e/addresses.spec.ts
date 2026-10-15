@@ -5,11 +5,14 @@ test("customer creates, edits, defaults, and deletes delivery addresses", async 
 }) => {
   const email = `address-e2e-${Date.now()}@example.test`;
 
-  await page.goto("/register");
+  await page.goto("/auth?mode=register");
   await page.getByLabel("Name").fill("Address E2E Customer");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill("SecurePassword123!");
-  await page.getByRole("button", { name: "Create customer account" }).click();
+  await page
+    .locator("form:visible")
+    .getByRole("button", { name: "Register", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/account$/);
 
   await page.getByRole("link", { name: "Addresses", exact: true }).click();

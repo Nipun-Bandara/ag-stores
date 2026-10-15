@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("owner dashboard displays useful shop summary cards", async ({ page }) => {
-  await page.goto("/login");
+  await page.goto("/auth");
   await page.getByLabel("Email or phone").fill("owner@agstores.local");
   await page.getByLabel("Password").fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();

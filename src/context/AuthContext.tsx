@@ -5,6 +5,7 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { safeAuthReturnTo } from "@/features/auth/return-to";
+import { cartStore } from "@/features/cart/cart-store";
 import {
   DASHBOARD_BY_ROLE,
   canAccessWorkspace,
@@ -50,14 +51,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .then(async (response) => {
         const payload = (await response.json()) as AuthResponse;
         if (!controller.signal.aborted && version === sessionVersion.current) {
-          setUser(
+          const sessionUser =
             response.ok && payload.data && isRole(payload.data.role)
               ? payload.data
-              : null,
-          );
+              : null;
+          cartStore.setOwner(sessionUser?.id ?? null);
+          setUser(sessionUser);
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!controller.signal.aborted && version === sessionVersion.current) {
+          cartStore.setOwner(null);
+          setUser(null);
+        }
+      })
       .finally(() => {
         if (!controller.signal.aborted && version === sessionVersion.current)
           setIsLoading(false);
@@ -82,6 +89,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       );
     }
     sessionVersion.current += 1;
+    cartStore.setOwner(payload.data.id);
     setUser(payload.data);
     setIsLoading(false);
     const requested = safeAuthReturnTo(returnTo);
@@ -112,6 +120,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!response.ok)
       throw new Error(t("Unable to sign out. Please try again."));
     sessionVersion.current += 1;
+    cartStore.setOwner(null);
     setUser(null);
     setIsLoading(false);
     const locale = pathname.split("/")[1];

@@ -238,7 +238,11 @@ export function isNavItemActive(
   exact = false,
 ): boolean {
   const path = navigationPath(pathname);
-  return path === href || (!exact && path.startsWith(`${href}/`));
+  if (path === href || (!exact && path.startsWith(`${href}/`))) return true;
+  return (
+    href === "/products" &&
+    (path === "/categories" || path.startsWith("/categories/"))
+  );
 }
 export function getNavItemsForRole(
   role: Role | string | null | undefined,
@@ -265,7 +269,14 @@ export function canAccessWorkspace(
   const path = navigationPath(pathname);
   if (["/dashboard", "/profile", "/notifications"].includes(path)) return true;
   const roots: Record<Role, string[]> = {
-    CUSTOMER: ["/account", "/orders", "/cart", "/checkout"],
+    CUSTOMER: [
+      "/account",
+      "/orders",
+      "/cart",
+      "/checkout",
+      "/products",
+      "/categories",
+    ],
     SHOP_OWNER: ["/owner"],
     ADMIN: ["/admin"],
     DELIVERY_PERSON: ["/delivery"],

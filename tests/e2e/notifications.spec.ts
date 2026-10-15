@@ -93,7 +93,7 @@ test.describe.serial("notification center", () => {
   test("customer views unread notifications and marks them read", async ({
     page,
   }) => {
-    await page.goto("/login");
+    await page.goto("/auth");
     await page.getByLabel("Email or phone").fill(email);
     await page.getByLabel("Password").fill("ChangeMe123!");
     await page.getByRole("button", { name: "Sign in" }).click();
@@ -123,6 +123,6 @@ test.describe.serial("notification center", () => {
   test("anonymous user is redirected from notifications", async ({ page }) => {
     await page.context().clearCookies();
     await page.goto("/notifications");
-    await expect(page).toHaveURL(/\/login\?returnTo=%2Fnotifications$/);
+    await expect(page).toHaveURL(/\/auth\?returnTo=%2Fnotifications$/);
   });
 });

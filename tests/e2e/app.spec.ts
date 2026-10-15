@@ -6,7 +6,7 @@ test("application loads successfully", async ({ page }) => {
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: "Your neighborhood market, delivered.",
+      name: "Shop locally. Follow every order.",
     }),
   ).toBeVisible();
 });

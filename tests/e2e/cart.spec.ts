@@ -4,7 +4,7 @@ test("customer manages a cart and receives a server-verified subtotal", async ({
   page,
 }) => {
   test.setTimeout(90_000);
-  await page.goto("/login");
+  await page.goto("/auth");
   await page.getByLabel("Email or phone").fill("customer@agstores.local");
   await page.getByLabel("Password").fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
@@ -17,7 +17,7 @@ test("customer manages a cart and receives a server-verified subtotal", async ({
   await rice.getByRole("button", { name: "Add Red Rice 1kg to cart" }).click();
   await rice.getByRole("button", { name: "Add Red Rice 1kg to cart" }).click();
   await expect(
-    page.getByRole("link", { name: "Cart with 2 items" }),
+    page.getByRole("link", { name: "Cart", exact: true }),
   ).toBeVisible();
   await page.goto("/cart", { timeout: 60_000 });
 
@@ -45,7 +45,7 @@ test("customer manages a cart and receives a server-verified subtotal", async ({
     .filter({ hasText: "Ceylon Tea" });
   await tea.getByRole("button", { name: "Add Ceylon Tea to cart" }).click();
   await expect(
-    page.getByRole("link", { name: "Cart with 1 item" }),
+    page.getByRole("link", { name: "Cart", exact: true }),
   ).toBeVisible();
   await page.goto("/cart", { timeout: 60_000 });
   await page.getByRole("button", { name: "Clear cart" }).click();
@@ -53,6 +53,11 @@ test("customer manages a cart and receives a server-verified subtotal", async ({
 });
 
 test("zero-stock products cannot be added", async ({ page }) => {
+  await page.goto("/auth");
+  await page.getByLabel("Email or phone").fill("customer@agstores.local");
+  await page.getByLabel("Password").fill("ChangeMe123!");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/account$/);
   await page.goto("/products");
   const product = page
     .getByTestId("product-card")

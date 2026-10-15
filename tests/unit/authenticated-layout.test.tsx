@@ -7,10 +7,11 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ImgHTMLAttributes } from "react";
-import { existsSync } from "node:fs";
+import { globSync } from "node:fs";
 import { AuthenticatedShell } from "@/features/auth/components/authenticated-shell";
 import {
   DASHBOARD_BY_ROLE,
+  canAccessWorkspace,
   getNavItemsForRole,
   getNavGroupsForRole,
   isNavItemActive,
@@ -160,13 +161,30 @@ describe("authenticated layout", () => {
     expect(screen.getByText("Private content")).toBeVisible();
   });
   it("links only to existing pages", () => {
+    const pagePaths = new Set(
+      globSync("src/app/**/page.tsx").map((file) =>
+        file
+          .replace(/^src\/app/, "")
+          .replace(/\/\([^/]+\)/g, "")
+          .replace(/\/page\.tsx$/, ""),
+      ),
+    );
     for (const { href } of NAV_ITEMS) {
-      expect(
-        existsSync(`src/app/(ui)${href}/page.tsx`) ||
-          existsSync(`src/app${href}/page.tsx`),
-        href,
-      ).toBe(true);
+      expect(pagePaths.has(href), href).toBe(true);
     }
     expect(getNavItemsForRole("FARMER")).toEqual([]);
+  });
+  it("limits catalog pages to the customer workspace", () => {
+    for (const path of [
+      "/products",
+      "/products/example",
+      "/categories/example",
+    ]) {
+      expect(canAccessWorkspace("CUSTOMER", path)).toBe(true);
+      expect(canAccessWorkspace("SHOP_OWNER", path)).toBe(false);
+      expect(canAccessWorkspace("ADMIN", path)).toBe(false);
+      expect(canAccessWorkspace("DELIVERY_PERSON", path)).toBe(false);
+    }
+    expect(isNavItemActive("/si/categories/example", "/products")).toBe(true);
   });
 });

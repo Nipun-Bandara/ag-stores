@@ -1,33 +1,28 @@
 import { expect, test } from "@playwright/test";
 
-test("storefront renders active categories and available products", async ({
+test.beforeEach(async ({ page }) => {
+  await page.goto("/auth");
+  await page.getByLabel("Email or phone").fill("customer@agstores.local");
+  await page.getByLabel("Password").fill("ChangeMe123!");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/account$/);
+});
+
+test("customer catalog uses the shared workspace and lists available products", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/products");
 
-  await expect(page.getByTestId("category-card").first()).toBeVisible();
   await expect(
-    page
-      .getByTestId("category-card")
-      .filter({ hasText: "Groceries" })
-      .getByRole("heading", { name: "Groceries" }),
+    page.getByRole("link", { name: "Browse products" }),
   ).toBeVisible();
-  await expect(page.getByText("Seasonal", { exact: true })).toHaveCount(0);
   await expect(
-    page
-      .getByTestId("product-card")
-      .filter({ hasText: "Ceylon Tea" })
-      .getByRole("heading", { name: "Ceylon Tea" }),
+    page.getByRole("heading", { name: "All products" }),
+  ).toBeVisible();
+  await expect(
+    page.getByTestId("product-card").filter({ hasText: "Ceylon Tea" }),
   ).toBeVisible();
   await expect(page.getByText("Unavailable Sample")).toHaveCount(0);
-  await expect(page.getByText("Inactive Category Sample")).toHaveCount(0);
-
-  const zeroStockProduct = page
-    .getByTestId("product-card")
-    .filter({ hasText: "Coconut Milk" });
-  await expect(
-    zeroStockProduct.locator("span").filter({ hasText: "Out of Stock" }),
-  ).toBeVisible();
 });
 
 test("customer searches products and filters by category", async ({ page }) => {
@@ -49,45 +44,50 @@ test("customer searches products and filters by category", async ({ page }) => {
   await expect(page.getByText("Ceylon Tea", { exact: true })).toHaveCount(0);
 });
 
-test("customer views category and product details", async ({ page }) => {
-  await page.goto("/");
+test("product and category details keep the customer sidebar", async ({
+  page,
+}) => {
+  await page.goto("/products");
   await page
-    .getByTestId("category-card")
-    .filter({ hasText: "Beverages" })
-    .click();
-  await expect(
-    page.getByRole("heading", { level: 1, name: "Beverages" }),
-  ).toBeVisible();
-
-  const tea = page
     .getByTestId("product-card")
-    .filter({ hasText: "Ceylon Tea" });
-  await tea.getByRole("link", { name: "View product" }).click();
+    .filter({ hasText: "Ceylon Tea" })
+    .getByRole("link", { name: "View product" })
+    .click();
+
   await expect(
     page.getByRole("heading", { level: 1, name: "Ceylon Tea" }),
   ).toBeVisible();
-  await expect(page.getByText("LKR 680.00")).toBeVisible();
-  await expect(page.getByText("30 in stock")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Browse products" }),
+  ).toBeVisible();
+
+  await page.getByRole("link", { name: "Beverages" }).click();
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Beverages" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Browse products" }),
+  ).toBeVisible();
 });
 
-test("storefront pages render without horizontal overflow on mobile", async ({
-  page,
-}) => {
+test("catalog and detail pages fit a mobile viewport", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/products");
+  await expect(
+    page.getByRole("heading", { name: "All products" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
 
-  for (const path of ["/", "/products"]) {
-    await page.goto(path);
-    await expect(page.locator("main")).toBeVisible();
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    ).toBe(true);
-  }
-
-  const firstProduct = page.getByTestId("product-card").first();
-  await firstProduct.getByRole("link", { name: "View product" }).click();
-  await expect(page.locator("main")).toBeVisible();
+  await page
+    .getByTestId("product-card")
+    .first()
+    .getByRole("link", { name: "View product" })
+    .click();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,

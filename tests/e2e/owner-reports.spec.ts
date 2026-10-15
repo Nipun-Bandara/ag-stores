@@ -31,7 +31,7 @@ async function signIn(
   secret: string,
   destination: string,
 ) {
-  await page.goto("/login");
+  await page.goto("/auth");
   await page.getByLabel("Email or phone").fill(identifier);
   await page.getByLabel("Password").fill(secret);
   await page.getByRole("button", { name: "Sign in" }).click();

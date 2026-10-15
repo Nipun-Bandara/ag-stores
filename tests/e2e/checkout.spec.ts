@@ -3,11 +3,14 @@ import { expect, test } from "@playwright/test";
 test("customer places a Cash on Delivery order", async ({ page }) => {
   const email = `checkout-e2e-${Date.now()}@example.test`;
 
-  await page.goto("/register");
+  await page.goto("/auth?mode=register");
   await page.getByLabel("Name").fill("Checkout E2E Customer");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill("SecurePassword123!");
-  await page.getByRole("button", { name: "Create customer account" }).click();
+  await page
+    .locator("form:visible")
+    .getByRole("button", { name: "Register", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/account$/);
 
   await page.goto("/account/addresses");
@@ -50,12 +53,11 @@ test("customer places a Cash on Delivery order", async ({ page }) => {
   await expect(page.getByText("Cash on Delivery")).toBeVisible();
   await expect(page.getByTestId("confirmed-total")).toHaveText("LKR 670.00");
   await expect(page.getByText("Please call at the gate")).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Cart with 0 items" }),
-  ).toBeVisible();
+  await page.goto("/cart");
+  await expect(page.getByText("Your cart is empty")).toBeVisible();
 });
 
 test("anonymous customer cannot open checkout", async ({ page }) => {
   await page.goto("/checkout");
-  await expect(page).toHaveURL(/\/login\?returnTo=%2Fcheckout$/);
+  await expect(page).toHaveURL(/\/auth\?returnTo=%2Fcheckout$/);
 });

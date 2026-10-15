@@ -7,7 +7,7 @@ test("shop owner creates, views, edits, stocks, and disables a product", async (
   const originalName = `E2E Product ${suffix}`;
   const updatedName = `Updated E2E Product ${suffix}`;
 
-  await page.goto("/login");
+  await page.goto("/auth");
   await page.getByLabel("Email or phone").fill("owner@agstores.local");
   await page.getByLabel("Password").fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();

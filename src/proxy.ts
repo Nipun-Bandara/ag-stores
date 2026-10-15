@@ -17,6 +17,8 @@ const protectedRoots = [
   "/orders",
   "/cart",
   "/checkout",
+  "/products",
+  "/categories",
   "/owner",
   "/delivery",
   "/admin",
@@ -46,7 +48,10 @@ export function proxy(request: NextRequest) {
       routeLocale ? `/${routeLocale}/auth` : "/auth",
       request.url,
     );
-    loginUrl.searchParams.set("returnTo", request.nextUrl.pathname);
+    loginUrl.searchParams.set(
+      "returnTo",
+      `${request.nextUrl.pathname}${request.nextUrl.search}`,
+    );
     return NextResponse.redirect(loginUrl);
   }
 

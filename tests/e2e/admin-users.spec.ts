@@ -22,7 +22,7 @@ const email = `admin-ui-${suffix}@example.test`;
 let userId = "";
 
 async function signIn(page: Page, emailAddress: string, destination: string) {
-  await page.goto("/login");
+  await page.goto("/auth");
   await page.getByLabel("Email or phone").fill(emailAddress);
   await page.getByLabel("Password").fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();

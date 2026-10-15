@@ -123,7 +123,7 @@ function CategoryForm({
           maxLength={120}
         />
         {error ? <FormError>{error}</FormError> : null}
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Button
             type="submit"
             disabled={pending || shops.length === 0}
@@ -232,9 +232,9 @@ export function CategoryManager({
           <div className="mt-4 space-y-4">
             {categories.map((category) => (
               <Card as="article" key={category.id} className="gap-0 p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="font-semibold">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <h3 className="break-words font-semibold">
                       <BilingualText
                         english={category.nameEn}
                         sinhala={category.nameSi}
@@ -251,10 +251,11 @@ export function CategoryManager({
                     {category.status === "ACTIVE" ? t("Active") : t("Inactive")}
                   </Badge>
                 </div>
-                <div className="mt-4 flex gap-4 text-sm font-medium">
+                <div className="mt-4 flex flex-wrap gap-2 text-sm font-medium">
                   <Button
                     variant="ghost"
                     type="button"
+                    className="h-auto min-w-0 whitespace-normal break-words text-left"
                     onClick={() => setEditingId(category.id)}
                   >
                     <Text value={"Edit "} />
@@ -266,6 +267,7 @@ export function CategoryManager({
                   <Button
                     variant="ghost"
                     type="button"
+                    className="h-auto min-w-0 whitespace-normal break-words text-left"
                     disabled={pendingId === category.id}
                     onClick={() => changeStatus(category)}
                   >

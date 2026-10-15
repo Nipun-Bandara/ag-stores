@@ -6,7 +6,6 @@ import { useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Mail, Lock, Eye as EyeIcon, EyeOff, AlertCircle } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import {
@@ -22,7 +21,6 @@ import { describeApiError } from "@/utils/apiError";
 import { Alert } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 
 interface LoginProps {
   returnTo: string;
@@ -33,7 +31,6 @@ export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
   const t = useText();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
-  const router = useRouter();
 
   const { login } = useAuth();
 
@@ -148,7 +145,6 @@ export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
                   }
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
-                  tabIndex={-1}
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5" />
@@ -163,22 +159,6 @@ export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
                 </div>
               ) : null}
             </div>
-          </div>
-
-          <div className="flex items-center justify-between text-sm">
-            <Label className="flex items-center gap-2 cursor-pointer group">
-              <Checkbox className="w-4 h-4" />
-              <span className="text-muted-foreground group-hover:text-foreground transition-colors">
-                <Text value={"Remember me "} />
-              </span>
-            </Label>
-            <Button
-              variant="ghost"
-              type="button"
-              onClick={() => router.push("/forgot-password")}
-            >
-              <Text value={"Forgot password? "} />
-            </Button>
           </div>
 
           <Button

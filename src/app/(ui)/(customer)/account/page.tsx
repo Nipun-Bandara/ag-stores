@@ -52,7 +52,7 @@ export default async function AccountPage() {
             </dd>
           </div>
         </dl>
-        <div className="mt-6 flex gap-3 border-t pt-5 text-sm font-medium">
+        <div className="mt-6 flex flex-wrap gap-3 border-t pt-5 text-sm font-medium">
           <Link className="underline" href={href("/account/profile")}>
             {copy.account.editProfile}
           </Link>

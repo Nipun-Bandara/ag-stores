@@ -198,7 +198,6 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
                   }
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
-                  tabIndex={-1}
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5" />

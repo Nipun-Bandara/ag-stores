@@ -7,12 +7,14 @@ test.describe.serial("customer authentication", () => {
   test("registers, signs in, accesses the account, and signs out", async ({
     page,
   }) => {
-    await page.goto("/register");
+    await page.goto("/auth?mode=register");
     await page.getByLabel("Name").fill("E2E Customer");
     await page.getByLabel("Email").fill(email);
     await page.getByLabel("Password").fill(password);
-    await page.getByLabel("Preferred language").selectOption("EN");
-    await page.getByRole("button", { name: "Create customer account" }).click();
+    await page
+      .locator("form:visible")
+      .getByRole("button", { name: "Register", exact: true })
+      .click();
 
     await expect(page).toHaveURL(/\/account$/);
     await expect(
@@ -20,8 +22,11 @@ test.describe.serial("customer authentication", () => {
     ).toBeVisible();
     await expect(page.getByText(email)).toBeVisible();
 
-    await page.getByRole("button", { name: "Sign out" }).click();
-    await expect(page).toHaveURL(/\/login$/);
+    await page
+      .locator('[data-slot="sidebar-footer"] [data-slot="sidebar-menu-button"]')
+      .click();
+    await page.getByRole("menuitem", { name: "Sign out" }).click();
+    await expect(page).toHaveURL(/\/auth$/);
 
     await page.getByLabel("Email or phone").fill(email);
     await page.getByLabel("Password").fill(password);
@@ -32,8 +37,11 @@ test.describe.serial("customer authentication", () => {
       page.getByRole("heading", { name: "Your account" }),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: "Sign out" }).click();
+    await page
+      .locator('[data-slot="sidebar-footer"] [data-slot="sidebar-menu-button"]')
+      .click();
+    await page.getByRole("menuitem", { name: "Sign out" }).click();
     await page.goto("/account");
-    await expect(page).toHaveURL(/\/login\?returnTo=%2Faccount$/);
+    await expect(page).toHaveURL(/\/auth\?returnTo=%2Faccount$/);
   });
 });

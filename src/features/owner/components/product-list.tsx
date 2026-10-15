@@ -162,15 +162,15 @@ export function ProductList({
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         {products.map((product) => (
           <Card as="article" key={product.id} className="gap-0 p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="font-semibold">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h2 className="break-words font-semibold">
                   <BilingualText
                     english={product.nameEn}
                     sinhala={product.nameSi}
                   />
                 </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1 break-words text-sm text-muted-foreground">
                   <BilingualText
                     english={product.categoryName}
                     sinhala={product.categoryNameSi}
@@ -213,7 +213,10 @@ export function ProductList({
             </dl>
             <StockForm product={product} onSaved={saveProduct} />
             <div className="mt-4 flex flex-wrap gap-4 text-sm font-medium">
-              <Link href={`/owner/products/${product.id}/edit`}>
+              <Link
+                href={`/owner/products/${product.id}/edit`}
+                className="min-w-0 break-words"
+              >
                 <Text value={"Edit "} />
                 <BilingualText
                   english={product.nameEn}

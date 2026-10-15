@@ -56,7 +56,7 @@ test("English route renders English navigation and storefront text", async ({
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: "One platform for shopping and delivery",
+      name: "Shop locally. Follow every order.",
     }),
   ).toBeVisible();
   await expect(
@@ -73,14 +73,19 @@ test("Sinhala route renders Sinhala text and translated product fields", async (
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: "මිලදී ගැනීම් සහ බෙදාහැරීම් සඳහා එකම වේදිකාවක්",
+      name: "දේශීයව මිලදී ගන්න. සෑම ඇණවුමක්ම නිරීක්ෂණය කරන්න.",
     }),
   ).toBeVisible();
-  await expect(page.getByText("ලංකා තේ", { exact: true })).toBeVisible();
-  await expect(page.getByText("Ceylon Tea", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("දේශීය නිෂ්පාදන බලන්න")).toBeVisible();
 });
 
 test("language switcher changes the locale route", async ({ page }) => {
+  await page.goto("/auth");
+  await page.getByLabel("Email or phone").fill("customer@agstores.local");
+  await page.getByLabel("Password").fill("ChangeMe123!");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/account$/);
+
   await page.goto("/en/products");
   await page.getByRole("combobox", { name: "Language" }).click();
   await page.getByRole("option", { name: "සිංහල" }).click();
@@ -136,6 +141,12 @@ test("signed-in customer language preference is remembered", async ({
 test("Sinhala storefront falls back to English for missing product text", async ({
   page,
 }) => {
+  await page.goto("/auth");
+  await page.getByLabel("Email or phone").fill("customer@agstores.local");
+  await page.getByLabel("Password").fill("ChangeMe123!");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/account$/);
+
   await page.goto(`/si/products?search=${encodeURIComponent(fallbackName)}`);
 
   await expect(

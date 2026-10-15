@@ -133,7 +133,13 @@ describe("unified authentication page", () => {
   });
 
   it("redirects protected routes to the single auth page, preserving the locale", () => {
-    for (const path of ["/account", "/si/account"]) {
+    for (const path of [
+      "/account",
+      "/si/account",
+      "/products",
+      "/si/products",
+      "/categories/example",
+    ]) {
       const response = proxy(new NextRequest(`http://localhost${path}`));
       const destination = new URL(response.headers.get("location")!);
       expect(destination.pathname).toBe(
@@ -141,6 +147,19 @@ describe("unified authentication page", () => {
       );
       expect(destination.searchParams.get("returnTo")).toBe(path);
     }
+  });
+
+  it("keeps catalog filters when asking a guest to sign in", () => {
+    const response = proxy(
+      new NextRequest(
+        "http://localhost/si/products?search=tea&categoryId=beverages",
+      ),
+    );
+    const destination = new URL(response.headers.get("location")!);
+    expect(destination.pathname).toBe("/si/auth");
+    expect(destination.searchParams.get("returnTo")).toBe(
+      "/si/products?search=tea&categoryId=beverages",
+    );
   });
 
   it("rejects external and authentication-loop return destinations", () => {

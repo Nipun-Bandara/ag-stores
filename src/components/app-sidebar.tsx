@@ -42,14 +42,11 @@ import {
 } from "@/lib/navigation";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import Image from "next/image";
-import logo from "@/app/public/logo.svg";
 import { routePath, type Locale } from "@/lib/i18n/config";
 import { Alert } from "@/components/ui/alert";
 import { translate } from "@/lib/i18n/text";
 
 function AppLogo() {
-  const t = useText();
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -57,14 +54,11 @@ function AppLogo() {
           size="lg"
           className="hover:bg-transparent pointer-events-none data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
         >
-          <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-transparent">
-            <Image
-              src={logo}
-              alt={t("AG Stores")}
-              className="size-full object-contain"
-              priority
-            />
-          </div>
+          <Avatar className="size-8 rounded-lg">
+            <AvatarFallback className="rounded-lg bg-primary text-xs font-bold text-primary-foreground">
+              AG
+            </AvatarFallback>
+          </Avatar>
           <div className="grid flex-1 text-left text-sm leading-tight">
             <span className="truncate font-bold text-lg text-sidebar-foreground">
               AG Stores
@@ -261,10 +255,6 @@ export function AppSidebar({
       title: translate(locale, item.label),
       url: routePath(item.href, locale, localizedRoute),
       icon: ICONS_MAP[item.id] ?? SquareTerminal,
-      // Matching on a bare `startsWith` lit up every item whose href is a
-      // prefix of another's — /officer-distribution stayed highlighted while
-      // /officer-distribution-history was open. Requiring the trailing slash
-      // keeps a nested route active without bleeding across sibling routes.
       isActive: isNavItemActive(pathname, item.href, item.exact),
     })),
   }));

@@ -215,7 +215,6 @@ export function ProductForm({
       <Label className="flex items-center gap-2 text-sm font-medium">
         <Checkbox
           name="isAvailable"
-
           defaultChecked={product?.isAvailable ?? true}
         />
         <Text value={"Product is available "} />
@@ -226,7 +225,7 @@ export function ProductForm({
         </FormError>
       ) : null}
       {error ? <FormError>{error}</FormError> : null}
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <Button
           type="submit"
           disabled={pending || categories.length === 0}
