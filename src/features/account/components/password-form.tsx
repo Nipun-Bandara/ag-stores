@@ -86,7 +86,12 @@ export function PasswordForm() {
           {message}
         </Alert>
       ) : null}
-      <Button type="submit" disabled={pending} className="h-10">
+      <Button
+        variant="success"
+        type="submit"
+        disabled={pending}
+        className="h-10"
+      >
         {pending ? t("Changing…") : t("Change password")}
       </Button>
     </form>

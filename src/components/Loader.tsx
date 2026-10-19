@@ -13,7 +13,7 @@ type LoaderProps = {
 
 export function Loader({
   size = 40,
-  stroke = 5,
+  stroke = 3,
   speed = 2,
   color = "var(--primary)",
   className,

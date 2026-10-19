@@ -8,6 +8,7 @@ import type { listCustomerOrders } from "@/services/customer-order.service";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 type CustomerOrders = Awaited<ReturnType<typeof listCustomerOrders>>;
 type CustomerOrderSummary = CustomerOrders["activeOrders"][number];
@@ -87,9 +88,13 @@ function OrderSection({
           ))}
         </div>
       ) : (
-        <Card className="gap-0 mt-4 border-dashed p-8 text-center text-muted-foreground border ring-0">
-          <Text value={emptyMessage} />
-        </Card>
+        <Empty className="mt-4">
+          <EmptyHeader>
+            <EmptyTitle>
+              <Text value={emptyMessage} />
+            </EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       )}
     </section>
   );

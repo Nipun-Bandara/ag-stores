@@ -104,7 +104,12 @@ export function ProfileForm({ user }: { user: AuthenticatedUser }) {
           {message}
         </Alert>
       ) : null}
-      <Button type="submit" disabled={pending} className="h-10">
+      <Button
+        variant="success"
+        type="submit"
+        disabled={pending}
+        className="h-10"
+      >
         {pending ? t("Saving…") : t("Save profile")}
       </Button>
     </form>

@@ -206,7 +206,11 @@ export function AdminShopForm({
           </Label>
         </div>
         <div className="mt-6 flex flex-wrap items-center gap-4">
-          <Button type="submit" disabled={pending || owners.length === 0}>
+          <Button
+            variant="success"
+            type="submit"
+            disabled={pending || owners.length === 0}
+          >
             {pending ? t("Saving…") : shop ? t("Save shop") : t("Create shop")}
           </Button>
           {message ? (

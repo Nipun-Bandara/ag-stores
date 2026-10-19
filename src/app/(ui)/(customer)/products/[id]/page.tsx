@@ -4,10 +4,10 @@ import type { Metadata } from "next";
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 
 import { AddToCartButton } from "@/features/cart/components/add-to-cart-button";
 import { Card } from "@/components/ui/card";
+import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import { buttonVariants } from "@/components/ui/button";
 import { getDictionary, localizeBilingual, routePath } from "@/lib/i18n/config";
 import { getLocaleContext } from "@/lib/i18n/server";
@@ -45,10 +45,6 @@ export default async function ProductDetailPage({
     locale,
   );
 
-  const backgroundStyle = product.imageUrl
-    ? { backgroundImage: `url(${JSON.stringify(product.imageUrl)})` }
-    : undefined;
-
   return (
     <section className="min-w-0 w-full">
       <Link
@@ -62,17 +58,17 @@ export default async function ProductDetailPage({
           className: "-ml-3 max-w-full whitespace-normal break-words",
         })}
       >
-        <ArrowLeft aria-hidden="true" className="size-4" />
         {categoryName}
       </Link>
       <div className="mt-6 grid min-w-0 gap-8 lg:grid-cols-2 lg:gap-14">
-        <Card
-          className="flex aspect-square items-center justify-center rounded-[2rem] bg-gradient-to-br from-amber-100 via-orange-50 to-lime-100 bg-cover bg-center text-8xl font-black text-emerald-900/20 shadow-sm"
-          style={backgroundStyle}
-          role={product.imageUrl ? "img" : undefined}
-          aria-label={product.imageUrl ? name : undefined}
-        >
-          {!product.imageUrl ? name.charAt(0).toUpperCase() : null}
+        <Card className="gap-0 overflow-hidden rounded-[2rem] py-0 shadow-sm">
+          <ImageWithFallback
+            src={product.imageUrl}
+            alt={name}
+            fallback={copy.noImage}
+            sizes="(min-width: 1024px) 50vw, 100vw"
+            className="aspect-square w-full"
+          />
         </Card>
         <section className="min-w-0 self-center">
           <p className="break-words text-sm font-medium text-muted-foreground">

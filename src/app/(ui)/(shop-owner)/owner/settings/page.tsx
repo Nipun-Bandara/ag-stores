@@ -6,7 +6,7 @@ import { UserRole } from "@/generated/prisma/client";
 import { ShopSettingsForm } from "@/features/owner/components/shop-settings-form";
 import { requireRole } from "@/lib/auth/server";
 import { listOwnerShopSettings } from "@/services/shop-settings.service";
-import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getServerText();
@@ -33,12 +33,13 @@ export default async function OwnerSettingsPage() {
         {shops.length ? (
           shops.map((shop) => <ShopSettingsForm key={shop.id} initial={shop} />)
         ) : (
-          <Card
-            as="p"
-            className="gap-0 border-dashed p-8 text-sm text-muted-foreground border ring-0"
-          >
-            <Text value={"No shop is assigned to this account. "} />
-          </Card>
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>
+                <Text value={"No shop is assigned to this account. "} />
+              </EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         )}
       </div>
     </section>

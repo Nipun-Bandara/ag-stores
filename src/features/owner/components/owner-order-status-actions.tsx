@@ -77,6 +77,7 @@ export function OwnerOrderStatusActions({
         {availableActions.map((action) => (
           <Button
             key={action.status}
+            variant={action.status === "REJECTED" ? "destructive" : "success"}
             type="button"
             disabled={pending !== null}
             onClick={() => transition(action.status)}

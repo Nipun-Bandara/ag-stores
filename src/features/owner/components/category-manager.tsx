@@ -1,9 +1,10 @@
 "use client";
 import { BilingualText } from "@/features/i18n/components/bilingual-text";
-import { useText } from "@/features/i18n/components/locale-provider";
+import { useLocale, useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
+import { CircleCheck, CircleX, Pencil } from "lucide-react";
 
 import {
   FormError,
@@ -16,8 +17,11 @@ import type {
 } from "@/services/category.service";
 import { NativeSelectOption } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
+import { IconActionButton } from "@/components/ui/icon-action-button";
+import { localizeBilingual } from "@/lib/i18n/config";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 interface ApiPayload {
   data?: CategoryView;
@@ -125,6 +129,7 @@ function CategoryForm({
         {error ? <FormError>{error}</FormError> : null}
         <div className="flex flex-wrap gap-3">
           <Button
+            variant="success"
             type="submit"
             disabled={pending || shops.length === 0}
             className="h-10"
@@ -157,6 +162,7 @@ export function CategoryManager({
   initialData: CategoryManagementView;
 }) {
   const t = useText();
+  const locale = useLocale();
   const [categories, setCategories] = useState(initialData.categories);
   const [editingId, setEditingId] = useState<string>();
   const [pendingId, setPendingId] = useState<string>();
@@ -201,9 +207,15 @@ export function CategoryManager({
   return (
     <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
       {initialData.shops.length === 0 ? (
-        <Card as="p" className="gap-0 p-5 text-sm text-muted-foreground">
-          <Text value={"Create a shop before adding product categories. "} />
-        </Card>
+        <Empty>
+          <EmptyHeader>
+            <EmptyTitle>
+              <Text
+                value={"Create a shop before adding product categories. "}
+              />
+            </EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <CategoryForm
           key={editingCategory?.id ?? "new"}
@@ -225,9 +237,13 @@ export function CategoryManager({
           </div>
         ) : null}
         {categories.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-foreground">
-            <Text value={"No categories have been created yet. "} />
-          </p>
+          <Empty className="mt-4">
+            <EmptyHeader>
+              <EmptyTitle>
+                <Text value={"No categories have been created yet. "} />
+              </EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <div className="mt-4 space-y-4">
             {categories.map((category) => (
@@ -252,33 +268,29 @@ export function CategoryManager({
                   </Badge>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2 text-sm font-medium">
-                  <Button
+                  <IconActionButton
                     variant="ghost"
                     type="button"
-                    className="h-auto min-w-0 whitespace-normal break-words text-left"
+                    label={`${t("Edit")} ${localizeBilingual(category.nameEn, category.nameSi, locale)}`}
                     onClick={() => setEditingId(category.id)}
                   >
-                    <Text value={"Edit "} />
-                    <BilingualText
-                      english={category.nameEn}
-                      sinhala={category.nameSi}
-                    />
-                  </Button>
-                  <Button
-                    variant="ghost"
+                    <Pencil aria-hidden="true" />
+                  </IconActionButton>
+                  <IconActionButton
+                    variant={
+                      category.status === "ACTIVE" ? "destructive" : "success"
+                    }
                     type="button"
-                    className="h-auto min-w-0 whitespace-normal break-words text-left"
+                    label={`${t(category.status === "ACTIVE" ? "Deactivate" : "Activate")} ${localizeBilingual(category.nameEn, category.nameSi, locale)}`}
                     disabled={pendingId === category.id}
                     onClick={() => changeStatus(category)}
                   >
-                    {category.status === "ACTIVE"
-                      ? t("Deactivate")
-                      : t("Activate")}{" "}
-                    <BilingualText
-                      english={category.nameEn}
-                      sinhala={category.nameSi}
-                    />
-                  </Button>
+                    {category.status === "ACTIVE" ? (
+                      <CircleX aria-hidden="true" />
+                    ) : (
+                      <CircleCheck aria-hidden="true" />
+                    )}
+                  </IconActionButton>
                 </div>
               </Card>
             ))}

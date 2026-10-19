@@ -29,6 +29,7 @@ export function AddToCartButton({
   return (
     <div className="text-right">
       <Button
+        variant="success"
         type="button"
         onClick={handleAdd}
         disabled={outOfStock}

@@ -3,14 +3,17 @@ import { useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
+import { CircleCheck, Pencil, Trash2 } from "lucide-react";
 
 import { FormError, FormField } from "@/features/auth/components/form-fields";
 import type { CustomerAddressView } from "@/services/customer-address.service";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { IconActionButton } from "@/components/ui/icon-action-button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 interface ApiPayload {
   data?: CustomerAddressView;
@@ -133,7 +136,12 @@ function AddressForm({ address, onCancel, onSaved }: AddressFormProps) {
         </Label>
         {error ? <FormError>{error}</FormError> : null}
         <div className="flex flex-wrap gap-3">
-          <Button type="submit" disabled={pending} className="h-10">
+          <Button
+            variant="success"
+            type="submit"
+            disabled={pending}
+            className="h-10"
+          >
             {pending
               ? t("Saving…")
               : address
@@ -257,9 +265,13 @@ export function AddressManager({
           </div>
         ) : null}
         {addresses.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-foreground">
-            <Text value={"You have no saved delivery addresses. "} />
-          </p>
+          <Empty className="mt-4">
+            <EmptyHeader>
+              <EmptyTitle>
+                <Text value={"You have no saved delivery addresses. "} />
+              </EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <div className="mt-4 space-y-4">
             {addresses.map((item) => (
@@ -281,37 +293,34 @@ export function AddressManager({
                   {item.latitude}, {item.longitude}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3 text-sm font-medium">
-                  <Button
+                  <IconActionButton
                     variant="ghost"
                     type="button"
-                    className="h-auto max-w-full whitespace-normal break-words text-left"
+                    label={`${t("Edit")} ${item.label}`}
                     onClick={() => setEditingId(item.id)}
                   >
-                    <Text value={"Edit "} />
-                    {item.label}
-                  </Button>
+                    <Pencil aria-hidden="true" />
+                  </IconActionButton>
                   {!item.isDefault ? (
-                    <Button
-                      variant="ghost"
+                    <IconActionButton
+                      variant="success"
                       type="button"
-                      className="h-auto max-w-full whitespace-normal break-words text-left"
+                      label={t("Make {name} default", { name: item.label })}
                       disabled={pendingId === item.id}
                       onClick={() => setDefault(item.id)}
                     >
-                      <Text value={"Make "} />
-                      {item.label} <Text value={"default "} />
-                    </Button>
+                      <CircleCheck aria-hidden="true" />
+                    </IconActionButton>
                   ) : null}
-                  <Button
-                    variant="ghost"
+                  <IconActionButton
+                    variant="destructive"
                     type="button"
-                    className="h-auto max-w-full whitespace-normal break-words text-left"
+                    label={`${t("Delete")} ${item.label}`}
                     disabled={pendingId === item.id}
                     onClick={() => deleteAddress(item.id)}
                   >
-                    <Text value={"Delete "} />
-                    {item.label}
-                  </Button>
+                    <Trash2 aria-hidden="true" />
+                  </IconActionButton>
                 </div>
               </Card>
             ))}

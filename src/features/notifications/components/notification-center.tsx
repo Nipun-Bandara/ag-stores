@@ -5,13 +5,16 @@ import { Text } from "@/features/i18n/components/text";
 
 import Link from "next/link";
 import { useState } from "react";
+import { CircleCheck } from "lucide-react";
 
 import type { NotificationType, UserRole } from "@/generated/prisma/client";
 import type { NotificationCenterView } from "@/services/notification.service";
 import { Button } from "@/components/ui/button";
+import { IconActionButton } from "@/components/ui/icon-action-button";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 function notificationHref(
   role: UserRole,
@@ -101,7 +104,7 @@ export function NotificationCenter({
           </p>
         </div>
         <Button
-          variant="outline"
+          variant="success"
           type="button"
           disabled={markingAll || unreadCount === 0}
           onClick={markAllRead}
@@ -154,28 +157,32 @@ export function NotificationCenter({
                   <Text value={"View related order "} />
                 </Link>
                 {!notification.readAt ? (
-                  <Button
-                    variant="ghost"
+                  <IconActionButton
+                    variant="success"
                     type="button"
+                    label={
+                      pendingId === notification.id
+                        ? t("Updating…")
+                        : t("Mark as read")
+                    }
                     disabled={pendingId === notification.id}
                     onClick={() => markRead(notification.id)}
                   >
-                    {pendingId === notification.id
-                      ? t("Updating…")
-                      : t("Mark as read")}
-                  </Button>
+                    <CircleCheck aria-hidden="true" />
+                  </IconActionButton>
                 ) : null}
               </div>
             </article>
           ))}
         </Card>
       ) : (
-        <Card
-          as="p"
-          className="gap-0 mt-4 border-dashed p-6 text-sm text-muted-foreground border ring-0"
-        >
-          <Text value={"You do not have any notifications yet. "} />
-        </Card>
+        <Empty className="mt-4">
+          <EmptyHeader>
+            <EmptyTitle>
+              <Text value={"You do not have any notifications yet. "} />
+            </EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       )}
     </section>
   );

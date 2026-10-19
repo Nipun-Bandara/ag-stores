@@ -10,6 +10,7 @@ import {
 } from "@/lib/i18n/config";
 import type { StorefrontProductView } from "@/services/storefront.service";
 import { Card } from "@/components/ui/card";
+import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 
 export function ProductCard({
   product,
@@ -22,9 +23,6 @@ export function ProductCard({
 }) {
   const copy = getDictionary(locale).storefront;
   const name = localizeBilingual(product.nameEn, product.nameSi, locale);
-  const backgroundStyle = product.imageUrl
-    ? { backgroundImage: `url(${JSON.stringify(product.imageUrl)})` }
-    : undefined;
 
   return (
     <Card
@@ -32,14 +30,12 @@ export function ProductCard({
       className="gap-0 overflow-hidden py-0"
       data-testid="product-card"
     >
-      <div
-        className="flex aspect-[4/3] items-center justify-center bg-gradient-to-br from-amber-100 via-orange-50 to-lime-100 bg-cover bg-center text-5xl font-black text-emerald-900/25"
-        style={backgroundStyle}
-        role={product.imageUrl ? "img" : undefined}
-        aria-label={product.imageUrl ? name : undefined}
-      >
-        {!product.imageUrl ? name.charAt(0).toUpperCase() : null}
-      </div>
+      <ImageWithFallback
+        src={product.imageUrl}
+        alt={name}
+        fallback={copy.noImage}
+        className="aspect-[4/3] w-full"
+      />
       <div className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

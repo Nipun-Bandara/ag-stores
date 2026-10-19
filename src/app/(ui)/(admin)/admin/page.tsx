@@ -7,6 +7,7 @@ import { requireRole } from "@/lib/auth/server";
 import { listRecentOrderCancellations } from "@/services/admin-order.service";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 export default async function AdminDashboardPage() {
   const user = await requireRole(UserRole.ADMIN, "/admin");
@@ -90,9 +91,15 @@ export default async function AdminDashboardPage() {
             ))}
           </div>
         ) : (
-          <p className="mt-4 text-sm text-muted-foreground">
-            <Text value={"No customer cancellations have been recorded. "} />
-          </p>
+          <Empty className="mt-4">
+            <EmptyHeader>
+              <EmptyTitle>
+                <Text
+                  value={"No customer cancellations have been recorded. "}
+                />
+              </EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         )}
       </Card>
     </section>

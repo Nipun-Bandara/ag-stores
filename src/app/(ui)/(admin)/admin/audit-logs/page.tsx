@@ -11,6 +11,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { DateText } from "@/features/i18n/components/date-text";
 
 export default async function AdminAuditLogsPage() {
@@ -76,12 +77,13 @@ export default async function AdminAuditLogsPage() {
           </Table>
         </Card>
       ) : (
-        <Card
-          as="p"
-          className="gap-0 mt-6 border-dashed p-6 text-sm text-muted-foreground border ring-0"
-        >
-          <Text value={"No audit records have been created yet. "} />
-        </Card>
+        <Empty className="mt-6">
+          <EmptyHeader>
+            <EmptyTitle>
+              <Text value={"No audit records have been created yet. "} />
+            </EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       )}
     </section>
   );

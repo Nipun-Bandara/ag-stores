@@ -9,6 +9,7 @@ import { UserRole } from "@/generated/prisma/client";
 import { requireRole } from "@/lib/auth/server";
 import { getOwnerDashboard } from "@/services/owner-dashboard.service";
 import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { buttonVariants } from "@/components/ui/button";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -157,12 +158,13 @@ export default async function OwnerDashboardPage() {
             </ul>
           </Card>
         ) : (
-          <Card
-            as="p"
-            className="gap-0 mt-4 border-dashed p-5 text-sm text-muted-foreground border ring-0"
-          >
-            <Text value={"No products are currently low on stock. "} />
-          </Card>
+          <Empty className="mt-4">
+            <EmptyHeader>
+              <EmptyTitle>
+                <Text value={"No products are currently low on stock. "} />
+              </EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         )}
       </section>
 

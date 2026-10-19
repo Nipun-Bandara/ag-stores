@@ -10,6 +10,7 @@ import { UserRole } from "@/generated/prisma/client";
 import { requireRole } from "@/lib/auth/server";
 import { listActiveDeliveryBatches } from "@/services/delivery-batch-management.service";
 import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -94,9 +95,13 @@ export default async function DeliveryBatchesPage() {
           ))}
         </div>
       ) : (
-        <Card className="gap-0 mt-6 border-dashed p-10 text-center text-muted-foreground border ring-0">
-          <Text value={"No active delivery batches. "} />
-        </Card>
+        <Empty className="mt-6">
+          <EmptyHeader>
+            <EmptyTitle>
+              <Text value={"No active delivery batches. "} />
+            </EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       )}
     </section>
   );

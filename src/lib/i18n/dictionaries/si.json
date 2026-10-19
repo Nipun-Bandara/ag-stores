@@ -61,7 +61,8 @@
     "viewProduct": "නිෂ්පාදනය බලන්න",
     "addToCart": "කරත්තයට එක් කරන්න",
     "addedToCart": "කරත්තයට එක් කරන ලදී",
-    "maximumInCart": "ලබාගත හැකි උපරිම ප්‍රමාණය දැනටමත් කරත්තයේ ඇත"
+    "maximumInCart": "ලබාගත හැකි උපරිම ප්‍රමාණය දැනටමත් කරත්තයේ ඇත",
+    "noImage": "රූපයක් නැත"
   },
   "auth": {
     "welcomeBack": "නැවත සාදරයෙන් පිළිගනිමු",
@@ -93,7 +94,30 @@
     "preferredLanguage": "කැමති භාෂාව",
     "editProfile": "පැතිකඩ සංස්කරණය",
     "deliveryAddresses": "බෙදාහැරීමේ ලිපින",
-    "changePassword": "මුරපදය වෙනස් කරන්න"
+    "changePassword": "මුරපදය වෙනස් කරන්න",
+    "dashboardDescription": "බෙදාහැරීම් නිරීක්ෂණය කර ඔබේ මිලදී ගැනීම් පිළිබඳ සාරාංශයක් බලන්න.",
+    "viewAllOrders": "සියලු ඇණවුම් බලන්න",
+    "totalOrders": "මුළු ඇණවුම්",
+    "allTime": "මෙතෙක්",
+    "activeDeliveries": "ක්‍රියාත්මක ඇණවුම්",
+    "trackActive": "සූදානම් කරමින් හෝ බෙදාහරිමින් පවතී",
+    "deliveredOrders": "බෙදාහැරූ ඇණවුම්",
+    "successfullyDelivered": "සාර්ථකව අවසන් කළ",
+    "spentOnDelivered": "බෙදාහැරූ ඇණවුම් සඳහා වැය කළ මුදල",
+    "excludesCancelled": "අවලංගු සහ අසාර්ථක ඇණවුම් ඇතුළත් නොවේ",
+    "deliveryTrend": "බෙදාහැරීම් ඉතිහාසය",
+    "deliveryTrendDescription": "පසුගිය මාස හයේ බෙදාහැරූ ඇණවුම්",
+    "quickActions": "ඉක්මන් ක්‍රියා",
+    "quickActionsDescription": "ඊළඟ ඇණවුමට අවශ්‍ය දේ සොයා ගන්න.",
+    "trackOrders": "ඇණවුම් නිරීක්ෂණය කරන්න",
+    "addAddressPrompt": "පළමු ඇණවුම කිරීමට පෙර බෙදාහැරීමේ ලිපිනයක් එක් කරන්න.",
+    "recentOrders": "මෑත ඇණවුම්",
+    "recentOrdersDescription": "ඔබේ අලුත්ම ඇණවුම් සහ ඒවායේ වත්මන් තත්ත්වය",
+    "item": "අයිතමයක්",
+    "items": "අයිතම",
+    "viewDetails": "විස්තර",
+    "noOrdersYet": "ඔබ තවමත් ඇණවුමක් කර නැත.",
+    "startShopping": "මිලදී ගැනීම අරඹන්න"
   },
   "landing": {
     "brand": "AG වෙළඳසැල්",

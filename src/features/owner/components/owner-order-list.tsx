@@ -8,15 +8,20 @@ import type { getOwnerOrderDashboard } from "@/services/owner-order.service";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 type Dashboard = Awaited<ReturnType<typeof getOwnerOrderDashboard>>;
 
 export function OwnerOrderList({ orders }: { orders: Dashboard["orders"] }) {
   if (orders.length === 0) {
     return (
-      <Card className="gap-0 mt-6 border-dashed p-10 text-center text-muted-foreground border ring-0">
-        <Text value={"No orders match these filters. "} />
-      </Card>
+      <Empty className="mt-6">
+        <EmptyHeader>
+          <EmptyTitle>
+            <Text value={"No orders match these filters. "} />
+          </EmptyTitle>
+        </EmptyHeader>
+      </Empty>
     );
   }
 

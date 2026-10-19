@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getServerText();
@@ -226,12 +227,13 @@ export default async function AdminUsersPage({
             </Table>
           </Card>
         ) : (
-          <Card
-            as="p"
-            className="gap-0 mt-4 border-dashed p-5 text-sm text-muted-foreground border ring-0"
-          >
-            <Text value={"No users match these filters. "} />
-          </Card>
+          <Empty className="mt-4">
+            <EmptyHeader>
+              <EmptyTitle>
+                <Text value={"No users match these filters. "} />
+              </EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         )}
       </section>
     </section>

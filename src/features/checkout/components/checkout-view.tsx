@@ -21,6 +21,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
 interface CheckoutPayload {
   data?: { id?: string };
@@ -117,47 +124,43 @@ export function CheckoutView({
 
   if (items.length === 0) {
     return (
-      <Card className="gap-0 border-dashed p-10 text-center border ring-0">
-        <h2 className="text-xl font-black text-foreground">
-          <Text value={"Your cart is empty "} />
-        </h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          <Text
-            value={"Add at least one available product before checkout. "}
-          />
-        </p>
-        <Link
-          href="/products"
-          className={buttonVariants({
-            variant: "default",
-            className: "mt-6 inline-flex",
-          })}
-        >
-          <Text value={"Browse products "} />
-        </Link>
-      </Card>
+      <Empty>
+        <EmptyHeader>
+          <EmptyTitle>
+            <Text value={"Your cart is empty "} />
+          </EmptyTitle>
+          <EmptyDescription>
+            <Text
+              value={"Add at least one available product before checkout. "}
+            />
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Link href="/products" className={buttonVariants()}>
+            <Text value={"Browse products "} />
+          </Link>
+        </EmptyContent>
+      </Empty>
     );
   }
 
   if (addresses.length === 0) {
     return (
-      <Card className="gap-0 bg-amber-50 p-8">
-        <h2 className="text-xl font-black text-amber-950">
-          <Text value={"Add a delivery address first "} />
-        </h2>
-        <p className="mt-2 text-sm text-amber-900">
-          <Text value={"Checkout needs one of your saved addresses. "} />
-        </p>
-        <Link
-          href="/account/addresses"
-          className={buttonVariants({
-            variant: "default",
-            className: "mt-5 inline-flex",
-          })}
-        >
-          <Text value={"Manage addresses "} />
-        </Link>
-      </Card>
+      <Empty>
+        <EmptyHeader>
+          <EmptyTitle>
+            <Text value={"Add a delivery address first "} />
+          </EmptyTitle>
+          <EmptyDescription>
+            <Text value={"Checkout needs one of your saved addresses. "} />
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Link href="/account/addresses" className={buttonVariants()}>
+            <Text value={"Manage addresses "} />
+          </Link>
+        </EmptyContent>
+      </Empty>
     );
   }
 
@@ -299,6 +302,7 @@ export function CheckoutView({
           </Alert>
         ) : null}
         <Button
+          variant="success"
           type="submit"
           disabled={pending}
           className="mt-6 h-auto min-h-9 w-full whitespace-normal break-words py-2 text-center"

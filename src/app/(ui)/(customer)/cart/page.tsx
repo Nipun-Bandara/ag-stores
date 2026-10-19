@@ -12,12 +12,12 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function CartPage() {
   return (
     <section className="min-w-0 w-full">
-      <p className="text-sm font-bold text-emerald-700">
-        <Text value={"Customer account"} />
-      </p>
-      <h1 className="mt-1 text-4xl font-black tracking-tight text-foreground">
-        <Text value={"Your cart "} />
+      <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
+        <Text value="Your cart" />
       </h1>
+      <p className="mt-3 max-w-2xl text-muted-foreground">
+        <Text value="Review the items in your cart and continue to checkout." />
+      </p>
       <div className="mt-8">
         <CartView />
       </div>

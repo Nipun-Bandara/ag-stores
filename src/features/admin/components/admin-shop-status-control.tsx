@@ -3,7 +3,8 @@ import { useText } from "@/features/i18n/components/locale-provider";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { CircleCheck, CircleX } from "lucide-react";
+import { IconActionButton } from "@/components/ui/icon-action-button";
 import { Alert } from "@/components/ui/alert";
 
 export function AdminShopStatusControl({
@@ -47,14 +48,19 @@ export function AdminShopStatusControl({
 
   return (
     <div>
-      <Button
-        variant="outline"
+      <IconActionButton
+        label={pending ? t("Updating…") : `${action} ${shopName}`}
+        variant={isActive ? "destructive" : "success"}
         type="button"
         disabled={pending}
         onClick={changeStatus}
       >
-        {pending ? t("Updating…") : `${action} ${shopName}`}
-      </Button>
+        {isActive ? (
+          <CircleX aria-hidden="true" />
+        ) : (
+          <CircleCheck aria-hidden="true" />
+        )}
+      </IconActionButton>
       {error ? (
         <Alert variant="destructive" role="alert" className="mt-2">
           {error}

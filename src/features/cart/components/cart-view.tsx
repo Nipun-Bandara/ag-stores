@@ -4,15 +4,24 @@ import { Text } from "@/features/i18n/components/text";
 import { BilingualText } from "@/features/i18n/components/bilingual-text";
 
 import { useState } from "react";
+import { Trash2 } from "lucide-react";
 
 import Link from "next/link";
 
 import { useCart } from "@/features/cart/cart-store";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { IconActionButton } from "@/components/ui/icon-action-button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { localizeBilingual } from "@/lib/i18n/config";
 
 interface ValidationPayload {
@@ -56,23 +65,23 @@ export function CartView() {
 
   if (items.length === 0) {
     return (
-      <Card className="gap-0 border-dashed p-10 text-center border ring-0">
-        <h2 className="text-xl font-black text-foreground">
-          <Text value={"Your cart is empty "} />
-        </h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          <Text value={"Browse the storefront to find something you need. "} />
-        </p>
-        <Link
-          href="/products"
-          className={buttonVariants({
-            variant: "default",
-            className: "mt-6 inline-flex",
-          })}
-        >
-          <Text value={"Browse products "} />
-        </Link>
-      </Card>
+      <Empty>
+        <EmptyHeader>
+          <EmptyTitle>
+            <Text value={"Your cart is empty "} />
+          </EmptyTitle>
+          <EmptyDescription>
+            <Text
+              value={"Browse the storefront to find something you need. "}
+            />
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Link href="/products" className={buttonVariants()}>
+            <Text value={"Browse products "} />
+          </Link>
+        </EmptyContent>
+      </Empty>
     );
   }
 
@@ -107,12 +116,12 @@ export function CartView() {
                 LKR {item.price} <Text value={"each · "} />
                 {item.stockQuantity} <Text value={"available "} />
               </p>
-              <Button
-                variant="ghost"
+              <IconActionButton
+                variant="destructive"
                 type="button"
                 onClick={() => remove(item.id)}
-                className="mt-3 underline underline-offset-4"
-                aria-label={t("Remove {name}", {
+                className="mt-3"
+                label={t("Remove {name}", {
                   name: localizeBilingual(
                     item.nameEn ?? item.name,
                     item.nameSi ?? null,
@@ -120,8 +129,8 @@ export function CartView() {
                   ),
                 })}
               >
-                <Text value={"Remove "} />
-              </Button>
+                <Trash2 aria-hidden="true" />
+              </IconActionButton>
             </div>
             <Label className="text-sm font-semibold text-foreground">
               <Text value={"Quantity "} />
@@ -187,7 +196,7 @@ export function CartView() {
           </Alert>
         ) : null}
         <Button
-          variant="ghost"
+          variant="destructive"
           type="button"
           onClick={clear}
           className="mt-4 w-full underline underline-offset-4"

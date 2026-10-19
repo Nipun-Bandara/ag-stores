@@ -11,6 +11,7 @@ import { requireRole } from "@/lib/auth/server";
 import { getAdminShopManagement } from "@/services/admin-shop.service";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getServerText();
@@ -97,12 +98,13 @@ export default async function AdminShopsPage() {
               ))}
             </div>
           ) : (
-            <Card
-              as="p"
-              className="gap-0 mt-4 border-dashed p-5 text-sm text-muted-foreground border ring-0"
-            >
-              <Text value={"No shops have been created. "} />
-            </Card>
+            <Empty className="mt-4">
+              <EmptyHeader>
+                <EmptyTitle>
+                  <Text value={"No shops have been created. "} />
+                </EmptyTitle>
+              </EmptyHeader>
+            </Empty>
           )}
         </section>
       </div>

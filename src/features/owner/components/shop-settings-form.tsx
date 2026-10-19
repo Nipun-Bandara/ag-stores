@@ -177,7 +177,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
           </Label>
         </div>
         <div className="mt-6 flex flex-wrap items-center gap-4">
-          <Button type="submit" disabled={pending}>
+          <Button variant="success" type="submit" disabled={pending}>
             {pending ? t("Saving…") : t("Save settings")}
           </Button>
           {message ? (

@@ -3,6 +3,7 @@ import { useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 
 import { useState } from "react";
+import { ArrowDown, ArrowUp, CircleCheck, CircleX } from "lucide-react";
 
 import { useRouter } from "next/navigation";
 
@@ -11,6 +12,7 @@ import type {
   OrderStatus,
 } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
+import { IconActionButton } from "@/components/ui/icon-action-button";
 import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import { orderStatusLabels } from "@/features/orders/order-presentation";
@@ -146,24 +148,24 @@ export function DeliveryBatchActions({
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <Button
+                    <IconActionButton
                       variant="outline"
                       type="button"
-                      aria-label={t("Move order {id} up", { id: orderId })}
+                      label={t("Move order {id} up", { id: orderId })}
                       disabled={index === 0 || pending !== ""}
                       onClick={() => move(index, -1)}
                     >
-                      ↑
-                    </Button>
-                    <Button
+                      <ArrowUp aria-hidden="true" />
+                    </IconActionButton>
+                    <IconActionButton
                       variant="outline"
                       type="button"
-                      aria-label={t("Move order {id} down", { id: orderId })}
+                      label={t("Move order {id} down", { id: orderId })}
                       disabled={index === sequence.length - 1 || pending !== ""}
                       onClick={() => move(index, 1)}
                     >
-                      ↓
-                    </Button>
+                      <ArrowDown aria-hidden="true" />
+                    </IconActionButton>
                   </div>
                 </Card>
               );
@@ -181,6 +183,7 @@ export function DeliveryBatchActions({
                 : t("Save sequence")}
             </Button>
             <Button
+              variant="success"
               type="button"
               disabled={pending !== ""}
               onClick={startBatch}
@@ -211,21 +214,24 @@ export function DeliveryBatchActions({
               </div>
               {order.status === "OUT_FOR_DELIVERY" ? (
                 <div className="flex flex-wrap gap-2">
-                  <Button
+                  <IconActionButton
+                    variant="success"
                     type="button"
+                    label={`${t("Mark delivered")} · ${order.deliveryLocation.label}`}
                     disabled={pending !== ""}
                     onClick={() => finishOrder(order.id, "DELIVERED")}
                   >
-                    <Text value={"Mark delivered "} />
-                  </Button>
-                  <Button
+                    <CircleCheck aria-hidden="true" />
+                  </IconActionButton>
+                  <IconActionButton
                     variant="destructive"
                     type="button"
+                    label={`${t("Mark failed")} · ${order.deliveryLocation.label}`}
                     disabled={pending !== ""}
                     onClick={() => finishOrder(order.id, "FAILED_DELIVERY")}
                   >
-                    <Text value={"Mark failed "} />
-                  </Button>
+                    <CircleX aria-hidden="true" />
+                  </IconActionButton>
                 </div>
               ) : null}
             </Card>

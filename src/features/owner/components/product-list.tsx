@@ -1,9 +1,10 @@
 "use client";
 import { BilingualText } from "@/features/i18n/components/bilingual-text";
-import { useText } from "@/features/i18n/components/locale-provider";
+import { useLocale, useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
+import { CircleCheck, CircleX } from "lucide-react";
 
 import Link from "next/link";
 
@@ -12,9 +13,12 @@ import type { ProductView } from "@/services/product.service";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { IconActionButton } from "@/components/ui/icon-action-button";
+import { localizeBilingual } from "@/lib/i18n/config";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 interface ApiPayload {
   data?: ProductView;
@@ -94,7 +98,7 @@ function StockForm({
         />
       </Label>
       <Button
-        variant="outline"
+        variant="success"
         type="submit"
         disabled={pending}
         className="h-9"
@@ -116,6 +120,7 @@ export function ProductList({
   initialProducts: ProductView[];
 }) {
   const t = useText();
+  const locale = useLocale();
   const [products, setProducts] = useState(initialProducts);
   const [pendingId, setPendingId] = useState<string>();
   const [error, setError] = useState<string>();
@@ -150,9 +155,13 @@ export function ProductList({
 
   if (products.length === 0) {
     return (
-      <Card as="p" className="gap-0 mt-6 p-6 text-sm text-muted-foreground">
-        <Text value={"No products match the current filters. "} />
-      </Card>
+      <Empty className="mt-6">
+        <EmptyHeader>
+          <EmptyTitle>
+            <Text value={"No products match the current filters. "} />
+          </EmptyTitle>
+        </EmptyHeader>
+      </Empty>
     );
   }
 
@@ -223,16 +232,19 @@ export function ProductList({
                   sinhala={product.nameSi}
                 />
               </Link>
-              <Button
-                variant="ghost"
+              <IconActionButton
+                variant={product.isAvailable ? "destructive" : "success"}
                 type="button"
+                label={`${t(product.isAvailable ? "Mark unavailable" : "Mark available")} ${localizeBilingual(product.nameEn, product.nameSi, locale)}`}
                 disabled={pendingId === product.id}
                 onClick={() => toggleAvailability(product)}
               >
-                {product.isAvailable
-                  ? t("Mark unavailable")
-                  : t("Mark available")}
-              </Button>
+                {product.isAvailable ? (
+                  <CircleX aria-hidden="true" />
+                ) : (
+                  <CircleCheck aria-hidden="true" />
+                )}
+              </IconActionButton>
               {product.imageUrl ? (
                 <a href={product.imageUrl} rel="noreferrer" target="_blank">
                   <Text value={"View image "} />

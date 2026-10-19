@@ -3,6 +3,7 @@ import { useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
+import { CircleCheck, CircleX, Pencil } from "lucide-react";
 
 import {
   FormError,
@@ -15,8 +16,10 @@ import type {
 } from "@/services/delivery-personnel.service";
 import { NativeSelectOption } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
+import { IconActionButton } from "@/components/ui/icon-action-button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 interface ApiPayload {
   data?:
@@ -157,6 +160,7 @@ function PersonnelForm({
         {error ? <FormError>{error}</FormError> : null}
         <div className="flex flex-wrap gap-3">
           <Button
+            variant="success"
             type="submit"
             disabled={pending || shops.length === 0}
             className="h-10"
@@ -246,11 +250,17 @@ export function DeliveryPersonnelManager({
             onTemporaryPassword={setTemporaryPassword}
           />
         ) : (
-          <Card as="p" className="gap-0 p-5 text-sm text-muted-foreground">
-            <Text
-              value={"A shop is required before creating delivery accounts. "}
-            />
-          </Card>
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>
+                <Text
+                  value={
+                    "A shop is required before creating delivery accounts. "
+                  }
+                />
+              </EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         )}
         {temporaryPassword ? (
           <Card
@@ -311,33 +321,43 @@ export function DeliveryPersonnelManager({
                   </Badge>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-4 text-sm font-medium">
-                  <Button
+                  <IconActionButton
                     variant="ghost"
                     type="button"
+                    label={`${t("Edit")} ${person.name}`}
                     onClick={() => setEditingId(person.id)}
                   >
-                    <Text value={"Edit "} />
-                    {person.name}
-                  </Button>
-                  <Button
-                    variant="ghost"
+                    <Pencil aria-hidden="true" />
+                  </IconActionButton>
+                  <IconActionButton
+                    variant={
+                      person.status === "ACTIVE" ? "destructive" : "success"
+                    }
                     type="button"
+                    label={`${t(person.status === "ACTIVE" ? "Deactivate" : "Activate")} ${person.name}`}
                     disabled={pendingId === person.id}
                     onClick={() => changeStatus(person)}
                   >
-                    {person.status === "ACTIVE"
-                      ? t("Deactivate")
-                      : t("Activate")}{" "}
-                    {person.name}
-                  </Button>
+                    {person.status === "ACTIVE" ? (
+                      <CircleX aria-hidden="true" />
+                    ) : (
+                      <CircleCheck aria-hidden="true" />
+                    )}
+                  </IconActionButton>
                 </div>
               </Card>
             ))}
           </div>
         ) : (
-          <p className="mt-4 text-sm text-muted-foreground">
-            <Text value={"No delivery personnel have been assigned yet. "} />
-          </p>
+          <Empty className="mt-4">
+            <EmptyHeader>
+              <EmptyTitle>
+                <Text
+                  value={"No delivery personnel have been assigned yet. "}
+                />
+              </EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         )}
       </section>
     </div>

@@ -227,6 +227,7 @@ export function ProductForm({
       {error ? <FormError>{error}</FormError> : null}
       <div className="flex flex-wrap gap-3">
         <Button
+          variant="success"
           type="submit"
           disabled={pending || categories.length === 0}
           className="h-10"

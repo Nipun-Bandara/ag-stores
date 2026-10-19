@@ -35,6 +35,7 @@ import { describeApiError } from "@/utils/apiError";
 import { Alert } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { IconActionButton } from "@/components/ui/icon-action-button";
 
 interface RegisterProps {
   returnTo: string;
@@ -190,12 +191,10 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
                   }
                   placeholder={t("Enter your password")}
                 />
-                <Button
+                <IconActionButton
                   variant="ghost"
                   type="button"
-                  aria-label={
-                    showPassword ? t("Hide password") : t("Show password")
-                  }
+                  label={showPassword ? t("Hide password") : t("Show password")}
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
                 >
@@ -204,7 +203,7 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
                   ) : (
                     <EyeIcon className="h-5 w-5" />
                   )}
-                </Button>
+                </IconActionButton>
               </div>
               {formik.touched.password && formik.errors.password ? (
                 <div className="text-destructive text-xs mt-1">

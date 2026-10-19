@@ -26,6 +26,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getServerText();
@@ -203,9 +204,13 @@ export default async function OwnerReportsPage({
               </Table>
             </div>
           ) : (
-            <p className="mt-4 text-sm text-muted-foreground">
-              <Text value={"No orders were found for this period. "} />
-            </p>
+            <Empty className="mt-4">
+              <EmptyHeader>
+                <EmptyTitle>
+                  <Text value={"No orders were found for this period. "} />
+                </EmptyTitle>
+              </EmptyHeader>
+            </Empty>
           )}
         </Card>
 
@@ -228,9 +233,13 @@ export default async function OwnerReportsPage({
               ))}
             </ul>
           ) : (
-            <p className="mt-4 text-sm text-muted-foreground">
-              <Text value={"No status totals are available. "} />
-            </p>
+            <Empty className="mt-4">
+              <EmptyHeader>
+                <EmptyTitle>
+                  <Text value={"No status totals are available. "} />
+                </EmptyTitle>
+              </EmptyHeader>
+            </Empty>
           )}
         </Card>
 
@@ -263,9 +272,15 @@ export default async function OwnerReportsPage({
               ))}
             </ol>
           ) : (
-            <p className="mt-4 text-sm text-muted-foreground">
-              <Text value={"No product sales were found for this period. "} />
-            </p>
+            <Empty className="mt-4">
+              <EmptyHeader>
+                <EmptyTitle>
+                  <Text
+                    value={"No product sales were found for this period. "}
+                  />
+                </EmptyTitle>
+              </EmptyHeader>
+            </Empty>
           )}
         </Card>
 
@@ -298,9 +313,13 @@ export default async function OwnerReportsPage({
               ))}
             </ul>
           ) : (
-            <p className="mt-4 text-sm text-muted-foreground">
-              <Text value={"No products are currently low on stock. "} />
-            </p>
+            <Empty className="mt-4">
+              <EmptyHeader>
+                <EmptyTitle>
+                  <Text value={"No products are currently low on stock. "} />
+                </EmptyTitle>
+              </EmptyHeader>
+            </Empty>
           )}
         </Card>
       </div>

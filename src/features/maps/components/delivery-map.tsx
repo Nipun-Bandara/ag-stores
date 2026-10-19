@@ -9,6 +9,7 @@ import {
   type PublicMapConfig,
 } from "@/validations/map-env";
 import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import type { Locale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/text";
 
@@ -61,15 +62,19 @@ export function DeliveryMap({
           data-map-provider={provider?.id}
         />
       ) : (
-        <Card className="gap-0 mt-4 border-dashed p-6 text-muted-foreground border ring-0">
-          <Text
-            value={
-              data.markers.length === 0
-                ? "Map unavailable because no valid coordinates are available."
-                : "Map preview is disabled. Configure a public map provider token to enable it."
-            }
-          />
-        </Card>
+        <Empty className="mt-4">
+          <EmptyHeader>
+            <EmptyTitle>
+              <Text
+                value={
+                  data.markers.length === 0
+                    ? "Map unavailable because no valid coordinates are available."
+                    : "Map preview is disabled. Configure a public map provider token to enable it."
+                }
+              />
+            </EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       )}
 
       <ol

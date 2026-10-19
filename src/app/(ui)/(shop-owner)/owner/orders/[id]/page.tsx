@@ -14,6 +14,7 @@ import { requireRole } from "@/lib/auth/server";
 import { getOwnerOrder, OwnerOrderError } from "@/services/owner-order.service";
 import { orderIdSchema } from "@/validations/order";
 import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Badge } from "@/components/ui/badge";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -205,9 +206,13 @@ export default async function OwnerOrderDetailPage({
             ))}
           </ol>
         ) : (
-          <p className="mt-3 text-sm text-muted-foreground">
-            <Text value={"No status changes yet. "} />
-          </p>
+          <Empty className="mt-3">
+            <EmptyHeader>
+              <EmptyTitle>
+                <Text value={"No status changes yet. "} />
+              </EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         )}
       </Card>
     </section>

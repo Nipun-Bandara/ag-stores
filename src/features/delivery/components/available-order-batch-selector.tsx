@@ -14,6 +14,7 @@ import { Alert } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 interface BatchApiPayload {
   data?: { id: string; orders: Array<{ orderId: string; sequence: number }> };
@@ -88,9 +89,13 @@ export function AvailableOrderBatchSelector({
 
   if (orders.length === 0) {
     return (
-      <Card className="gap-0 mt-6 border-dashed p-10 text-center text-muted-foreground border ring-0">
-        <Text value={"No ready orders match these filters. "} />
-      </Card>
+      <Empty className="mt-6">
+        <EmptyHeader>
+          <EmptyTitle>
+            <Text value={"No ready orders match these filters. "} />
+          </EmptyTitle>
+        </EmptyHeader>
+      </Empty>
     );
   }
 
@@ -169,6 +174,7 @@ export function AvailableOrderBatchSelector({
           <Text value={"selected "} />
         </p>
         <Button
+          variant="success"
           type="button"
           disabled={pending || selectedIds.length === 0}
           onClick={createBatch}

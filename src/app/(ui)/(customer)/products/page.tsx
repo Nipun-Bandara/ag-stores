@@ -14,9 +14,12 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -63,9 +66,6 @@ export default async function ProductsPage({
 
   return (
     <section className="min-w-0 w-full">
-      <p className="text-sm font-medium text-muted-foreground">
-        {copy.storefront}
-      </p>
       <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
         {copy.allProducts}
       </h1>
@@ -84,7 +84,7 @@ export default async function ProductsPage({
               name="search"
               defaultValue={search?.success ? search.data : ""}
               placeholder={copy.searchPlaceholder}
-              className="mt-1.5 h-11 w-full"
+              className="mt-1.5 w-full"
             />
           </Label>
           <Label
@@ -92,22 +92,23 @@ export default async function ProductsPage({
             className="min-w-0 text-sm font-semibold text-foreground"
           >
             {copy.category}
-            <NativeSelect
-              id="categoryId"
+            <Select
               name="categoryId"
               defaultValue={category?.success ? category.data : ""}
-              className="mt-1.5 h-11 w-full"
             >
-              <NativeSelectOption value="">
-                {copy.allCategories}
-              </NativeSelectOption>
-              {categories.map((item) => (
-                <NativeSelectOption key={item.id} value={item.id}>
-                  {localizeBilingual(item.nameEn, item.nameSi, locale)} ·{" "}
-                  {item.shopName}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+              <SelectTrigger id="categoryId" className="mt-1.5 h-11 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">{copy.allCategories}</SelectItem>
+                {categories.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {localizeBilingual(item.nameEn, item.nameSi, locale)} ·{" "}
+                    {item.shopName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Label>
           <Button type="submit" className="h-11 self-end">
             {copy.applyFilters}

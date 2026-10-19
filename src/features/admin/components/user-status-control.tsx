@@ -3,9 +3,10 @@ import { useText } from "@/features/i18n/components/locale-provider";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { CircleCheck, CircleX } from "lucide-react";
 
 import type { UserStatus } from "@/generated/prisma/client";
-import { Button } from "@/components/ui/button";
+import { IconActionButton } from "@/components/ui/icon-action-button";
 import { Alert } from "@/components/ui/alert";
 
 interface StatusResponse {
@@ -53,14 +54,19 @@ export function UserStatusControl({
 
   return (
     <div>
-      <Button
-        variant="outline"
+      <IconActionButton
+        label={pending ? t("Updating…") : `${action} ${userName}`}
+        variant={nextStatus === "ACTIVE" ? "success" : "destructive"}
         type="button"
         disabled={pending}
         onClick={changeStatus}
       >
-        {pending ? t("Updating…") : `${action} ${userName}`}
-      </Button>
+        {nextStatus === "ACTIVE" ? (
+          <CircleCheck aria-hidden="true" />
+        ) : (
+          <CircleX aria-hidden="true" />
+        )}
+      </IconActionButton>
       {error ? (
         <Alert variant="destructive" role="alert" className="mt-2 max-w-sm">
           {error}
