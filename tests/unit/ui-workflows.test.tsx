@@ -84,12 +84,16 @@ describe("shared UI form workflows", () => {
     fireEvent.change(screen.getByLabelText("Address"), {
       target: { value: "12 Main Road" },
     });
+    fireEvent.click(screen.getByText("Enter coordinates manually"));
     fireEvent.change(screen.getByLabelText("Latitude"), {
       target: { value: "6.9" },
     });
     fireEvent.change(screen.getByLabelText("Longitude"), {
       target: { value: "79.8" },
     });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Use these coordinates" }),
+    );
     fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(screen.getByRole("button", { name: "Add address" }));
     await waitFor(() => expect(fetcher).toHaveBeenCalled());

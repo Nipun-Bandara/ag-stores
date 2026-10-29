@@ -51,6 +51,7 @@ export function AdminShopStatusControl({
       <IconActionButton
         label={pending ? t("Updating…") : `${action} ${shopName}`}
         variant={isActive ? "destructive" : "success"}
+        size="icon-sm"
         type="button"
         disabled={pending}
         onClick={changeStatus}

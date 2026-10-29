@@ -3,7 +3,7 @@ import { useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
-import { CircleCheck, Pencil, Trash2 } from "lucide-react";
+import { CircleCheck, MapPin, Pencil, Trash2 } from "lucide-react";
 
 import { FormError, FormField } from "@/features/auth/components/form-fields";
 import type { CustomerAddressView } from "@/services/customer-address.service";
@@ -14,6 +14,10 @@ import { IconActionButton } from "@/components/ui/icon-action-button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import {
+  LocationPicker,
+  parsePickedLocation,
+} from "@/features/maps/components/location-picker";
 
 interface ApiPayload {
   data?: CustomerAddressView;
@@ -34,10 +38,17 @@ function AddressForm({ address, onCancel, onSaved }: AddressFormProps) {
   const t = useText();
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
+  const [location, setLocation] = useState(() =>
+    parsePickedLocation(address?.latitude, address?.longitude),
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(undefined);
+    if (!location) {
+      setError(t("Choose a location before saving."));
+      return;
+    }
     setPending(true);
 
     const formElement = event.currentTarget;
@@ -69,7 +80,10 @@ function AddressForm({ address, onCancel, onSaved }: AddressFormProps) {
 
     const payload = await readPayload(response);
     if (payload.data) onSaved(payload.data);
-    if (!address) formElement.reset();
+    if (!address) {
+      formElement.reset();
+      setLocation(null);
+    }
     setPending(false);
   }
 
@@ -102,30 +116,7 @@ function AddressForm({ address, onCancel, onSaved }: AddressFormProps) {
           maxLength={1000}
           required
         />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField
-            id={address ? `latitude-${address.id}` : "latitude"}
-            name="latitude"
-            label="Latitude"
-            type="number"
-            min={-90}
-            max={90}
-            step="0.000001"
-            defaultValue={address?.latitude ?? ""}
-            required
-          />
-          <FormField
-            id={address ? `longitude-${address.id}` : "longitude"}
-            name="longitude"
-            label="Longitude"
-            type="number"
-            min={-180}
-            max={180}
-            step="0.000001"
-            defaultValue={address?.longitude ?? ""}
-            required
-          />
-        </div>
+        <LocationPicker value={location} onChange={setLocation} />
         <Label className="flex items-center gap-2 text-sm font-medium">
           <Checkbox
             name="isDefault"
@@ -289,8 +280,9 @@ export function AddressManager({
                 <p className="mt-2 break-words text-sm text-muted-foreground">
                   {item.address}
                 </p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {item.latitude}, {item.longitude}
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <MapPin aria-hidden="true" className="size-3.5" />
+                  {t("Location pinned")}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3 text-sm font-medium">
                   <IconActionButton

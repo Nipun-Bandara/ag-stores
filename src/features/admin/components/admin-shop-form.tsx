@@ -19,6 +19,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  LocationPicker,
+  parsePickedLocation,
+} from "@/features/maps/components/location-picker";
 
 interface ShopResponse {
   data?: AdminShopView;
@@ -37,10 +41,18 @@ export function AdminShopForm({
   const [message, setMessage] = useState<string>();
   const [isError, setIsError] = useState(false);
   const [pending, setPending] = useState(false);
+  const [location, setLocation] = useState(() =>
+    parsePickedLocation(shop?.latitude, shop?.longitude),
+  );
   const inputClass = "mt-1.5 h-10 w-full";
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!location) {
+      setMessage(t("Choose a location before saving."));
+      setIsError(true);
+      return;
+    }
     setPending(true);
     setMessage(undefined);
     setIsError(false);
@@ -138,36 +150,14 @@ export function AdminShopForm({
               required
             />
           </Label>
-          <Label className="flex items-center gap-3 self-end rounded-md border p-3 text-sm font-medium">
+          <Label className="flex items-center gap-3 self-end py-2 text-sm font-medium">
             <Checkbox
               name="isOpen"
-
               defaultChecked={shop?.isOpen ?? false}
             />
             <Text value={"Open for customer orders "} />
           </Label>
-          <Label className="text-sm font-medium">
-            <Text value={"Latitude "} />
-            <Input
-              name="latitude"
-              type="number"
-              step="0.000001"
-              defaultValue={shop?.latitude ?? ""}
-              className={inputClass}
-              required
-            />
-          </Label>
-          <Label className="text-sm font-medium">
-            <Text value={"Longitude "} />
-            <Input
-              name="longitude"
-              type="number"
-              step="0.000001"
-              defaultValue={shop?.longitude ?? ""}
-              className={inputClass}
-              required
-            />
-          </Label>
+          <LocationPicker value={location} onChange={setLocation} />
           <Label className="text-sm font-medium">
             <Text value={"Minimum order amount (LKR) "} />
             <Input

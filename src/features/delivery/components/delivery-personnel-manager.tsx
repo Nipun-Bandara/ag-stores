@@ -306,8 +306,8 @@ export function DeliveryPersonnelManager({
                 data-testid="delivery-person-card"
                 className="gap-0 p-5"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0">
                     <h3 className="font-semibold">{person.name}</h3>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {person.email} · {person.phone}
@@ -316,34 +316,38 @@ export function DeliveryPersonnelManager({
                       {person.assignedShopName ?? t("Unassigned")}
                     </p>
                   </div>
-                  <Badge variant="secondary">
-                    {person.status === "ACTIVE" ? t("Active") : t("Inactive")}
-                  </Badge>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-4 text-sm font-medium">
-                  <IconActionButton
-                    variant="ghost"
-                    type="button"
-                    label={`${t("Edit")} ${person.name}`}
-                    onClick={() => setEditingId(person.id)}
-                  >
-                    <Pencil aria-hidden="true" />
-                  </IconActionButton>
-                  <IconActionButton
-                    variant={
-                      person.status === "ACTIVE" ? "destructive" : "success"
-                    }
-                    type="button"
-                    label={`${t(person.status === "ACTIVE" ? "Deactivate" : "Activate")} ${person.name}`}
-                    disabled={pendingId === person.id}
-                    onClick={() => changeStatus(person)}
-                  >
-                    {person.status === "ACTIVE" ? (
-                      <CircleX aria-hidden="true" />
-                    ) : (
-                      <CircleCheck aria-hidden="true" />
-                    )}
-                  </IconActionButton>
+                  <div className="ml-auto flex flex-col items-center gap-2 rounded-lg bg-muted/40 px-3 py-2">
+                    <Badge variant="secondary">
+                      {person.status === "ACTIVE" ? t("Active") : t("Inactive")}
+                    </Badge>
+                    <div className="flex items-center justify-center gap-2">
+                      <IconActionButton
+                        variant="ghost"
+                        size="icon-sm"
+                        type="button"
+                        label={`${t("Edit")} ${person.name}`}
+                        onClick={() => setEditingId(person.id)}
+                      >
+                        <Pencil aria-hidden="true" />
+                      </IconActionButton>
+                      <IconActionButton
+                        variant={
+                          person.status === "ACTIVE" ? "destructive" : "success"
+                        }
+                        size="icon-sm"
+                        type="button"
+                        label={`${t(person.status === "ACTIVE" ? "Deactivate" : "Activate")} ${person.name}`}
+                        disabled={pendingId === person.id}
+                        onClick={() => changeStatus(person)}
+                      >
+                        {person.status === "ACTIVE" ? (
+                          <CircleX aria-hidden="true" />
+                        ) : (
+                          <CircleCheck aria-hidden="true" />
+                        )}
+                      </IconActionButton>
+                    </div>
+                  </div>
                 </div>
               </Card>
             ))}

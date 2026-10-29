@@ -12,6 +12,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
+import {
+  LocationPicker,
+  parsePickedLocation,
+} from "@/features/maps/components/location-picker";
 
 interface ResponsePayload {
   data?: ShopSettingsView;
@@ -22,12 +26,22 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
   const t = useText();
   const [settings, setSettings] = useState(initial);
   const [message, setMessage] = useState<string>();
+  const [isError, setIsError] = useState(false);
   const [pending, setPending] = useState(false);
+  const [location, setLocation] = useState(() =>
+    parsePickedLocation(initial.latitude, initial.longitude),
+  );
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!location) {
+      setMessage(t("Choose a location before saving."));
+      setIsError(true);
+      return;
+    }
     setPending(true);
     setMessage(undefined);
+    setIsError(false);
     const form = new FormData(event.currentTarget);
     const response = await fetch("/api/owner/shop-settings", {
       method: "PATCH",
@@ -50,10 +64,14 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
       .catch(() => ({}))) as ResponsePayload;
     if (!response.ok || !payload.data) {
       setMessage(t(payload.error?.message ?? "Unable to save shop settings."));
+      setIsError(true);
       setPending(false);
       return;
     }
     setSettings(payload.data);
+    setLocation(
+      parsePickedLocation(payload.data.latitude, payload.data.longitude),
+    );
     setMessage(t("Shop settings saved."));
     setPending(false);
   }
@@ -101,37 +119,15 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
               required
             />
           </Label>
-          <Label className="flex items-center gap-3 self-end rounded-md border p-3 text-sm font-medium">
+          <Label className="flex items-center gap-3 self-end py-2 text-sm font-medium">
             <Checkbox
               name="isOpen"
-
               disabled={!settings.isActive}
               defaultChecked={settings.isOpen}
             />
             <Text value={"Open for customer orders "} />
           </Label>
-          <Label className="text-sm font-medium">
-            <Text value={"Latitude "} />
-            <Input
-              name="latitude"
-              type="number"
-              step="0.000001"
-              defaultValue={settings.latitude}
-              className={inputClass}
-              required
-            />
-          </Label>
-          <Label className="text-sm font-medium">
-            <Text value={"Longitude "} />
-            <Input
-              name="longitude"
-              type="number"
-              step="0.000001"
-              defaultValue={settings.longitude}
-              className={inputClass}
-              required
-            />
-          </Label>
+          <LocationPicker value={location} onChange={setLocation} />
           <Label className="text-sm font-medium">
             <Text value={"Minimum order amount (LKR) "} />
             <Input
@@ -181,7 +177,10 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
             {pending ? t("Saving…") : t("Save settings")}
           </Button>
           {message ? (
-            <Alert variant="success" role="status" className="">
+            <Alert
+              variant={isError ? "destructive" : "success"}
+              role={isError ? "alert" : "status"}
+            >
               {message}
             </Alert>
           ) : null}

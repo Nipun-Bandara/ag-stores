@@ -166,47 +166,47 @@ export default async function AdminUsersPage({
           </p>
         </div>
         {users.length ? (
-          <Card className="gap-0 mt-4 overflow-x-auto">
-            <Table className="w-full min-w-[760px] text-left text-sm">
-              <TableHeader className="border-b bg-muted/50 text-muted-foreground">
+          <div className="mt-4">
+            <Table className="min-w-[760px]">
+              <TableHeader>
                 <TableRow>
-                  <TableHead className="px-4 py-3 font-medium">
+                  <TableHead>
                     <Text value={"User"} />
                   </TableHead>
-                  <TableHead className="px-4 py-3 font-medium">
+                  <TableHead>
                     <Text value={"Contact "} />
                   </TableHead>
-                  <TableHead className="px-4 py-3 font-medium">
+                  <TableHead>
                     <Text value={"Role"} />
                   </TableHead>
-                  <TableHead className="px-4 py-3 font-medium">
+                  <TableHead>
                     <Text value={"Status "} />
                   </TableHead>
-                  <TableHead className="px-4 py-3 font-medium">
+                  <TableHead>
                     <Text value={"Actions "} />
                   </TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className="divide-y">
+              <TableBody>
                 {users.map((user) => (
                   <TableRow key={user.id} data-testid="admin-user-row">
-                    <TableCell className="px-4 py-4">
+                    <TableCell>
                       <Link
                         href={`/admin/users/${user.id}`}
-                        className="font-semibold underline"
+                        className="font-semibold text-foreground hover:text-primary focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                       >
                         {user.name}
                       </Link>
                     </TableCell>
-                    <TableCell className="px-4 py-4 text-muted-foreground">
+                    <TableCell className="text-muted-foreground">
                       {user.email ?? user.phone ?? (
                         <Text value="Not provided" />
                       )}
                     </TableCell>
-                    <TableCell className="px-4 py-4">
+                    <TableCell>
                       <Text value={roleLabels[user.role]} />
                     </TableCell>
-                    <TableCell className="px-4 py-4">
+                    <TableCell>
                       <Badge
                         variant="secondary"
                         data-testid={`user-status-${user.id}`}
@@ -214,7 +214,7 @@ export default async function AdminUsersPage({
                         <Text value={statusLabels[user.status]} />
                       </Badge>
                     </TableCell>
-                    <TableCell className="px-4 py-4">
+                    <TableCell>
                       <UserStatusControl
                         userId={user.id}
                         userName={user.name}
@@ -225,7 +225,7 @@ export default async function AdminUsersPage({
                 ))}
               </TableBody>
             </Table>
-          </Card>
+          </div>
         ) : (
           <Empty className="mt-4">
             <EmptyHeader>

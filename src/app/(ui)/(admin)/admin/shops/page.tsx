@@ -63,10 +63,10 @@ export default async function AdminShopsPage() {
                   className="gap-0 p-5"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
+                    <div className="min-w-0">
                       <Link
                         href={`/admin/shops/${shop.id}`}
-                        className="font-semibold underline"
+                        className="font-semibold text-foreground hover:text-primary focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                       >
                         {shop.name}
                       </Link>
@@ -78,21 +78,21 @@ export default async function AdminShopsPage() {
                         {shop.address}
                       </p>
                     </div>
-                    <div className="flex gap-2 text-xs font-medium">
-                      <Badge variant="secondary">
-                        <Text value={shop.isActive ? "Active" : "Inactive"} />
-                      </Badge>
-                      <Badge variant="secondary">
-                        <Text value={shop.isOpen ? "Open" : "Closed"} />
-                      </Badge>
+                    <div className="ml-auto flex flex-col items-center gap-2 rounded-lg bg-muted/40 px-3 py-2">
+                      <div className="flex flex-wrap justify-center gap-2 text-xs font-medium">
+                        <Badge variant="secondary">
+                          <Text value={shop.isActive ? "Active" : "Inactive"} />
+                        </Badge>
+                        <Badge variant="secondary">
+                          <Text value={shop.isOpen ? "Open" : "Closed"} />
+                        </Badge>
+                      </div>
+                      <AdminShopStatusControl
+                        shopId={shop.id}
+                        shopName={shop.name}
+                        initialIsActive={shop.isActive}
+                      />
                     </div>
-                  </div>
-                  <div className="mt-4">
-                    <AdminShopStatusControl
-                      shopId={shop.id}
-                      shopName={shop.name}
-                      initialIsActive={shop.isActive}
-                    />
                   </div>
                 </Card>
               ))}
