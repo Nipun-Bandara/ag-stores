@@ -73,3 +73,22 @@ export function writeAuditLog(
     select: { id: true },
   });
 }
+
+export async function writeAuditLogs(
+  transaction: Prisma.TransactionClient,
+  entries: readonly AuditEntry[],
+): Promise<void> {
+  if (entries.length === 0) return;
+  await transaction.auditLog.createMany({
+    data: entries.map((entry) => {
+      const metadata = sanitizeAuditMetadata(entry.metadata);
+      return {
+        actorId: entry.actorId,
+        action: entry.action,
+        entityType: entry.entityType,
+        entityId: entry.entityId,
+        ...(metadata ? { metadata } : {}),
+      };
+    }),
+  });
+}
