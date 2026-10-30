@@ -2,20 +2,12 @@ import { getServerText } from "@/lib/i18n/server";
 import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
 
-import Link from "next/link";
-
 import { UserRole } from "@/generated/prisma/client";
 import { AvailableOrderBatchSelector } from "@/features/delivery/components/available-order-batch-selector";
+import { AvailableOrdersFilters } from "@/features/delivery/components/available-orders-filters";
 import { requireRole } from "@/lib/auth/server";
 import { listAvailableDeliveryOrders } from "@/services/delivery-order.service";
 import { availableDeliveryOrderFiltersSchema } from "@/validations/delivery-order";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
-import { Button, buttonVariants } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 
@@ -40,7 +32,6 @@ function first(value: string | string[] | undefined): string | undefined {
 export default async function DeliveryOrdersPage({
   searchParams,
 }: DeliveryOrdersPageProps) {
-  const t = await getServerText();
   const user = await requireRole(UserRole.DELIVERY_PERSON, "/delivery/orders");
   const query = await searchParams;
   const rawFilters = Object.fromEntries(
@@ -66,78 +57,13 @@ export default async function DeliveryOrdersPage({
       </p>
 
       <Card className="gap-0 mt-8 p-5">
-        <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <Label className="text-sm font-medium" htmlFor="maxDistanceKm">
-            <Text value={"Maximum approximate distance "} />
-            <Input
-              id="maxDistanceKm"
-              name="maxDistanceKm"
-              type="number"
-              min="0.1"
-              max="500"
-              step="0.1"
-              defaultValue={filters.maxDistanceKm ?? ""}
-              placeholder={t("Kilometres")}
-              className="mt-1.5 h-10 w-full"
-            />
-          </Label>
-          <Label className="text-sm font-medium" htmlFor="createdAfter">
-            <Text value={"Created after "} />
-            <Input
-              id="createdAfter"
-              name="createdAfter"
-              type="date"
-              defaultValue={filters.createdAfter ?? ""}
-              className="mt-1.5 h-10 w-full"
-            />
-          </Label>
-          <Label className="text-sm font-medium" htmlFor="sortBy">
-            <Text value={"Sort by "} />
-            <NativeSelect
-              id="sortBy"
-              name="sortBy"
-              defaultValue={filters.sortBy}
-              className="mt-1.5 h-10 w-full"
-            >
-              <NativeSelectOption value="createdAt">
-                <Text value={"Creation time "} />
-              </NativeSelectOption>
-              <NativeSelectOption value="distance">
-                <Text value={"Approximate distance "} />
-              </NativeSelectOption>
-            </NativeSelect>
-          </Label>
-          <Label className="text-sm font-medium" htmlFor="direction">
-            <Text value={"Direction "} />
-            <NativeSelect
-              id="direction"
-              name="direction"
-              defaultValue={filters.direction}
-              className="mt-1.5 h-10 w-full"
-            >
-              <NativeSelectOption value="asc">
-                <Text value={"Ascending"} />
-              </NativeSelectOption>
-              <NativeSelectOption value="desc">
-                <Text value={"Descending"} />
-              </NativeSelectOption>
-            </NativeSelect>
-          </Label>
-          <div className="flex items-end gap-2">
-            <Button type="submit" className="h-10">
-              <Text value={"Apply "} />
-            </Button>
-            <Link
-              href="/delivery/orders"
-              className={buttonVariants({
-                variant: "outline",
-                className: "inline-flex h-10 items-center",
-              })}
-            >
-              <Text value={"Clear "} />
-            </Link>
-          </div>
-        </form>
+        <AvailableOrdersFilters
+          key={`${filters.maxDistanceKm ?? ""}:${filters.createdAfter ?? ""}:${filters.sortBy}:${filters.direction}`}
+          initialMaxDistanceKm={filters.maxDistanceKm}
+          initialCreatedAfter={filters.createdAfter}
+          initialSortBy={filters.sortBy}
+          initialDirection={filters.direction}
+        />
       </Card>
       {!parsed.success ? (
         <Alert variant="destructive" role="alert" className="mt-3">

@@ -309,15 +309,19 @@ test.describe.serial("available delivery orders", () => {
     await signIn(page, "delivery@agstores.local", "/delivery");
     await page.goto("/delivery/orders");
     await page.getByLabel("Maximum approximate distance").fill("5");
-    await page.getByLabel("Sort by").selectOption("distance");
-    await page.getByLabel("Direction").selectOption("asc");
+    await page.getByRole("combobox", { name: "Sort by" }).click();
+    await page.getByRole("option", { name: "Approximate distance" }).click();
+    await page.getByRole("combobox", { name: "Direction" }).click();
+    await page.getByRole("option", { name: "Ascending" }).click();
     await page.getByRole("button", { name: "Apply" }).click();
     await expect(page.getByText(nearOrderId, { exact: true })).toBeVisible();
     await expect(page.getByText(farOrderId)).toHaveCount(0);
 
     await page.getByRole("link", { name: "Clear" }).click();
-    await page.getByLabel("Sort by").selectOption("createdAt");
-    await page.getByLabel("Direction").selectOption("asc");
+    await page.getByRole("combobox", { name: "Sort by" }).click();
+    await page.getByRole("option", { name: "Creation time" }).click();
+    await page.getByRole("combobox", { name: "Direction" }).click();
+    await page.getByRole("option", { name: "Ascending" }).click();
     await page.getByRole("button", { name: "Apply" }).click();
     const cards = page.getByTestId("available-order-card");
     await expect(cards.first()).toContainText(nearOrderId);
