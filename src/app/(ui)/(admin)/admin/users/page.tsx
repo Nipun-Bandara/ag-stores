@@ -12,9 +12,12 @@ import { adminUserFiltersSchema } from "@/validations/admin-user";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import {
@@ -70,6 +73,20 @@ export default async function AdminUsersPage({
   });
   const filters = parsed.success ? parsed.data : {};
   const users = await listAdminUsers(administrator, filters);
+  const roleOptions = [
+    { value: "", label: t("All roles") },
+    ...Object.values(UserRole).map((role) => ({
+      value: role,
+      label: t(roleLabels[role]),
+    })),
+  ];
+  const statusOptions = [
+    { value: "", label: t("All statuses") },
+    ...Object.values(UserStatus).map((status) => ({
+      value: status,
+      label: t(statusLabels[status]),
+    })),
+  ];
 
   return (
     <section className="min-w-0 w-full">
@@ -85,8 +102,8 @@ export default async function AdminUsersPage({
       </p>
 
       <Card className="gap-0 mt-8 p-5">
-        <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_auto_auto]">
-          <Label className="text-sm font-medium" htmlFor="search">
+        <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto]">
+          <Label className="min-w-0 text-sm font-medium" htmlFor="search">
             <Text value={"Search users "} />
             <Input
               id="search"
@@ -97,41 +114,51 @@ export default async function AdminUsersPage({
               className="mt-1.5 h-10 w-full"
             />
           </Label>
-          <Label className="text-sm font-medium" htmlFor="role">
+          <Label className="min-w-0 text-sm font-medium" htmlFor="role">
             <Text value={"Role "} />
-            <NativeSelect
-              id="role"
+            <Select
+              key={filters.role ?? ""}
               name="role"
+              items={roleOptions}
               defaultValue={filters.role ?? ""}
-              className="mt-1.5 h-10 w-full"
             >
-              <NativeSelectOption value="">
-                <Text value={"All roles"} />
-              </NativeSelectOption>
-              {Object.values(UserRole).map((role) => (
-                <NativeSelectOption key={role} value={role}>
-                  <Text value={roleLabels[role]} />
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+              <SelectTrigger
+                id="role"
+                className="mt-1.5 h-10 w-full data-[size=default]:h-10"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false} className="min-w-0">
+                {roleOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Label>
-          <Label className="text-sm font-medium" htmlFor="status">
+          <Label className="min-w-0 text-sm font-medium" htmlFor="status">
             <Text value={"Status "} />
-            <NativeSelect
-              id="status"
+            <Select
+              key={filters.status ?? ""}
               name="status"
+              items={statusOptions}
               defaultValue={filters.status ?? ""}
-              className="mt-1.5 h-10 w-full"
             >
-              <NativeSelectOption value="">
-                <Text value={"All statuses"} />
-              </NativeSelectOption>
-              {Object.values(UserStatus).map((status) => (
-                <NativeSelectOption key={status} value={status}>
-                  <Text value={statusLabels[status]} />
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+              <SelectTrigger
+                id="status"
+                className="mt-1.5 h-10 w-full data-[size=default]:h-10"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false} className="min-w-0">
+                {statusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Label>
           <Button type="submit" className="h-10 self-end">
             <Text value={"Apply filters "} />

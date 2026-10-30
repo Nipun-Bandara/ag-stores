@@ -51,7 +51,11 @@ export default function AuthContainer({
         <Text value={"Back to Home "} />
       </Link>
       <div className="absolute top-4 right-4 z-50">
-        <LanguageSwitcher locale={locale} label={t("Language")} />
+        <LanguageSwitcher
+          locale={locale}
+          label={t("Language")}
+          alignItemWithTrigger={false}
+        />
       </div>
       {/* Form Container - Scrolls with page */}
       <div
@@ -89,7 +93,7 @@ export default function AuthContainer({
             dotSize={5}
             gap={15}
             baseColor={dotGridBaseColor}
-            activeColor="#10B981"
+            activeColor="#155dfb"
             proximity={120}
             shockRadius={250}
             shockStrength={5}

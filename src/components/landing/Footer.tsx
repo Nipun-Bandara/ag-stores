@@ -1,6 +1,7 @@
 import type { Dictionary } from "@/lib/i18n/config";
 // import Image from "next/image";
 import Link from "next/link";
+import { landingSectionIds } from "@/components/landing/sections";
 // import logo from "@/app/public/logo.svg";
 
 export const Footer = ({
@@ -35,13 +36,13 @@ export const Footer = ({
               {copy.platform}
             </h4>
             <Link
-              href={"#features"}
+              href={`#${landingSectionIds.workspaces}`}
               className="font-caption text-caption text-on-surface-variant hover:text-primary underline transition-all duration-200"
             >
               {copy.features}
             </Link>
             <Link
-              href={"#about"}
+              href={`#${landingSectionIds.overview}`}
               className="font-caption text-caption text-on-surface-variant hover:text-primary underline transition-all duration-200"
             >
               {copy.about}
@@ -58,7 +59,7 @@ export const Footer = ({
               {copy.browseProducts}
             </Link>
             <Link
-              href={"#workflow"}
+              href={`#${landingSectionIds.orderFlow}`}
               className="font-caption text-caption text-on-surface-variant hover:text-primary underline transition-all duration-200"
             >
               {copy.howItWorks}
@@ -75,7 +76,7 @@ export const Footer = ({
               {copy.getStarted}
             </Link>
             <Link
-              href={"#workflow"}
+              href={`#${landingSectionIds.orderFlow}`}
               className="font-caption text-caption text-on-surface-variant hover:text-primary underline transition-all duration-200"
             >
               {copy.learnMore}

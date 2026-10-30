@@ -7,6 +7,7 @@ import { Stat } from "@/components/landing/Stat";
 import { Features } from "@/components/landing/Features";
 import { OrderFlow } from "@/components/landing/OrderFlow";
 import { Footer } from "@/components/landing/Footer";
+import { landingSectionIds } from "@/components/landing/sections";
 
 export const dynamic = "force-dynamic";
 
@@ -34,16 +35,22 @@ export default async function HomePage() {
 
         {/* Platform overview */}
         <div
-          id="about"
-          className="w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop"
+          id={landingSectionIds.overview}
+          className="w-full max-w-container-max mx-auto scroll-mt-24 px-margin-mobile md:px-margin-desktop"
         >
           <Stat copy={copy} />
         </div>
-        <section id="features" className="w-full">
+        <section
+          id={landingSectionIds.workspaces}
+          className="w-full scroll-mt-24"
+        >
           <Features copy={copy} />
         </section>
 
-        <section id="workflow" className="w-full">
+        <section
+          id={landingSectionIds.orderFlow}
+          className="w-full scroll-mt-24"
+        >
           <OrderFlow copy={copy} />
         </section>
       </main>

@@ -57,6 +57,11 @@ export function UserStatusControl({
       <IconActionButton
         label={pending ? t("Updating…") : `${action} ${userName}`}
         variant={nextStatus === "ACTIVE" ? "success" : "destructive"}
+        className={
+          nextStatus === "INACTIVE"
+            ? "text-white [html.dark_&]:text-black"
+            : undefined
+        }
         type="button"
         disabled={pending}
         onClick={changeStatus}
@@ -64,7 +69,10 @@ export function UserStatusControl({
         {nextStatus === "ACTIVE" ? (
           <CircleCheck aria-hidden="true" />
         ) : (
-          <CircleX aria-hidden="true" />
+          <CircleX
+            aria-hidden="true"
+            className="stroke-white [html.dark_&]:stroke-black"
+          />
         )}
       </IconActionButton>
       {error ? (

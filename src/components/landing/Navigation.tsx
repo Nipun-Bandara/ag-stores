@@ -19,6 +19,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { landingSectionIds } from "@/components/landing/sections";
 import {
   Sheet,
   SheetContent,
@@ -47,7 +48,7 @@ function LandingLanguageSelect({
       <SelectTrigger aria-label={label} className="min-w-28">
         <SelectValue>{locale === "si" ? t("සිංහල") : t("English")}</SelectValue>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent alignItemWithTrigger={false} className="min-w-0">
         <SelectItem value="en">English</SelectItem>
         <SelectItem value="si">සිංහල</SelectItem>
       </SelectContent>
@@ -71,9 +72,9 @@ export const Navigation = ({
   languageLabel: string;
 }) => {
   const navItems = [
-    { name: copy.about, href: "#about" },
-    { name: copy.features, href: "#features" },
-    { name: copy.howItWorks, href: "#workflow" },
+    { name: copy.about, href: `#${landingSectionIds.overview}` },
+    { name: copy.features, href: `#${landingSectionIds.workspaces}` },
+    { name: copy.howItWorks, href: `#${landingSectionIds.orderFlow}` },
     { name: copy.shopNav, href: productsHref },
   ];
   const [isScrolled, setIsScrolled] = useState(false);
@@ -100,10 +101,6 @@ export const Navigation = ({
       setIsScrolled(false);
     }
   });
-
-  const getLinkHref = (item: { name: string; href: string }) => {
-    return item.href;
-  };
 
   return (
     <>
@@ -148,7 +145,7 @@ export const Navigation = ({
           </Link>
           <ul className="hidden font-body-md gap-6 text-sm lg:flex whitespace-nowrap px-16">
             {navItems.map((item) => {
-              const href = getLinkHref(item);
+              const href = item.href;
               const isActive = pathname === href;
               return (
                 <li
@@ -203,7 +200,11 @@ export const Navigation = ({
       </header>
 
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetContent side="right" showCloseButton={false} className="w-72 p-6">
+        <SheetContent
+          side="right"
+          showCloseButton={false}
+          className="w-72 border-border p-6"
+        >
           <SheetTitle className="sr-only">{copy.brand}</SheetTitle>
           <SheetDescription className="sr-only">
             {copy.openMenu}
@@ -228,7 +229,7 @@ export const Navigation = ({
 
           <ul className="flex flex-col gap-4">
             {navItems.map((item) => {
-              const href = getLinkHref(item);
+              const href = item.href;
               return (
                 <li key={item.name}>
                   <Link

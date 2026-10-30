@@ -38,9 +38,11 @@ export function useLocaleChange(locale: Locale) {
 export function LanguageSwitcher({
   locale,
   label,
+  alignItemWithTrigger = false,
 }: {
   locale: Locale;
   label: string;
+  alignItemWithTrigger?: boolean;
 }) {
   const { pending, changeLocale } = useLocaleChange(locale);
 
@@ -55,7 +57,10 @@ export function LanguageSwitcher({
       <SelectTrigger aria-label={label} className="min-w-28">
         <SelectValue>{locale === "si" ? "සිංහල" : "English"}</SelectValue>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent
+        alignItemWithTrigger={alignItemWithTrigger}
+        className="min-w-0"
+      >
         <SelectItem value="en">English</SelectItem>
         <SelectItem value="si">සිංහල</SelectItem>
       </SelectContent>
