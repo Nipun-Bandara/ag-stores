@@ -1,0 +1,197 @@
+"use client";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
+
+import { useState, type FormEvent } from "react";
+
+import type { ShopSettingsView } from "@/services/shop-settings.service";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
+import {
+  LocationPicker,
+  parsePickedLocation,
+} from "@/features/maps/components/location-picker";
+
+interface ResponsePayload {
+  data?: ShopSettingsView;
+  error?: { message?: string };
+}
+
+export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
+  const t = useText();
+  const [settings, setSettings] = useState(initial);
+  const [message, setMessage] = useState<string>();
+  const [isError, setIsError] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [location, setLocation] = useState(() =>
+    parsePickedLocation(initial.latitude, initial.longitude),
+  );
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!location) {
+      setMessage(t("Choose a location before saving."));
+      setIsError(true);
+      return;
+    }
+    setPending(true);
+    setMessage(undefined);
+    setIsError(false);
+    const form = new FormData(event.currentTarget);
+    const response = await fetch("/api/owner/shop-settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        shopId: settings.id,
+        name: form.get("name"),
+        address: form.get("address"),
+        phone: form.get("phone"),
+        latitude: form.get("latitude"),
+        longitude: form.get("longitude"),
+        isOpen: form.get("isOpen") === "on",
+        minimumOrderAmount: form.get("minimumOrderAmount"),
+        deliveryFee: form.get("deliveryFee"),
+        maximumDeliveryRadiusKm: form.get("maximumDeliveryRadiusKm"),
+      }),
+    });
+    const payload = (await response
+      .json()
+      .catch(() => ({}))) as ResponsePayload;
+    if (!response.ok || !payload.data) {
+      setMessage(t(payload.error?.message ?? "Unable to save shop settings."));
+      setIsError(true);
+      setPending(false);
+      return;
+    }
+    setSettings(payload.data);
+    setLocation(
+      parsePickedLocation(payload.data.latitude, payload.data.longitude),
+    );
+    setMessage(t("Shop settings saved."));
+    setPending(false);
+  }
+
+  const inputClass = "mt-1.5 h-10 w-full";
+
+  return (
+    <Card className="gap-0 p-5 sm:p-6">
+      <form onSubmit={submit} className="space-y-5">
+        {!settings.isActive ? (
+          <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <Text
+              value={
+                "This shop is administratively inactive. Customers cannot browse or order from it until an administrator reactivates it. "
+              }
+            />
+          </p>
+        ) : null}
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end">
+          <Label className="min-w-0 text-sm font-medium sm:col-span-2 xl:col-span-1">
+            <Text value={"Shop name "} />
+            <Input
+              name="name"
+              defaultValue={settings.name}
+              className={inputClass}
+              required
+            />
+          </Label>
+          <Label className="min-w-0 text-sm font-medium">
+            <Text value={"Phone "} />
+            <Input
+              name="phone"
+              type="tel"
+              defaultValue={settings.phone}
+              className={inputClass}
+              required
+            />
+          </Label>
+          <Label className="flex items-center gap-3 self-end py-2 text-sm font-medium">
+            <Checkbox
+              name="isOpen"
+              disabled={!settings.isActive}
+              defaultChecked={settings.isOpen}
+            />
+            <Text value={"Open for customer orders "} />
+          </Label>
+        </div>
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+          <Label className="flex min-w-0 flex-col text-sm font-medium">
+            <Text value={"Address "} />
+            <Textarea
+              name="address"
+              defaultValue={settings.address}
+              className="mt-1.5 min-h-28 w-full flex-1 p-3"
+              required
+            />
+          </Label>
+          <div className="min-w-0 rounded-lg bg-muted/40 p-3">
+            <LocationPicker value={location} onChange={setLocation} />
+          </div>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <Label className="min-w-0 text-sm font-medium">
+            <Text value={"Minimum order amount (LKR) "} />
+            <Input
+              name="minimumOrderAmount"
+              type="number"
+              min="0"
+              step="0.01"
+              defaultValue={settings.minimumOrderAmount}
+              className={inputClass}
+              required
+            />
+          </Label>
+          <Label className="min-w-0 text-sm font-medium">
+            <Text value={"Delivery fee (LKR) "} />
+            <Input
+              name="deliveryFee"
+              type="number"
+              min="0"
+              step="0.01"
+              defaultValue={settings.deliveryFee}
+              className={inputClass}
+              required
+            />
+          </Label>
+          <Label className="min-w-0 text-sm font-medium sm:col-span-2 lg:col-span-1">
+            <Text value={"Maximum delivery radius (km) "} />
+            <Input
+              name="maximumDeliveryRadiusKm"
+              type="number"
+              min="0.01"
+              step="0.01"
+              defaultValue={settings.maximumDeliveryRadiusKm}
+              className={inputClass}
+              required
+            />
+            <span className="mt-1 block text-xs font-normal text-muted-foreground">
+              <Text
+                value={
+                  "Uses approximate straight-line distance, not road distance. "
+                }
+              />
+            </span>
+          </Label>
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <Button variant="success" type="submit" disabled={pending}>
+            {pending ? t("Saving…") : t("Save settings")}
+          </Button>
+          {message ? (
+            <Alert
+              variant={isError ? "destructive" : "success"}
+              role={isError ? "alert" : "status"}
+            >
+              {message}
+            </Alert>
+          ) : null}
+        </div>
+      </form>
+    </Card>
+  );
+}

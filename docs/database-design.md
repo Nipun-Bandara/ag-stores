@@ -1,0 +1,143 @@
+# Database design decisions
+
+## Identifiers and time
+
+All primary identifiers are PostgreSQL UUIDs. Application timestamps use
+`TIMESTAMPTZ(3)` so stored instants are timezone-aware and have millisecond
+precision. `createdAt` values are database-generated; Prisma maintains
+`updatedAt` values.
+
+## Roles and lifecycle state
+
+User roles, user status, catalog status, order status, preferred language, and
+delivery batch status are PostgreSQL enums. Orders also persist a payment-method
+enum; the MVP permits only `CASH_ON_DELIVERY`. This prevents values outside the
+known workflows from being written even when a caller bypasses application
+validation.
+
+Foreign keys cannot assert that a referenced user has a particular role. The
+service layer must therefore verify that `Shop.ownerId` references a
+`SHOP_OWNER`, order customers are `CUSTOMER` users, and delivery batches are
+assigned to `DELIVERY_PERSON` users.
+
+## Ownership integrity
+
+Composite foreign keys enforce two important tenant boundaries:
+
+- An order's delivery address must belong to that order's customer.
+- A product's category must belong to that product's shop.
+
+The service layer must still verify other cross-record rules, such as ensuring
+every order item belongs to the order's shop and validating allowed status
+transitions.
+
+Category management scopes every mutation through the category's shop owner.
+Shop assignment is set when a category is created and is not editable. Owners
+and administrators may read management category data, but only the owning
+`SHOP_OWNER` may create, rename, activate, or deactivate categories. Public
+storefront category reads always add `status = ACTIVE`, so inactive categories
+remain available for management and existing product relations without being
+shown to customers.
+
+Product management follows the same ownership boundary. A product's shop is
+immutable after creation, and category changes must reference a category from
+that same owned shop. Owner searches are scoped through the shop relation before
+applying category or case-insensitive bilingual text filters.
+
+Customer storefront reads use a separate read-only repository. Every storefront
+product query requires `Product.isAvailable = true` and an `ACTIVE` category,
+including direct product-detail lookups. Products with zero stock remain visible
+so customers can see the catalog state, but are explicitly marked out of stock.
+Storefront category counts include only available products.
+
+## Money and quantities
+
+Money uses `DECIMAL(12,2)`, which is exact and can represent values up to
+9,999,999,999.99 without floating-point rounding. The initial migration adds
+database checks for non-negative prices and totals, positive order-item
+quantities, non-negative stock, and `total = subtotal + deliveryFee`.
+
+Product price requests are validated and normalized as decimal strings with at
+most two fractional digits. They are passed to Prisma without conversion through
+JavaScript floating-point arithmetic and returned to clients as fixed two-place
+strings.
+
+Each product stores a non-negative low-stock threshold. Inventory views derive
+three mutually exclusive states: zero units is out of stock, a positive quantity
+at or below the threshold is low stock, and a quantity above the threshold is
+available. PostgreSQL constraints prevent negative stock and thresholds.
+
+Checkout accepts only product identifiers and quantities from the browser. It
+locks stock through conditional decrements, reloads current database prices,
+and creates the order and its items in one transaction. Each shop stores its
+minimum order amount, delivery fee, and maximum delivery radius as constrained
+decimal values. Checkout reloads these settings inside the same transaction,
+requires the shop to be open, compares the exact subtotal against the minimum,
+and checks the saved address against the radius using approximate Haversine
+distance. One order may contain products from only one shop. Stored order-item
+prices are the authoritative price snapshot used for the order total.
+
+Conditional stock decrements and serializable transactions prevent two
+checkouts from claiming the same final units. Transient serialization conflicts
+are retried with a fresh transaction. Customer cancellation and owner rejection
+restore each order item's quantity in the same compare-and-set status
+transaction, so a terminal order cannot restore inventory twice.
+
+Coordinates use fixed-point decimals and database checks constrain latitude to
+`[-90, 90]` and longitude to `[-180, 180]`.
+
+Customer address coordinates accept at most six decimal places and are returned
+through APIs as decimal strings. This preserves their exact PostgreSQL value
+instead of converting them to an imprecise JSON floating-point representation.
+
+## Deletion policy
+
+Foreign keys use `RESTRICT` for users, shops, addresses, categories, products,
+orders, batches, order items, and batch assignments. This deliberately avoids
+silent cascades that could remove order or delivery history. Future deletion
+workflows should generally deactivate or anonymize records and should remove
+non-critical dependent records explicitly inside a transaction.
+
+## Order lifecycle
+
+Order status changes use a centralized, explicit transition graph. Shop owners
+control acceptance and preparation, customers may cancel only a newly placed
+order, delivery personnel control assigned-delivery states, and administrators
+may perform any otherwise valid transition. Terminal states cannot transition.
+
+Every successful transition updates the order and inserts an
+`OrderStatusHistory` record in the same serializable transaction, including the
+previous status, new status, actor, timestamp, and optional note.
+
+## Uniqueness and indexing
+
+Emails and user phone numbers are globally unique. Address labels are unique
+per customer, category and product English names are unique per shop, an order
+can appear in only one delivery batch, and batch sequence numbers cannot repeat.
+Indexes cover common role/status, shop catalog, customer order history, shop
+order queue, order status, and delivery-person batch queries.
+
+Delivery batch creation locks all selected order rows in stable ID order, then
+re-checks shop ownership, readiness, and existing assignments inside the same
+transaction. The unique constraint on `DeliveryBatchOrder.orderId` provides a
+second database-level guard against double assignment. A conflict rolls back
+the batch, every assignment, every status change, and its history records. Each
+batch stores its own creation timestamp for queue and audit views.
+
+Pending batches may be reordered only by their assigned delivery person. Batch
+start, individual delivery results, order status history, and automatic batch
+completion are transactional. Lifecycle writes lock the batch first, ensuring
+that simultaneous delivery updates cannot complete the batch prematurely.
+
+A partial unique PostgreSQL index permits at most one default address per
+customer. The first address becomes the default automatically. Default changes,
+and promotion of a replacement when the default is deleted, run in database
+transactions. Address reads and writes always include `customerId` in their
+predicate so another customer's address is indistinguishable from a missing
+record.
+
+## Seed data
+
+The development seed is idempotent and creates four role-specific users, one
+shop, two bilingual categories, and two products. Its shared password is only a
+development fixture and must never be used for deployed accounts.

@@ -4,8 +4,6 @@ Production-oriented foundation for a retail ordering and delivery management
 application. It uses Next.js App Router, strict TypeScript, Tailwind CSS,
 shadcn/ui conventions, PostgreSQL, Prisma, and Zod.
 
-No business features are implemented yet.
-
 ## Requirements
 
 - Node.js 24 or newer
@@ -23,8 +21,13 @@ No business features are implemented yet.
 2. Create the local environment file:
 
    ```bash
-   cp .env.example .env
+   cp.env.example .env.example .env
    ```
+
+   Delivery maps are disabled by default. To enable Mapbox visualization, set
+   `NEXT_PUBLIC_MAP_PROVIDER="mapbox"` and provide a URL-restricted public
+   `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` beginning with `pk.`. Never use a Mapbox
+   secret token (`sk.*`) in a `NEXT_PUBLIC_*` variable.
 
 3. Update `DATABASE_URL` in `.env`, then generate the Prisma client:
 
@@ -38,7 +41,13 @@ No business features are implemented yet.
    npm run db:migrate
    ```
 
-5. Start the development server:
+5. Load the idempotent development seed:
+
+   ```bash
+   npm run db:seed
+   ```
+
+6. Start the development server:
 
    ```bash
    npm run dev
@@ -56,6 +65,23 @@ npm test
 npm run test:e2e
 npm run format:check
 ```
+
+Database integration tests require a migrated and seeded PostgreSQL database:
+
+```bash
+DATABASE_URL="<test-database-url>" npm run db:migrate:deploy
+DATABASE_URL="<test-database-url>" npm run db:seed
+TEST_DATABASE_URL="<test-database-url>" npm run test:db
+```
+
+See [Database design decisions](docs/database-design.md) for ownership,
+precision, indexing, and deletion-policy details.
+
+See [Authentication design](docs/authentication.md) for password, session,
+cookie, and authorization decisions.
+
+See [Security decisions](docs/security.md) for trust boundaries, CSRF and
+browser protections, rate limiting, input handling, and deployment follow-ups.
 
 Playwright requires a Chromium installation. Install it once with:
 
@@ -88,3 +114,14 @@ repositories should contain persistence queries.
 
 The initial locale is English (`en`). User-facing copy should be kept ready for
 extraction into translation dictionaries when Sinhala (`si`) is introduced.
+
+## Shop checkout settings
+
+Shop owners configure their location, open status, minimum order, delivery fee,
+and maximum delivery radius at `/owner/settings`. Monetary settings use
+PostgreSQL decimal columns and are never calculated with JavaScript floating
+point arithmetic. The final checkout transaction reloads these values, checks
+the saved customer address, and calculates approximate straight-line distance
+with the Haversine formula. The radius is therefore a geographic eligibility
+check, not a road-distance or travel-time estimate. Rejected checkout attempts
+roll back their temporary stock reservations.

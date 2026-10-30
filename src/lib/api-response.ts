@@ -12,12 +12,21 @@ export interface ErrorResponseBody {
 }
 
 export function successResponse<T>(data: T, init?: ResponseInit) {
-  return NextResponse.json({ success: true as const, data }, init);
+  const response = NextResponse.json({ success: true as const, data }, init);
+  if (!response.headers.has("Cache-Control")) {
+    response.headers.set("Cache-Control", "no-store");
+  }
+  return response;
 }
 
 export function errorResponse(
   error: ApiError,
   status = 500,
 ): NextResponse<ErrorResponseBody> {
-  return NextResponse.json({ success: false, error }, { status });
+  const response = NextResponse.json(
+    { success: false as const, error },
+    { status },
+  );
+  response.headers.set("Cache-Control", "no-store");
+  return response;
 }

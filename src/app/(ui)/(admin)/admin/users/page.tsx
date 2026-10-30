@@ -1,0 +1,268 @@
+import { getServerText } from "@/lib/i18n/server";
+import { Text } from "@/features/i18n/components/text";
+import type { Metadata } from "next";
+
+import Link from "next/link";
+
+import { UserRole, UserStatus } from "@/generated/prisma/client";
+import { UserStatusControl } from "@/features/admin/components/user-status-control";
+import { requireRole } from "@/lib/auth/server";
+import { listAdminUsers } from "@/services/admin-user.service";
+import { adminUserFiltersSchema } from "@/validations/admin-user";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return { title: `${t("Users")} | AG Stores` };
+}
+
+const roleLabels: Record<UserRole, string> = {
+  CUSTOMER: "Customer",
+  SHOP_OWNER: "Shop owner",
+  DELIVERY_PERSON: "Delivery person",
+  ADMIN: "Administrator",
+};
+
+const statusLabels: Record<UserStatus, string> = {
+  ACTIVE: "Active",
+  INACTIVE: "Inactive",
+  SUSPENDED: "Suspended",
+};
+
+function first(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    search?: string | string[];
+    role?: string | string[];
+    status?: string | string[];
+  }>;
+}) {
+  const t = await getServerText();
+  const administrator = await requireRole(UserRole.ADMIN, "/admin/users");
+  const query = await searchParams;
+  const parsed = adminUserFiltersSchema.safeParse({
+    search: first(query.search) || undefined,
+    role: first(query.role) || undefined,
+    status: first(query.status) || undefined,
+  });
+  const filters = parsed.success ? parsed.data : {};
+  const users = await listAdminUsers(administrator, filters);
+  const roleOptions = [
+    { value: "", label: t("All roles") },
+    ...Object.values(UserRole).map((role) => ({
+      value: role,
+      label: t(roleLabels[role]),
+    })),
+  ];
+  const statusOptions = [
+    { value: "", label: t("All statuses") },
+    ...Object.values(UserStatus).map((status) => ({
+      value: status,
+      label: t(statusLabels[status]),
+    })),
+  ];
+
+  return (
+    <section className="min-w-0 w-full">
+      <h1 className="text-3xl font-semibold tracking-tight">
+        <Text value={"User management"} />
+      </h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        <Text
+          value={
+            "Search accounts, review access roles, and manage account status. "
+          }
+        />
+      </p>
+
+      <Card className="gap-0 mt-8 p-5">
+        <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto]">
+          <Label className="min-w-0 text-sm font-medium" htmlFor="search">
+            <Text value={"Search users "} />
+            <Input
+              id="search"
+              name="search"
+              defaultValue={filters.search ?? ""}
+              placeholder={t("Name, email, or phone")}
+              maxLength={150}
+              className="mt-1.5 h-10 w-full"
+            />
+          </Label>
+          <Label className="min-w-0 text-sm font-medium" htmlFor="role">
+            <Text value={"Role "} />
+            <Select
+              key={filters.role ?? ""}
+              name="role"
+              items={roleOptions}
+              defaultValue={filters.role ?? ""}
+            >
+              <SelectTrigger
+                id="role"
+                className="mt-1.5 h-10 w-full data-[size=default]:h-10"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false} className="min-w-0">
+                {roleOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Label>
+          <Label className="min-w-0 text-sm font-medium" htmlFor="status">
+            <Text value={"Status "} />
+            <Select
+              key={filters.status ?? ""}
+              name="status"
+              items={statusOptions}
+              defaultValue={filters.status ?? ""}
+            >
+              <SelectTrigger
+                id="status"
+                className="mt-1.5 h-10 w-full data-[size=default]:h-10"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false} className="min-w-0">
+                {statusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Label>
+          <Button type="submit" className="h-10 self-end">
+            <Text value={"Apply filters "} />
+          </Button>
+          <Link
+            href="/admin/users"
+            className={buttonVariants({
+              variant: "outline",
+              className: "inline-flex h-10 items-center self-end",
+            })}
+          >
+            <Text value={"Clear "} />
+          </Link>
+        </form>
+      </Card>
+      {!parsed.success ? (
+        <Alert variant="destructive" role="alert" className="mt-3">
+          <Text
+            value={"One or more filters were invalid and have been cleared. "}
+          />
+        </Alert>
+      ) : null}
+
+      <section className="mt-8" aria-labelledby="users-heading">
+        <div className="flex items-center justify-between gap-4">
+          <h2 id="users-heading" className="text-lg font-semibold">
+            <Text value={"Users "} />
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {users.length}{" "}
+            <Text value={users.length === 1 ? "account" : "accounts"} />
+          </p>
+        </div>
+        {users.length ? (
+          <div className="mt-4">
+            <Table className="min-w-[760px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>
+                    <Text value={"User"} />
+                  </TableHead>
+                  <TableHead>
+                    <Text value={"Contact "} />
+                  </TableHead>
+                  <TableHead>
+                    <Text value={"Role"} />
+                  </TableHead>
+                  <TableHead>
+                    <Text value={"Status "} />
+                  </TableHead>
+                  <TableHead>
+                    <Text value={"Actions "} />
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id} data-testid="admin-user-row">
+                    <TableCell>
+                      <Link
+                        href={`/admin/users/${user.id}`}
+                        className="font-semibold text-foreground hover:text-primary focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      >
+                        {user.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {user.email ?? user.phone ?? (
+                        <Text value="Not provided" />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Text value={roleLabels[user.role]} />
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="secondary"
+                        data-testid={`user-status-${user.id}`}
+                      >
+                        <Text value={statusLabels[user.status]} />
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <UserStatusControl
+                        userId={user.id}
+                        userName={user.name}
+                        initialStatus={user.status}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <Empty className="mt-4">
+            <EmptyHeader>
+              <EmptyTitle>
+                <Text value={"No users match these filters. "} />
+              </EmptyTitle>
+            </EmptyHeader>
+          </Empty>
+        )}
+      </section>
+    </section>
+  );
+}

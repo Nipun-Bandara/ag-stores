@@ -1,0 +1,78 @@
+import { CountNoun } from "@/features/i18n/components/count-noun";
+import { DateText } from "@/features/i18n/components/date-text";
+import { Text } from "@/features/i18n/components/text";
+import Link from "next/link";
+
+import { orderStatusLabels } from "@/features/orders/order-presentation";
+import type { getOwnerOrderDashboard } from "@/services/owner-order.service";
+import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+
+type Dashboard = Awaited<ReturnType<typeof getOwnerOrderDashboard>>;
+
+export function OwnerOrderList({ orders }: { orders: Dashboard["orders"] }) {
+  if (orders.length === 0) {
+    return (
+      <Empty className="mt-6">
+        <EmptyHeader>
+          <EmptyTitle>
+            <Text value={"No orders match these filters. "} />
+          </EmptyTitle>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+
+  return (
+    <div className="mt-6 grid gap-4">
+      {orders.map((order) => (
+        <Card
+          as="article"
+          key={order.id}
+          data-testid="owner-order-card"
+          className="gap-0 p-5"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                <Text value={"Order number "} />
+              </p>
+              <p className="mt-1 break-all font-mono text-sm font-semibold">
+                {order.id}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {order.customer.name} · {order.itemCount}{" "}
+                <CountNoun
+                  count={order.itemCount}
+                  singular="item"
+                  plural="items"
+                />{" "}
+                · {order.shopName}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                <DateText value={order.createdAt} />
+              </p>
+            </div>
+            <div className="text-right">
+              <Badge variant="secondary">
+                <Text value={orderStatusLabels[order.status]} />
+              </Badge>
+              <p className="mt-2 font-semibold">LKR {order.total}</p>
+            </div>
+          </div>
+          <Link
+            href={`/owner/orders/${order.id}`}
+            className={buttonVariants({
+              variant: "outline",
+              className: "mt-4 inline-flex",
+            })}
+          >
+            <Text value={"View order "} />
+          </Link>
+        </Card>
+      ))}
+    </div>
+  );
+}
