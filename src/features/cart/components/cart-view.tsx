@@ -3,7 +3,6 @@ import { useLocale, useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 import { BilingualText } from "@/features/i18n/components/bilingual-text";
 
-import { useState } from "react";
 import { Trash2 } from "lucide-react";
 
 import Link from "next/link";
@@ -13,7 +12,6 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { IconActionButton } from "@/components/ui/icon-action-button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import {
   Empty,
@@ -24,45 +22,10 @@ import {
 } from "@/components/ui/empty";
 import { localizeBilingual } from "@/lib/i18n/config";
 
-interface ValidationPayload {
-  data?: { subtotal?: string };
-  error?: { message?: string };
-}
-
 export function CartView() {
   const t = useText();
   const locale = useLocale();
   const { items, subtotal, updateQuantity, remove, clear } = useCart();
-  const [validationMessage, setValidationMessage] = useState<string>();
-  const [pending, setPending] = useState(false);
-
-  async function validateForCheckout() {
-    setPending(true);
-    setValidationMessage(undefined);
-    const response = await fetch("/api/checkout/validate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        items: items.map((item) => ({
-          productId: item.id,
-          quantity: item.quantity,
-        })),
-      }),
-    }).catch(() => null);
-    const payload = response
-      ? ((await response.json().catch(() => ({}))) as ValidationPayload)
-      : {};
-
-    setValidationMessage(
-      response?.ok && payload.data?.subtotal
-        ? t("Current server-verified subtotal: LKR {amount}", {
-            amount: payload.data.subtotal,
-          })
-        : t(payload.error?.message ?? "Unable to validate your cart."),
-    );
-    setPending(false);
-  }
-
   if (items.length === 0) {
     return (
       <Empty>
@@ -86,17 +49,17 @@ export function CartView() {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
-      <section aria-label={t("Cart items")} className="space-y-4">
+    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem] xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <section aria-label={t("Cart items")} className="min-w-0 space-y-3">
         {items.map((item) => (
           <Card
             as="article"
             key={item.id}
             data-testid="cart-item"
-            className="gap-0 grid gap-4 p-4 sm:grid-cols-[5rem_1fr_auto] sm:items-center"
+            className="grid grid-cols-[4rem_minmax(0,1fr)] gap-3 p-4 sm:grid-cols-[4rem_minmax(0,1fr)_auto] sm:items-center"
           >
             <div
-              className="flex aspect-square w-20 items-center justify-center rounded-xl bg-amber-100 bg-cover bg-center text-2xl font-black text-emerald-900/25"
+              className="flex aspect-square w-16 items-center justify-center rounded-lg bg-muted bg-cover bg-center text-xl font-semibold text-muted-foreground"
               style={
                 item.imageUrl
                   ? { backgroundImage: `url(${JSON.stringify(item.imageUrl)})` }
@@ -116,11 +79,33 @@ export function CartView() {
                 LKR {item.price} <Text value={"each · "} />
                 {item.stockQuantity} <Text value={"available "} />
               </p>
+            </div>
+            <div className="col-span-2 flex items-end justify-between gap-3 sm:col-span-1 sm:justify-end">
+              <Label className="text-xs font-medium text-muted-foreground">
+                <Text value={"Quantity "} />
+                <Input
+                  aria-label={t("Quantity for {name}", {
+                    name: localizeBilingual(
+                      item.nameEn ?? item.name,
+                      item.nameSi ?? null,
+                      locale,
+                    ),
+                  })}
+                  type="number"
+                  min={1}
+                  max={item.stockQuantity}
+                  value={item.quantity}
+                  onChange={(event) =>
+                    updateQuantity(item.id, Number(event.currentTarget.value))
+                  }
+                  className="mt-1 block h-9 w-20"
+                />
+              </Label>
               <IconActionButton
                 variant="destructive"
                 type="button"
                 onClick={() => remove(item.id)}
-                className="mt-3"
+                className="shrink-0 text-white [html.dark_&]:text-black"
                 label={t("Remove {name}", {
                   name: localizeBilingual(
                     item.nameEn ?? item.name,
@@ -129,77 +114,42 @@ export function CartView() {
                   ),
                 })}
               >
-                <Trash2 aria-hidden="true" />
+                <Trash2
+                  aria-hidden="true"
+                  className="stroke-white [html.dark_&]:stroke-black"
+                />
               </IconActionButton>
             </div>
-            <Label className="text-sm font-semibold text-foreground">
-              <Text value={"Quantity "} />
-              <Input
-                aria-label={t("Quantity for {name}", {
-                  name: localizeBilingual(
-                    item.nameEn ?? item.name,
-                    item.nameSi ?? null,
-                    locale,
-                  ),
-                })}
-                type="number"
-                min={1}
-                max={item.stockQuantity}
-                value={item.quantity}
-                onChange={(event) =>
-                  updateQuantity(item.id, Number(event.currentTarget.value))
-                }
-                className="mt-1 block h-10 w-24"
-              />
-            </Label>
           </Card>
         ))}
       </section>
-      <Card as="aside" className="gap-0 h-fit p-6">
-        <h2 className="text-xl font-black text-foreground">
+      <Card as="aside" className="h-fit min-w-0 gap-0 p-4 sm:p-5">
+        <h2 className="text-lg font-semibold text-foreground">
           <Text value={t("Summary")} />
         </h2>
-        <div className="mt-6 flex justify-between border-b pb-5 font-bold text-foreground">
+        <div className="mt-4 flex flex-wrap justify-between gap-2 border-b pb-3 font-bold text-foreground">
           <span>
             <Text value={t("Subtotal")} />
           </span>
           <span data-testid="cart-subtotal">LKR {subtotal}</span>
         </div>
         <p className="mt-3 text-xs leading-5 text-muted-foreground">
-          <Text
-            value={
-              "Displayed prices are estimates. Availability and current database prices are checked by the server before checkout. "
-            }
-          />
+          <Text value={"Delivery fees are calculated at checkout."} />
         </p>
-        <Button
-          type="button"
-          onClick={validateForCheckout}
-          disabled={pending}
-          className="mt-5 h-auto min-h-9 w-full whitespace-normal break-words py-2 text-center"
-        >
-          {pending ? t("Checking…") : t("Validate cart for checkout")}
-        </Button>
         <Link
           href="/checkout"
           className={buttonVariants({
-            variant: "outline",
             className:
               "mt-3 flex h-auto min-h-9 w-full justify-center whitespace-normal break-words py-2 text-center",
           })}
         >
           <Text value={"Proceed to checkout "} />
         </Link>
-        {validationMessage ? (
-          <Alert variant="success" className="mt-3" role="status">
-            {validationMessage}
-          </Alert>
-        ) : null}
         <Button
           variant="destructive"
           type="button"
           onClick={clear}
-          className="mt-4 w-full underline underline-offset-4"
+          className="mt-3 w-full no-underline"
         >
           <Text value={"Clear cart "} />
         </Button>

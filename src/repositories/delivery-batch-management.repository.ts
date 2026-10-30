@@ -307,7 +307,11 @@ export class PrismaDeliveryBatchManagementRepository implements DeliveryBatchMan
     return this.prisma.$transaction(
       (transaction) =>
         operation(new PrismaDeliveryBatchManagementTransaction(transaction)),
-      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+        maxWait: 10_000,
+        timeout: 30_000,
+      },
     );
   }
 }

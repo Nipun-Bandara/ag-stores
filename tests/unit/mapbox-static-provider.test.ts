@@ -31,9 +31,28 @@ describe("MapboxStaticMapProvider", () => {
     expect(url).toContain(
       "https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/",
     );
-    expect(url).toContain("pin-l-S+111827(79.861244,6.927079)");
+    expect(url).toContain("pin-l-s+111827(79.861244,6.927079)");
     expect(url).toContain("pin-l-1+2563eb(79.85,6.91)");
     expect(url).toContain("/auto/1000x500@2x?");
     expect(url).toContain("access_token=pk.public-test-token");
+  });
+
+  it("omits unsupported symbols instead of generating invalid marker URLs", () => {
+    const provider = new MapboxStaticMapProvider("pk.public-test-token");
+    const url = provider.buildStaticMapUrl(
+      [
+        {
+          id: "stop-100",
+          kind: "delivery-stop",
+          label: "Stop 100",
+          markerLabel: "100",
+          latitude: 6.91,
+          longitude: 79.85,
+        },
+      ],
+      { width: 1000, height: 500 },
+    );
+    expect(url).toContain("pin-l+2563eb(79.85,6.91)");
+    expect(url).not.toContain("pin-l-100");
   });
 });

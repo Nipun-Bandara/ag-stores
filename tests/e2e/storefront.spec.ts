@@ -51,7 +51,7 @@ test("product and category details keep the customer sidebar", async ({
   await page
     .getByTestId("product-card")
     .filter({ hasText: "Ceylon Tea" })
-    .getByRole("link", { name: "View product" })
+    .getByRole("link", { name: "Ceylon Tea" })
     .click();
 
   await expect(
@@ -85,7 +85,7 @@ test("catalog and detail pages fit a mobile viewport", async ({ page }) => {
   await page
     .getByTestId("product-card")
     .first()
-    .getByRole("link", { name: "View product" })
+    .getByRole("link")
     .click();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   expect(

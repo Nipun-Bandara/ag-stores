@@ -63,6 +63,13 @@ export default async function ProductsPage({
   ]);
   const { locale, localizedRoute } = localeContext;
   const copy = getDictionary(locale).storefront;
+  const categoryOptions = [
+    { value: "", label: copy.allCategories },
+    ...categories.map((item) => ({
+      value: item.id,
+      label: `${localizeBilingual(item.nameEn, item.nameSi, locale)} · ${item.shopName}`,
+    })),
+  ];
 
   return (
     <section className="min-w-0 w-full">
@@ -94,17 +101,16 @@ export default async function ProductsPage({
             {copy.category}
             <Select
               name="categoryId"
+              items={categoryOptions}
               defaultValue={category?.success ? category.data : ""}
             >
               <SelectTrigger id="categoryId" className="mt-1.5 h-11 w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">{copy.allCategories}</SelectItem>
-                {categories.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {localizeBilingual(item.nameEn, item.nameSi, locale)} ·{" "}
-                    {item.shopName}
+                {categoryOptions.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
                   </SelectItem>
                 ))}
               </SelectContent>

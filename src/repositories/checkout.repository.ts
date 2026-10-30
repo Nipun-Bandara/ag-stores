@@ -162,8 +162,8 @@ class PrismaCheckoutTransaction implements CheckoutTransaction {
     });
   }
 
-  createOrder(data: CheckoutOrderData): Promise<OrderConfirmationRecord> {
-    return this.prisma.order.create({
+  async createOrder(data: CheckoutOrderData): Promise<OrderConfirmationRecord> {
+    const created = await this.prisma.order.create({
       data: {
         customerId: data.customerId,
         shopId: data.shopId,
@@ -174,6 +174,12 @@ class PrismaCheckoutTransaction implements CheckoutTransaction {
         customerNote: data.customerNote,
         items: { create: data.items },
       },
+      select: { id: true },
+    });
+
+    // Read relations after the nested write has completed within this transaction.
+    return this.prisma.order.findUniqueOrThrow({
+      where: { id: created.id },
       select: orderConfirmationSelect,
     });
   }
@@ -195,7 +201,11 @@ export class PrismaCheckoutRepository implements CheckoutRepository {
       this.prisma.$transaction(
         (prismaTransaction) =>
           operation(new PrismaCheckoutTransaction(prismaTransaction)),
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          maxWait: 10_000,
+          timeout: 30_000,
+        },
       ),
     );
   }

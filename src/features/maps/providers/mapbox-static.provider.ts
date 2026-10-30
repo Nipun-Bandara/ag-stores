@@ -6,8 +6,10 @@ import type {
 
 function markerOverlay(marker: MapMarker): string {
   const color = marker.kind === "shop" ? "111827" : "2563eb";
-  const label = encodeURIComponent(marker.markerLabel.slice(0, 3));
-  return `pin-l-${label}+${color}(${marker.longitude},${marker.latitude})`;
+  const label = marker.markerLabel.toLowerCase();
+  // Static Images accepts lowercase letters or numbers from 0 to 99.
+  const symbol = /^(?:[a-z]|[0-9]|[1-9][0-9])$/.test(label) ? `-${label}` : "";
+  return `pin-l${symbol}+${color}(${marker.longitude},${marker.latitude})`;
 }
 
 export class MapboxStaticMapProvider implements MapProviderAdapter {
