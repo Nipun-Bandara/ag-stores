@@ -10,10 +10,15 @@ import {
 } from "@/lib/i18n/config";
 
 const protectedRoots = [
+  "/dashboard",
+  "/profile",
+  "/notifications",
   "/account",
   "/orders",
   "/cart",
   "/checkout",
+  "/products",
+  "/categories",
   "/owner",
   "/delivery",
   "/admin",
@@ -40,10 +45,13 @@ export function proxy(request: NextRequest) {
 
   if (isProtectedPath(pathname) && !request.cookies.has(SESSION_COOKIE_NAME)) {
     const loginUrl = new URL(
-      routeLocale ? `/${routeLocale}/login` : "/login",
+      routeLocale ? `/${routeLocale}/auth` : "/auth",
       request.url,
     );
-    loginUrl.searchParams.set("returnTo", request.nextUrl.pathname);
+    loginUrl.searchParams.set(
+      "returnTo",
+      `${request.nextUrl.pathname}${request.nextUrl.search}`,
+    );
     return NextResponse.redirect(loginUrl);
   }
 

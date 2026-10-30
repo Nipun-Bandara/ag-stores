@@ -19,7 +19,7 @@ const digits = suffix.replace(/\D/g, "").padEnd(8, "7").slice(0, 8);
 let temporaryPassword = "";
 
 async function signIn(page: Page, identifier: string, destination: string) {
-  await page.goto("/login");
+  await page.goto("/auth");
   await page.getByLabel("Email or phone").fill(identifier);
   await page.getByLabel("Password").fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
@@ -82,12 +82,12 @@ test.describe.serial("delivery personnel management", () => {
   });
 
   test("inactive delivery personnel cannot log in", async ({ page }) => {
-    await page.goto("/login");
+    await page.goto("/auth");
     await page.getByLabel("Email or phone").fill(email);
     await page.getByLabel("Password").fill(temporaryPassword);
     await page.getByRole("button", { name: "Sign in" }).click();
 
-    await expect(page).toHaveURL(/\/login$/);
+    await expect(page).toHaveURL(/\/auth$/);
     await expect(
       page.getByText("Invalid email/phone or password.", { exact: true }),
     ).toBeVisible();

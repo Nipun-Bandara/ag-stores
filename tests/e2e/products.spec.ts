@@ -7,7 +7,7 @@ test("shop owner creates, views, edits, stocks, and disables a product", async (
   const originalName = `E2E Product ${suffix}`;
   const updatedName = `Updated E2E Product ${suffix}`;
 
-  await page.goto("/login");
+  await page.goto("/auth");
   await page.getByLabel("Email or phone").fill("owner@agstores.local");
   await page.getByLabel("Password").fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
@@ -17,8 +17,10 @@ test("shop owner creates, views, edits, stocks, and disables a product", async (
   await page.getByRole("link", { name: "Add product" }).click();
   await expect(page).toHaveURL(/\/owner\/products\/new$/);
 
-  await page.getByLabel("Shop").selectOption({ label: "Colombo Fresh Market" });
-  await page.getByLabel("Category").selectOption({ label: "Groceries" });
+  await page.getByRole("combobox", { name: "Shop" }).click();
+  await page.getByRole("option", { name: "Colombo Fresh Market" }).click();
+  await page.getByRole("combobox", { name: "Category" }).click();
+  await page.getByRole("option", { name: "Groceries" }).click();
   await page.getByLabel("English name").fill(originalName);
   await page.getByLabel("Sinhala name").fill("පරීක්ෂණ නිෂ්පාදනය");
   await page.getByLabel("English description").fill(`Search ${suffix}`);
@@ -47,7 +49,8 @@ test("shop owner creates, views, edits, stocks, and disables a product", async (
   await expect(product.getByText("15", { exact: true })).toBeVisible();
   await expect(product.getByTestId("inventory-status")).toHaveText("Low stock");
 
-  await page.getByLabel("Inventory").selectOption("LOW_STOCK");
+  await page.getByRole("combobox", { name: "Inventory" }).click();
+  await page.getByRole("option", { name: "Low stock" }).click();
   await page.getByRole("button", { name: "Apply filters" }).click();
   await expect(product).toBeVisible();
 

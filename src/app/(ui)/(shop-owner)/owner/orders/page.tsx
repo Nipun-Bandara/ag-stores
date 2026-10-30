@@ -1,0 +1,156 @@
+import { getServerText } from "@/lib/i18n/server";
+import { Text } from "@/features/i18n/components/text";
+import type { Metadata } from "next";
+
+import Link from "next/link";
+
+import { OrderStatus, UserRole } from "@/generated/prisma/client";
+import { OwnerOrderList } from "@/features/owner/components/owner-order-list";
+import { OrderDateFilter } from "@/features/owner/components/order-date-filter";
+import { orderStatusLabels } from "@/features/orders/order-presentation";
+import { requireRole } from "@/lib/auth/server";
+import { getOwnerOrderDashboard } from "@/services/owner-order.service";
+import { ownerOrderFiltersSchema } from "@/validations/owner-order";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return { title: `${t("Orders")} | AG Stores` };
+}
+
+interface OwnerOrdersPageProps {
+  searchParams: Promise<{
+    status?: string | string[];
+    date?: string | string[];
+    customer?: string | string[];
+    orderNumber?: string | string[];
+  }>;
+}
+
+function first(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function OwnerOrdersPage({
+  searchParams,
+}: OwnerOrdersPageProps) {
+  const t = await getServerText();
+  const user = await requireRole(UserRole.SHOP_OWNER, "/owner/orders");
+  const query = await searchParams;
+  const rawFilters = {
+    status: first(query.status) || undefined,
+    date: first(query.date) || undefined,
+    customer: first(query.customer) || undefined,
+    orderNumber: first(query.orderNumber) || undefined,
+  };
+  const parsed = ownerOrderFiltersSchema.safeParse(rawFilters);
+  const filters = parsed.success ? parsed.data : {};
+  const dashboard = await getOwnerOrderDashboard(user, filters);
+
+  return (
+    <section className="min-w-0 w-full">
+      <h1 className="text-3xl font-semibold tracking-tight">
+        <Text value={"Orders"} />
+      </h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        <Text
+          value={
+            "Review incoming orders and move them through shop preparation. "
+          }
+        />
+      </p>
+
+      <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+        {dashboard.summaries.map((summary) => (
+          <Card key={summary.key} className="gap-0 p-4">
+            <p className="text-xs font-medium text-muted-foreground">
+              {summary.label}
+            </p>
+            <p className="mt-2 text-2xl font-semibold">{summary.count}</p>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="gap-0 mt-8 p-5">
+        <form
+          key={JSON.stringify(filters)}
+          className="grid gap-x-4 gap-y-5 sm:grid-cols-2 xl:grid-cols-4"
+        >
+          <Label className="min-w-0 text-sm font-medium" htmlFor="status">
+            <Text value={"Status "} />
+            <Select name="status" defaultValue={filters.status ?? ""}>
+              <SelectTrigger id="status" className="mt-1.5 h-10 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">
+                  <Text value={"All statuses"} />
+                </SelectItem>
+                {Object.values(OrderStatus).map((status) => (
+                  <SelectItem key={status} value={status}>
+                    <Text value={orderStatusLabels[status]} />
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Label>
+          <OrderDateFilter initialDate={filters.date ?? ""} />
+          <Label className="min-w-0 text-sm font-medium" htmlFor="customer">
+            <Text value={"Customer "} />
+            <Input
+              id="customer"
+              name="customer"
+              defaultValue={filters.customer ?? ""}
+              placeholder={t("Name, email, or phone")}
+              className="mt-1.5 h-10 w-full"
+            />
+          </Label>
+          <Label className="min-w-0 text-sm font-medium" htmlFor="orderNumber">
+            <Text value={"Order number "} />
+            <Input
+              id="orderNumber"
+              name="orderNumber"
+              defaultValue={filters.orderNumber ?? ""}
+              placeholder={t("Full order number")}
+              className="mt-1.5 h-10 w-full font-mono"
+            />
+          </Label>
+          <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row sm:justify-end xl:col-span-4">
+            <Button type="submit" className="h-10 sm:min-w-32">
+              <Text value={"Apply filters "} />
+            </Button>
+            <Link
+              href="/owner/orders"
+              className={buttonVariants({
+                variant: "outline",
+                className: "inline-flex h-10 items-center sm:min-w-24",
+              })}
+            >
+              <Text value={"Clear "} />
+            </Link>
+          </div>
+        </form>
+      </Card>
+      {!parsed.success ? (
+        <Alert variant="destructive" role="alert" className="mt-3">
+          <Text
+            value={"One or more filters were invalid and have been cleared. "}
+          />
+        </Alert>
+      ) : null}
+
+      <OwnerOrderList orders={dashboard.orders} />
+    </section>
+  );
+}

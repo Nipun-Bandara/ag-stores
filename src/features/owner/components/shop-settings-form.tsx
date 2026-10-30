@@ -1,8 +1,21 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
 
 import type { ShopSettingsView } from "@/services/shop-settings.service";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
+import {
+  LocationPicker,
+  parsePickedLocation,
+} from "@/features/maps/components/location-picker";
 
 interface ResponsePayload {
   data?: ShopSettingsView;
@@ -10,14 +23,25 @@ interface ResponsePayload {
 }
 
 export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
+  const t = useText();
   const [settings, setSettings] = useState(initial);
   const [message, setMessage] = useState<string>();
+  const [isError, setIsError] = useState(false);
   const [pending, setPending] = useState(false);
+  const [location, setLocation] = useState(() =>
+    parsePickedLocation(initial.latitude, initial.longitude),
+  );
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!location) {
+      setMessage(t("Choose a location before saving."));
+      setIsError(true);
+      return;
+    }
     setPending(true);
     setMessage(undefined);
+    setIsError(false);
     const form = new FormData(event.currentTarget);
     const response = await fetch("/api/owner/shop-settings", {
       method: "PATCH",
@@ -39,140 +63,135 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
       .json()
       .catch(() => ({}))) as ResponsePayload;
     if (!response.ok || !payload.data) {
-      setMessage(payload.error?.message ?? "Unable to save shop settings.");
+      setMessage(t(payload.error?.message ?? "Unable to save shop settings."));
+      setIsError(true);
       setPending(false);
       return;
     }
     setSettings(payload.data);
-    setMessage("Shop settings saved.");
+    setLocation(
+      parsePickedLocation(payload.data.latitude, payload.data.longitude),
+    );
+    setMessage(t("Shop settings saved."));
     setPending(false);
   }
 
-  const inputClass =
-    "mt-1.5 h-10 w-full rounded-md border border-neutral-300 px-3 text-sm";
+  const inputClass = "mt-1.5 h-10 w-full";
 
   return (
-    <form onSubmit={submit} className="rounded-xl border bg-white p-5 sm:p-6">
-      {!settings.isActive ? (
-        <p className="mb-5 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-          This shop is administratively inactive. Customers cannot browse or
-          order from it until an administrator reactivates it.
-        </p>
-      ) : null}
-      <div className="grid gap-5 sm:grid-cols-2">
-        <label className="text-sm font-medium sm:col-span-2">
-          Shop name
-          <input
-            name="name"
-            defaultValue={settings.name}
-            className={inputClass}
-            required
-          />
-        </label>
-        <label className="text-sm font-medium sm:col-span-2">
-          Address
-          <textarea
-            name="address"
-            defaultValue={settings.address}
-            className="mt-1.5 min-h-24 w-full rounded-md border border-neutral-300 p-3 text-sm"
-            required
-          />
-        </label>
-        <label className="text-sm font-medium">
-          Phone
-          <input
-            name="phone"
-            type="tel"
-            defaultValue={settings.phone}
-            className={inputClass}
-            required
-          />
-        </label>
-        <label className="flex items-center gap-3 self-end rounded-md border p-3 text-sm font-medium">
-          <input
-            name="isOpen"
-            type="checkbox"
-            disabled={!settings.isActive}
-            defaultChecked={settings.isOpen}
-          />
-          Open for customer orders
-        </label>
-        <label className="text-sm font-medium">
-          Latitude
-          <input
-            name="latitude"
-            type="number"
-            step="0.000001"
-            defaultValue={settings.latitude}
-            className={inputClass}
-            required
-          />
-        </label>
-        <label className="text-sm font-medium">
-          Longitude
-          <input
-            name="longitude"
-            type="number"
-            step="0.000001"
-            defaultValue={settings.longitude}
-            className={inputClass}
-            required
-          />
-        </label>
-        <label className="text-sm font-medium">
-          Minimum order amount (LKR)
-          <input
-            name="minimumOrderAmount"
-            type="number"
-            min="0"
-            step="0.01"
-            defaultValue={settings.minimumOrderAmount}
-            className={inputClass}
-            required
-          />
-        </label>
-        <label className="text-sm font-medium">
-          Delivery fee (LKR)
-          <input
-            name="deliveryFee"
-            type="number"
-            min="0"
-            step="0.01"
-            defaultValue={settings.deliveryFee}
-            className={inputClass}
-            required
-          />
-        </label>
-        <label className="text-sm font-medium sm:col-span-2">
-          Maximum delivery radius (km)
-          <input
-            name="maximumDeliveryRadiusKm"
-            type="number"
-            min="0.01"
-            step="0.01"
-            defaultValue={settings.maximumDeliveryRadiusKm}
-            className={inputClass}
-            required
-          />
-          <span className="mt-1 block text-xs font-normal text-neutral-500">
-            Uses approximate straight-line distance, not road distance.
-          </span>
-        </label>
-      </div>
-      <div className="mt-6 flex flex-wrap items-center gap-4">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-        >
-          {pending ? "Saving…" : "Save settings"}
-        </button>
-        {message ? (
-          <p role="status" className="text-sm text-neutral-700">
-            {message}
+    <Card className="gap-0 p-5 sm:p-6">
+      <form onSubmit={submit} className="space-y-5">
+        {!settings.isActive ? (
+          <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <Text
+              value={
+                "This shop is administratively inactive. Customers cannot browse or order from it until an administrator reactivates it. "
+              }
+            />
           </p>
         ) : null}
-      </div>
-    </form>
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end">
+          <Label className="min-w-0 text-sm font-medium sm:col-span-2 xl:col-span-1">
+            <Text value={"Shop name "} />
+            <Input
+              name="name"
+              defaultValue={settings.name}
+              className={inputClass}
+              required
+            />
+          </Label>
+          <Label className="min-w-0 text-sm font-medium">
+            <Text value={"Phone "} />
+            <Input
+              name="phone"
+              type="tel"
+              defaultValue={settings.phone}
+              className={inputClass}
+              required
+            />
+          </Label>
+          <Label className="flex items-center gap-3 self-end py-2 text-sm font-medium">
+            <Checkbox
+              name="isOpen"
+              disabled={!settings.isActive}
+              defaultChecked={settings.isOpen}
+            />
+            <Text value={"Open for customer orders "} />
+          </Label>
+        </div>
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+          <Label className="flex min-w-0 flex-col text-sm font-medium">
+            <Text value={"Address "} />
+            <Textarea
+              name="address"
+              defaultValue={settings.address}
+              className="mt-1.5 min-h-28 w-full flex-1 p-3"
+              required
+            />
+          </Label>
+          <div className="min-w-0 rounded-lg bg-muted/40 p-3">
+            <LocationPicker value={location} onChange={setLocation} />
+          </div>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <Label className="min-w-0 text-sm font-medium">
+            <Text value={"Minimum order amount (LKR) "} />
+            <Input
+              name="minimumOrderAmount"
+              type="number"
+              min="0"
+              step="0.01"
+              defaultValue={settings.minimumOrderAmount}
+              className={inputClass}
+              required
+            />
+          </Label>
+          <Label className="min-w-0 text-sm font-medium">
+            <Text value={"Delivery fee (LKR) "} />
+            <Input
+              name="deliveryFee"
+              type="number"
+              min="0"
+              step="0.01"
+              defaultValue={settings.deliveryFee}
+              className={inputClass}
+              required
+            />
+          </Label>
+          <Label className="min-w-0 text-sm font-medium sm:col-span-2 lg:col-span-1">
+            <Text value={"Maximum delivery radius (km) "} />
+            <Input
+              name="maximumDeliveryRadiusKm"
+              type="number"
+              min="0.01"
+              step="0.01"
+              defaultValue={settings.maximumDeliveryRadiusKm}
+              className={inputClass}
+              required
+            />
+            <span className="mt-1 block text-xs font-normal text-muted-foreground">
+              <Text
+                value={
+                  "Uses approximate straight-line distance, not road distance. "
+                }
+              />
+            </span>
+          </Label>
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <Button variant="success" type="submit" disabled={pending}>
+            {pending ? t("Saving…") : t("Save settings")}
+          </Button>
+          {message ? (
+            <Alert
+              variant={isError ? "destructive" : "success"}
+              role={isError ? "alert" : "status"}
+            >
+              {message}
+            </Alert>
+          ) : null}
+        </div>
+      </form>
+    </Card>
   );
 }

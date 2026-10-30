@@ -1,16 +1,30 @@
 "use client";
+import { BilingualText } from "@/features/i18n/components/bilingual-text";
+import { useLocale, useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
+import { CircleCheck, CircleX, Pencil } from "lucide-react";
 
-import {
-  FormError,
-  FormField,
-  SelectField,
-} from "@/features/auth/components/form-fields";
+import { FormError, FormField } from "@/features/auth/components/form-fields";
 import type {
   CategoryManagementView,
   CategoryView,
 } from "@/services/category.service";
+import { Button } from "@/components/ui/button";
+import { IconActionButton } from "@/components/ui/icon-action-button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { localizeBilingual } from "@/lib/i18n/config";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 interface ApiPayload {
   data?: CategoryView;
@@ -32,8 +46,10 @@ function CategoryForm({
   onSaved: (category: CategoryView) => void;
   onCancel?: () => void;
 }) {
+  const t = useText();
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
+  const [shopId, setShopId] = useState(shops[0]?.id ?? "");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -49,7 +65,7 @@ function CategoryForm({
         method: category ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...(!category ? { shopId: form.get("shopId") } : {}),
+          ...(!category ? { shopId } : {}),
           nameEn: form.get("nameEn"),
           nameSi: form.get("nameSi"),
         }),
@@ -58,68 +74,119 @@ function CategoryForm({
 
     if (!response?.ok) {
       const payload = response ? await readPayload(response) : {};
-      setError(payload.error?.message ?? "Unable to save this category.");
+      setError(t(payload.error?.message ?? "Unable to save this category."));
       setPending(false);
       return;
     }
 
     const payload = await readPayload(response);
     if (payload.data) onSaved(payload.data);
-    if (!category) formElement.reset();
+    if (!category) {
+      formElement.reset();
+      setShopId(shops[0]?.id ?? "");
+    }
     setPending(false);
   }
 
   return (
-    <form className="space-y-4 rounded-xl border p-5" onSubmit={handleSubmit}>
-      <h2 className="text-lg font-semibold">
-        {category ? `Edit ${category.nameEn}` : "Create a category"}
-      </h2>
-      {!category ? (
-        <SelectField id="shopId" name="shopId" label="Shop" required>
-          {shops.map((shop) => (
-            <option key={shop.id} value={shop.id}>
-              {shop.name}
-            </option>
-          ))}
-        </SelectField>
-      ) : (
-        <p className="text-sm text-neutral-600">Shop: {category.shopName}</p>
-      )}
-      <FormField
-        id={category ? `nameEn-${category.id}` : "nameEn"}
-        name="nameEn"
-        label="English name"
-        defaultValue={category?.nameEn ?? ""}
-        maxLength={120}
-        required
-      />
-      <FormField
-        id={category ? `nameSi-${category.id}` : "nameSi"}
-        name="nameSi"
-        label="Sinhala name"
-        defaultValue={category?.nameSi ?? ""}
-        maxLength={120}
-      />
-      {error ? <FormError>{error}</FormError> : null}
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          disabled={pending || shops.length === 0}
-          className="h-10 rounded-md bg-neutral-950 px-5 text-sm font-medium text-white disabled:opacity-60"
-        >
-          {pending ? "Saving…" : category ? "Save category" : "Create category"}
-        </button>
-        {onCancel ? (
-          <button
-            type="button"
-            className="h-10 rounded-md border px-5 text-sm font-medium"
-            onClick={onCancel}
+    <Card className="gap-0 p-5">
+      <form
+        className="grid gap-4 md:grid-cols-2 lg:grid-cols-[repeat(3,minmax(0,1fr))_auto] lg:items-end"
+        onSubmit={handleSubmit}
+      >
+        <h2 className="text-lg font-semibold md:col-span-2 lg:col-span-4">
+          {category ? (
+            <>
+              <Text value="Edit" />{" "}
+              <BilingualText
+                english={category.nameEn}
+                sinhala={category.nameSi}
+              />
+            </>
+          ) : (
+            t("Create a category")
+          )}
+        </h2>
+        {!category ? (
+          <div className="min-w-0">
+            <Label htmlFor="shopId" className="block text-sm font-medium">
+              <Text value="Shop" />
+            </Label>
+            <Select
+              name="shopId"
+              value={shopId}
+              onValueChange={(value) => setShopId(value ?? "")}
+              required
+            >
+              <SelectTrigger id="shopId" className="mt-1.5 h-10 w-full">
+                <SelectValue>
+                  {(value) =>
+                    shops.find((shop) => shop.id === value)?.name ??
+                    t("Select a shop")
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {shops.map((shop) => (
+                  <SelectItem key={shop.id} value={shop.id}>
+                    {shop.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <p className="min-w-0 text-sm text-muted-foreground">
+            <Text value={"Shop: "} />
+            {category.shopName}
+          </p>
+        )}
+        <FormField
+          id={category ? `nameEn-${category.id}` : "nameEn"}
+          name="nameEn"
+          label="English name"
+          defaultValue={category?.nameEn ?? ""}
+          maxLength={120}
+          required
+        />
+        <FormField
+          id={category ? `nameSi-${category.id}` : "nameSi"}
+          name="nameSi"
+          label="Sinhala name"
+          defaultValue={category?.nameSi ?? ""}
+          maxLength={120}
+        />
+        <div className="flex flex-wrap gap-2 md:col-span-2 lg:col-span-1 lg:flex-col lg:items-stretch">
+          <Button
+            variant="success"
+            type="submit"
+            disabled={pending || shops.length === 0}
+            className="h-10"
           >
-            Cancel
-          </button>
+            {pending
+              ? t("Saving…")
+              : category
+                ? t("Save category")
+                : t("Create category")}
+          </Button>
+          {onCancel ? (
+            <Button
+              variant="outline"
+              type="button"
+              className="h-10"
+              onClick={onCancel}
+            >
+              <Text value={"Cancel "} />
+            </Button>
+          ) : null}
+        </div>
+        {error ? (
+          <div className="md:col-span-2 lg:col-span-4">
+            <FormError>{error}</FormError>
+          </div>
         ) : null}
-      </div>
-    </form>
+      </form>
+    </Card>
   );
 }
 
@@ -128,6 +195,8 @@ export function CategoryManager({
 }: {
   initialData: CategoryManagementView;
 }) {
+  const t = useText();
+  const locale = useLocale();
   const [categories, setCategories] = useState(initialData.categories);
   const [editingId, setEditingId] = useState<string>();
   const [pendingId, setPendingId] = useState<string>();
@@ -159,7 +228,9 @@ export function CategoryManager({
 
     if (!response?.ok) {
       const payload = response ? await readPayload(response) : {};
-      setError(payload.error?.message ?? "Unable to change category status.");
+      setError(
+        t(payload.error?.message ?? "Unable to change category status."),
+      );
     } else {
       const payload = await readPayload(response);
       if (payload.data) saveCategory(payload.data);
@@ -168,11 +239,17 @@ export function CategoryManager({
   }
 
   return (
-    <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+    <div className="mt-8 space-y-8">
       {initialData.shops.length === 0 ? (
-        <p className="rounded-xl border p-5 text-sm text-neutral-600">
-          Create a shop before adding product categories.
-        </p>
+        <Empty>
+          <EmptyHeader>
+            <EmptyTitle>
+              <Text
+                value={"Create a shop before adding product categories. "}
+              />
+            </EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <CategoryForm
           key={editingCategory?.id ?? "new"}
@@ -186,7 +263,7 @@ export function CategoryManager({
       )}
       <section aria-labelledby="category-list-heading">
         <h2 id="category-list-heading" className="text-lg font-semibold">
-          Categories
+          <Text value={"Categories "} />
         </h2>
         {error ? (
           <div className="mt-4">
@@ -194,44 +271,80 @@ export function CategoryManager({
           </div>
         ) : null}
         {categories.length === 0 ? (
-          <p className="mt-4 text-sm text-neutral-600">
-            No categories have been created yet.
-          </p>
+          <Empty className="mt-4">
+            <EmptyHeader>
+              <EmptyTitle>
+                <Text value={"No categories have been created yet. "} />
+              </EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         ) : (
-          <div className="mt-4 space-y-4">
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {categories.map((category) => (
-              <article key={category.id} className="rounded-xl border p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="font-semibold">{category.nameEn}</h3>
-                    {category.nameSi ? (
-                      <p className="mt-1 text-sm">{category.nameSi}</p>
+              <Card as="article" key={category.id} className="gap-0 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="break-words font-semibold">
+                      <BilingualText
+                        english={category.nameEn}
+                        sinhala={category.nameSi}
+                      />
+                    </h3>
+                    {(locale === "si" ? category.nameEn : category.nameSi) ? (
+                      <p className="mt-1 break-words text-sm">
+                        {locale === "si" ? category.nameEn : category.nameSi}
+                      </p>
                     ) : null}
-                    <p className="mt-1 text-xs text-neutral-500">
+                    <p className="mt-1 break-words text-xs text-muted-foreground">
                       {category.shopName}
                     </p>
                   </div>
-                  <span className="rounded-full bg-neutral-100 px-2 py-1 text-xs font-medium">
-                    {category.status === "ACTIVE" ? "Active" : "Inactive"}
-                  </span>
+                  <div className="flex shrink-0 flex-col items-center gap-2">
+                    <Badge variant="secondary">
+                      {category.status === "ACTIVE"
+                        ? t("Active")
+                        : t("Inactive")}
+                    </Badge>
+                    <div className="flex items-center gap-1">
+                      <IconActionButton
+                        size="icon-sm"
+                        variant="ghost"
+                        type="button"
+                        label={`${t("Edit")} ${localizeBilingual(category.nameEn, category.nameSi, locale)}`}
+                        onClick={() => setEditingId(category.id)}
+                      >
+                        <Pencil aria-hidden="true" />
+                      </IconActionButton>
+                      <IconActionButton
+                        size="icon-sm"
+                        variant={
+                          category.status === "ACTIVE"
+                            ? "destructive"
+                            : "success"
+                        }
+                        className={
+                          category.status === "ACTIVE"
+                            ? "text-white [html.dark_&]:text-black"
+                            : undefined
+                        }
+                        type="button"
+                        label={`${t(category.status === "ACTIVE" ? "Deactivate" : "Activate")} ${localizeBilingual(category.nameEn, category.nameSi, locale)}`}
+                        disabled={pendingId === category.id}
+                        onClick={() => changeStatus(category)}
+                      >
+                        {category.status === "ACTIVE" ? (
+                          <CircleX
+                            aria-hidden="true"
+                            className="stroke-white [html.dark_&]:stroke-black"
+                          />
+                        ) : (
+                          <CircleCheck aria-hidden="true" />
+                        )}
+                      </IconActionButton>
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-4 flex gap-4 text-sm font-medium">
-                  <button
-                    type="button"
-                    onClick={() => setEditingId(category.id)}
-                  >
-                    Edit {category.nameEn}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={pendingId === category.id}
-                    onClick={() => changeStatus(category)}
-                  >
-                    {category.status === "ACTIVE" ? "Deactivate" : "Activate"}{" "}
-                    {category.nameEn}
-                  </button>
-                </div>
-              </article>
+              </Card>
             ))}
           </div>
         )}

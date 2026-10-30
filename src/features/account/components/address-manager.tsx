@@ -1,9 +1,23 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
+import { CircleCheck, MapPin, Pencil, Trash2 } from "lucide-react";
 
 import { FormError, FormField } from "@/features/auth/components/form-fields";
 import type { CustomerAddressView } from "@/services/customer-address.service";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { IconActionButton } from "@/components/ui/icon-action-button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import {
+  LocationPicker,
+  parsePickedLocation,
+} from "@/features/maps/components/location-picker";
 
 interface ApiPayload {
   data?: CustomerAddressView;
@@ -21,12 +35,20 @@ async function readPayload(response: Response): Promise<ApiPayload> {
 }
 
 function AddressForm({ address, onCancel, onSaved }: AddressFormProps) {
+  const t = useText();
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
+  const [location, setLocation] = useState(() =>
+    parsePickedLocation(address?.latitude, address?.longitude),
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(undefined);
+    if (!location) {
+      setError(t("Choose a location before saving."));
+      return;
+    }
     setPending(true);
 
     const formElement = event.currentTarget;
@@ -43,99 +65,93 @@ function AddressForm({ address, onCancel, onSaved }: AddressFormProps) {
           address: form.get("address"),
           latitude: form.get("latitude"),
           longitude: form.get("longitude"),
-          isDefault: form.get("isDefault") === "on",
+          isDefault:
+            Boolean(address?.isDefault) || form.get("isDefault") === "on",
         }),
       },
     ).catch(() => null);
 
     if (!response?.ok) {
       const payload = response ? await readPayload(response) : {};
-      setError(payload.error?.message ?? "Unable to save this address.");
+      setError(t(payload.error?.message ?? "Unable to save this address."));
       setPending(false);
       return;
     }
 
     const payload = await readPayload(response);
     if (payload.data) onSaved(payload.data);
-    if (!address) formElement.reset();
+    if (!address) {
+      formElement.reset();
+      setLocation(null);
+    }
     setPending(false);
   }
 
   return (
-    <form className="space-y-4 rounded-xl border p-5" onSubmit={handleSubmit}>
-      <h2 className="text-lg font-semibold">
-        {address ? `Edit ${address.label}` : "Add an address"}
-      </h2>
-      <FormField
-        id={address ? `label-${address.id}` : "label"}
-        name="label"
-        label="Label"
-        placeholder="Home, Office, or Other"
-        defaultValue={address?.label ?? ""}
-        maxLength={80}
-        required
-      />
-      <FormField
-        id={address ? `address-${address.id}` : "address"}
-        name="address"
-        label="Address"
-        defaultValue={address?.address ?? ""}
-        maxLength={1000}
-        required
-      />
-      <div className="grid gap-4 sm:grid-cols-2">
+    <Card className="gap-0 p-5">
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <h2 className="text-lg font-semibold">
+          {address ? (
+            <>
+              <Text value="Edit" /> {address.label}
+            </>
+          ) : (
+            t("Add an address")
+          )}
+        </h2>
         <FormField
-          id={address ? `latitude-${address.id}` : "latitude"}
-          name="latitude"
-          label="Latitude"
-          type="number"
-          min={-90}
-          max={90}
-          step="0.000001"
-          defaultValue={address?.latitude ?? ""}
+          id={address ? `label-${address.id}` : "label"}
+          name="label"
+          label="Label"
+          placeholder={t("Home, Office, or Other")}
+          defaultValue={address?.label ?? ""}
+          maxLength={80}
           required
         />
         <FormField
-          id={address ? `longitude-${address.id}` : "longitude"}
-          name="longitude"
-          label="Longitude"
-          type="number"
-          min={-180}
-          max={180}
-          step="0.000001"
-          defaultValue={address?.longitude ?? ""}
+          id={address ? `address-${address.id}` : "address"}
+          name="address"
+          label="Address"
+          defaultValue={address?.address ?? ""}
+          maxLength={1000}
           required
         />
-      </div>
-      <label className="flex items-center gap-2 text-sm font-medium">
-        <input
-          name="isDefault"
-          type="checkbox"
-          defaultChecked={address?.isDefault ?? false}
-          disabled={address?.isDefault ?? false}
-        />
-        Use as default address
-      </label>
-      {error ? <FormError>{error}</FormError> : null}
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="h-10 rounded-md bg-neutral-950 px-5 text-sm font-medium text-white disabled:opacity-60"
-        >
-          {pending ? "Saving…" : address ? "Save changes" : "Add address"}
-        </button>
-        {onCancel ? (
-          <button
-            type="button"
-            className="h-10 rounded-md border px-5 text-sm font-medium"
-            onClick={onCancel}
+        <LocationPicker value={location} onChange={setLocation} />
+        <Label className="flex items-center gap-2 text-sm font-medium">
+          <Checkbox
+            name="isDefault"
+            defaultChecked={address?.isDefault ?? false}
+            disabled={address?.isDefault ?? false}
+          />
+          <Text value={"Use as default address "} />
+        </Label>
+        {error ? <FormError>{error}</FormError> : null}
+        <div className="flex flex-wrap gap-3">
+          <Button
+            variant="success"
+            type="submit"
+            disabled={pending}
+            className="h-10"
           >
-            Cancel
-          </button>
-        ) : null}
-      </div>
-    </form>
+            {pending
+              ? t("Saving…")
+              : address
+                ? t("Save changes")
+                : t("Add address")}
+          </Button>
+          {onCancel ? (
+            <Button
+              variant="outline"
+              type="button"
+              className="h-10"
+              onClick={onCancel}
+            >
+              <Text value={"Cancel "} />
+            </Button>
+          ) : null}
+        </div>
+      </form>
+    </Card>
   );
 }
 
@@ -144,6 +160,7 @@ export function AddressManager({
 }: {
   initialAddresses: CustomerAddressView[];
 }) {
+  const t = useText();
   const [addresses, setAddresses] = useState(initialAddresses);
   const [editingId, setEditingId] = useState<string>();
   const [error, setError] = useState<string>();
@@ -176,7 +193,9 @@ export function AddressManager({
 
     if (!response?.ok) {
       const payload = response ? await readPayload(response) : {};
-      setError(payload.error?.message ?? "Unable to set the default address.");
+      setError(
+        t(payload.error?.message ?? "Unable to set the default address."),
+      );
     } else {
       setAddresses((current) =>
         current.map((item) => ({
@@ -197,7 +216,7 @@ export function AddressManager({
 
     if (!response?.ok) {
       const payload = response ? await readPayload(response) : {};
-      setError(payload.error?.message ?? "Unable to delete this address.");
+      setError(t(payload.error?.message ?? "Unable to delete this address."));
     } else {
       const deletedWasDefault = addresses.some(
         (item) => item.id === addressId && item.isDefault,
@@ -229,7 +248,7 @@ export function AddressManager({
       />
       <section aria-labelledby="saved-addresses-heading">
         <h2 id="saved-addresses-heading" className="text-lg font-semibold">
-          Saved addresses
+          <Text value={"Saved addresses "} />
         </h2>
         {error ? (
           <div className="mt-4">
@@ -237,48 +256,65 @@ export function AddressManager({
           </div>
         ) : null}
         {addresses.length === 0 ? (
-          <p className="mt-4 text-sm text-neutral-600">
-            You have no saved delivery addresses.
-          </p>
+          <Empty className="mt-4">
+            <EmptyHeader>
+              <EmptyTitle>
+                <Text value={"You have no saved delivery addresses. "} />
+              </EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <div className="mt-4 space-y-4">
             {addresses.map((item) => (
-              <article key={item.id} className="rounded-xl border p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <h3 className="font-semibold">{item.label}</h3>
+              <Card as="article" key={item.id} className="gap-0 p-5">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <h3 className="min-w-0 break-words font-semibold">
+                    {item.label}
+                  </h3>
                   {item.isDefault ? (
-                    <span className="rounded-full bg-neutral-100 px-2 py-1 text-xs font-medium">
-                      Default
-                    </span>
+                    <Badge variant="secondary">
+                      <Text value={t("Default")} />
+                    </Badge>
                   ) : null}
                 </div>
-                <p className="mt-2 text-sm text-neutral-700">{item.address}</p>
-                <p className="mt-2 text-xs text-neutral-500">
-                  {item.latitude}, {item.longitude}
+                <p className="mt-2 break-words text-sm text-muted-foreground">
+                  {item.address}
+                </p>
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <MapPin aria-hidden="true" className="size-3.5" />
+                  {t("Location pinned")}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3 text-sm font-medium">
-                  <button type="button" onClick={() => setEditingId(item.id)}>
-                    Edit {item.label}
-                  </button>
+                  <IconActionButton
+                    variant="ghost"
+                    type="button"
+                    label={`${t("Edit")} ${item.label}`}
+                    onClick={() => setEditingId(item.id)}
+                  >
+                    <Pencil aria-hidden="true" />
+                  </IconActionButton>
                   {!item.isDefault ? (
-                    <button
+                    <IconActionButton
+                      variant="success"
                       type="button"
+                      label={t("Make {name} default", { name: item.label })}
                       disabled={pendingId === item.id}
                       onClick={() => setDefault(item.id)}
                     >
-                      Make {item.label} default
-                    </button>
+                      <CircleCheck aria-hidden="true" />
+                    </IconActionButton>
                   ) : null}
-                  <button
+                  <IconActionButton
+                    variant="destructive"
                     type="button"
+                    label={`${t("Delete")} ${item.label}`}
                     disabled={pendingId === item.id}
-                    className="text-red-700"
                     onClick={() => deleteAddress(item.id)}
                   >
-                    Delete {item.label}
-                  </button>
+                    <Trash2 aria-hidden="true" />
+                  </IconActionButton>
                 </div>
-              </article>
+              </Card>
             ))}
           </div>
         )}

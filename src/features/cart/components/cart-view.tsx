@@ -1,76 +1,65 @@
 "use client";
+import { useLocale, useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
+import { BilingualText } from "@/features/i18n/components/bilingual-text";
 
-import { useState } from "react";
+import { Trash2 } from "lucide-react";
 
 import Link from "next/link";
 
 import { useCart } from "@/features/cart/cart-store";
-
-interface ValidationPayload {
-  data?: { subtotal?: string };
-  error?: { message?: string };
-}
+import { Button, buttonVariants } from "@/components/ui/button";
+import { IconActionButton } from "@/components/ui/icon-action-button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { localizeBilingual } from "@/lib/i18n/config";
 
 export function CartView() {
+  const t = useText();
+  const locale = useLocale();
   const { items, subtotal, updateQuantity, remove, clear } = useCart();
-  const [validationMessage, setValidationMessage] = useState<string>();
-  const [pending, setPending] = useState(false);
-
-  async function validateForCheckout() {
-    setPending(true);
-    setValidationMessage(undefined);
-    const response = await fetch("/api/checkout/validate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        items: items.map((item) => ({
-          productId: item.id,
-          quantity: item.quantity,
-        })),
-      }),
-    }).catch(() => null);
-    const payload = response
-      ? ((await response.json().catch(() => ({}))) as ValidationPayload)
-      : {};
-
-    setValidationMessage(
-      response?.ok && payload.data?.subtotal
-        ? `Current server-verified subtotal: LKR ${payload.data.subtotal}`
-        : (payload.error?.message ?? "Unable to validate your cart."),
-    );
-    setPending(false);
-  }
-
   if (items.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-emerald-950/20 bg-white p-10 text-center">
-        <h2 className="text-xl font-black text-emerald-950">
-          Your cart is empty
-        </h2>
-        <p className="mt-2 text-sm text-neutral-600">
-          Browse the storefront to find something you need.
-        </p>
-        <Link
-          href="/products"
-          className="mt-6 inline-flex rounded-xl bg-emerald-950 px-5 py-3 text-sm font-bold text-white"
-        >
-          Browse products
-        </Link>
-      </div>
+      <Empty>
+        <EmptyHeader>
+          <EmptyTitle>
+            <Text value={"Your cart is empty "} />
+          </EmptyTitle>
+          <EmptyDescription>
+            <Text
+              value={"Browse the storefront to find something you need. "}
+            />
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Link href="/products" className={buttonVariants()}>
+            <Text value={"Browse products "} />
+          </Link>
+        </EmptyContent>
+      </Empty>
     );
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
-      <section aria-label="Cart items" className="space-y-4">
+    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem] xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <section aria-label={t("Cart items")} className="min-w-0 space-y-3">
         {items.map((item) => (
-          <article
+          <Card
+            as="article"
             key={item.id}
             data-testid="cart-item"
-            className="grid gap-4 rounded-2xl border border-emerald-950/10 bg-white p-4 shadow-sm sm:grid-cols-[5rem_1fr_auto] sm:items-center"
+            className="grid grid-cols-[4rem_minmax(0,1fr)] gap-3 p-4 sm:grid-cols-[4rem_minmax(0,1fr)_auto] sm:items-center"
           >
             <div
-              className="flex aspect-square w-20 items-center justify-center rounded-xl bg-amber-100 bg-cover bg-center text-2xl font-black text-emerald-900/25"
+              className="flex aspect-square w-16 items-center justify-center rounded-lg bg-muted bg-cover bg-center text-xl font-semibold text-muted-foreground"
               style={
                 item.imageUrl
                   ? { backgroundImage: `url(${JSON.stringify(item.imageUrl)})` }
@@ -79,77 +68,92 @@ export function CartView() {
             >
               {!item.imageUrl ? item.name.charAt(0) : null}
             </div>
-            <div>
-              <h2 className="font-bold text-emerald-950">{item.name}</h2>
-              <p className="mt-1 text-sm text-neutral-500">
-                LKR {item.price} each · {item.stockQuantity} available
+            <div className="min-w-0">
+              <h2 className="break-words font-bold text-foreground">
+                <BilingualText
+                  english={item.nameEn ?? item.name}
+                  sinhala={item.nameSi ?? null}
+                />
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                LKR {item.price} <Text value={"each · "} />
+                {item.stockQuantity} <Text value={"available "} />
               </p>
-              <button
+            </div>
+            <div className="col-span-2 flex items-end justify-between gap-3 sm:col-span-1 sm:justify-end">
+              <Label className="text-xs font-medium text-muted-foreground">
+                <Text value={"Quantity "} />
+                <Input
+                  aria-label={t("Quantity for {name}", {
+                    name: localizeBilingual(
+                      item.nameEn ?? item.name,
+                      item.nameSi ?? null,
+                      locale,
+                    ),
+                  })}
+                  type="number"
+                  min={1}
+                  max={item.stockQuantity}
+                  value={item.quantity}
+                  onChange={(event) =>
+                    updateQuantity(item.id, Number(event.currentTarget.value))
+                  }
+                  className="mt-1 block h-9 w-20"
+                />
+              </Label>
+              <IconActionButton
+                variant="destructive"
                 type="button"
                 onClick={() => remove(item.id)}
-                className="mt-3 text-sm font-bold text-red-700 underline underline-offset-4"
-                aria-label={`Remove ${item.name}`}
+                className="shrink-0 text-white [html.dark_&]:text-black"
+                label={t("Remove {name}", {
+                  name: localizeBilingual(
+                    item.nameEn ?? item.name,
+                    item.nameSi ?? null,
+                    locale,
+                  ),
+                })}
               >
-                Remove
-              </button>
+                <Trash2
+                  aria-hidden="true"
+                  className="stroke-white [html.dark_&]:stroke-black"
+                />
+              </IconActionButton>
             </div>
-            <label className="text-sm font-semibold text-emerald-950">
-              Quantity
-              <input
-                aria-label={`Quantity for ${item.name}`}
-                type="number"
-                min={1}
-                max={item.stockQuantity}
-                value={item.quantity}
-                onChange={(event) =>
-                  updateQuantity(item.id, Number(event.currentTarget.value))
-                }
-                className="mt-1 block h-10 w-24 rounded-lg border px-3"
-              />
-            </label>
-          </article>
+          </Card>
         ))}
       </section>
-      <aside className="h-fit rounded-2xl border border-emerald-950/10 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-black text-emerald-950">Summary</h2>
-        <div className="mt-6 flex justify-between border-b pb-5 font-bold text-emerald-950">
-          <span>Subtotal</span>
+      <Card as="aside" className="h-fit min-w-0 gap-0 p-4 sm:p-5">
+        <h2 className="text-lg font-semibold text-foreground">
+          <Text value={t("Summary")} />
+        </h2>
+        <div className="mt-4 flex flex-wrap justify-between gap-2 border-b pb-3 font-bold text-foreground">
+          <span>
+            <Text value={t("Subtotal")} />
+          </span>
           <span data-testid="cart-subtotal">LKR {subtotal}</span>
         </div>
-        <p className="mt-3 text-xs leading-5 text-neutral-500">
-          Displayed prices are estimates. Availability and current database
-          prices are checked by the server before checkout.
+        <p className="mt-3 text-xs leading-5 text-muted-foreground">
+          <Text value={"Delivery fees are calculated at checkout."} />
         </p>
-        <button
-          type="button"
-          onClick={validateForCheckout}
-          disabled={pending}
-          className="mt-5 w-full rounded-xl bg-emerald-950 px-5 py-3 text-sm font-bold text-white disabled:opacity-60"
-        >
-          {pending ? "Checking…" : "Validate cart for checkout"}
-        </button>
         <Link
           href="/checkout"
-          className="mt-3 flex w-full justify-center rounded-xl border border-emerald-950 px-5 py-3 text-sm font-bold text-emerald-950"
+          className={buttonVariants({
+            className:
+              "mt-3 flex h-auto min-h-9 w-full justify-center whitespace-normal break-words py-2 text-center",
+          })}
         >
-          Proceed to checkout
+          <Text value={"Proceed to checkout "} />
         </Link>
-        {validationMessage ? (
-          <p
-            className="mt-3 text-sm font-semibold text-emerald-800"
-            role="status"
-          >
-            {validationMessage}
-          </p>
-        ) : null}
-        <button
+        <Button
+          variant="destructive"
           type="button"
           onClick={clear}
-          className="mt-4 w-full text-sm font-bold text-red-700 underline underline-offset-4"
+          className="mt-3 w-full no-underline"
         >
-          Clear cart
-        </button>
-      </aside>
+          <Text value={"Clear cart "} />
+        </Button>
+      </Card>
     </div>
   );
 }

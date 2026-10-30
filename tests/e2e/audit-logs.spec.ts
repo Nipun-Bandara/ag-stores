@@ -16,7 +16,7 @@ const prisma = new PrismaClient({
 let auditLogId = "";
 
 async function signIn(page: Page, email: string, destination: string) {
-  await page.goto("/login");
+  await page.goto("/auth");
   await page.getByLabel("Email or phone").fill(email);
   await page.getByLabel("Password").fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();

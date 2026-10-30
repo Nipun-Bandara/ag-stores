@@ -1,14 +1,18 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
 
 import { useState, type FormEvent } from "react";
 
 import { FormError, FormField } from "@/features/auth/components/form-fields";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 interface ApiPayload {
   error?: { message?: string };
 }
 
 export function PasswordForm() {
+  const t = useText();
   const [error, setError] = useState<string>();
   const [message, setMessage] = useState<string>();
   const [pending, setPending] = useState(false);
@@ -35,13 +39,13 @@ export function PasswordForm() {
       const payload = response
         ? ((await response.json().catch(() => ({}))) as ApiPayload)
         : {};
-      setError(payload.error?.message ?? "Unable to change your password.");
+      setError(t(payload.error?.message ?? "Unable to change your password."));
       setPending(false);
       return;
     }
 
     formElement.reset();
-    setMessage("Password changed successfully.");
+    setMessage(t("Password changed successfully."));
     setPending(false);
   }
 
@@ -78,20 +82,18 @@ export function PasswordForm() {
       />
       {error ? <FormError>{error}</FormError> : null}
       {message ? (
-        <p
-          role="status"
-          className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800"
-        >
+        <Alert variant="success" role="status" className="">
           {message}
-        </p>
+        </Alert>
       ) : null}
-      <button
+      <Button
+        variant="success"
         type="submit"
         disabled={pending}
-        className="h-10 rounded-md bg-neutral-950 px-5 text-sm font-medium text-white disabled:opacity-60"
+        className="h-10"
       >
-        {pending ? "Changing…" : "Change password"}
-      </button>
+        {pending ? t("Changing…") : t("Change password")}
+      </Button>
     </form>
   );
 }

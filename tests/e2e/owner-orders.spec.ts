@@ -7,7 +7,7 @@ let workflowOrderId: string;
 let rejectedOrderId: string;
 
 async function signIn(page: Page, email: string, expectedPath: string) {
-  await page.goto("/login");
+  await page.goto("/auth");
   await page.getByLabel("Email or phone").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
@@ -37,11 +37,14 @@ test.describe.serial("owner order management", () => {
     customerEmail = `owner-orders-e2e-${suffix}@example.test`;
     customerName = `Owner Orders Customer ${suffix}`;
 
-    await page.goto("/register");
+    await page.goto("/auth?mode=register");
     await page.getByLabel("Name").fill(customerName);
     await page.getByLabel("Email").fill(customerEmail);
     await page.getByLabel("Password").fill("SecurePassword123!");
-    await page.getByRole("button", { name: "Create customer account" }).click();
+    await page
+      .locator("form:visible")
+      .getByRole("button", { name: "Register", exact: true })
+      .click();
     await expect(page).toHaveURL(/\/account$/);
 
     await page.goto("/account/addresses");
@@ -105,7 +108,7 @@ test.describe.serial("owner order management", () => {
 
   test("customer cannot access owner pages or APIs", async ({ page }) => {
     await page.context().clearCookies();
-    await page.goto("/login");
+    await page.goto("/auth");
     await page.getByLabel("Email or phone").fill(customerEmail);
     await page.getByLabel("Password").fill("SecurePassword123!");
     await page.getByRole("button", { name: "Sign in" }).click();

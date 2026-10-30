@@ -1,6 +1,9 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useState } from "react";
+import { ArrowDown, ArrowUp, CircleCheck, CircleX } from "lucide-react";
 
 import { useRouter } from "next/navigation";
 
@@ -8,6 +11,11 @@ import type {
   DeliveryBatchStatus,
   OrderStatus,
 } from "@/generated/prisma/client";
+import { Button } from "@/components/ui/button";
+import { IconActionButton } from "@/components/ui/icon-action-button";
+import { Alert } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
+import { orderStatusLabels } from "@/features/orders/order-presentation";
 
 interface BatchActionOrder {
   id: string;
@@ -29,6 +37,7 @@ export function DeliveryBatchActions({
   status: DeliveryBatchStatus;
   orders: BatchActionOrder[];
 }) {
+  const t = useText();
   const router = useRouter();
   const [sequence, setSequence] = useState(() => orders.map(({ id }) => id));
   const [pending, setPending] = useState("");
@@ -68,13 +77,13 @@ export function DeliveryBatchActions({
       });
       const payload = (await response.json()) as ApiPayload;
       if (!response.ok) {
-        setError(payload.error?.message ?? "Unable to update this batch.");
+        setError(t(payload.error?.message ?? "Unable to update this batch."));
         return false;
       }
       router.refresh();
       return true;
     } catch {
-      setError("Unable to update this batch.");
+      setError(t("Unable to update this batch."));
       return false;
     } finally {
       setPending("");
@@ -87,7 +96,7 @@ export function DeliveryBatchActions({
       "PATCH",
       { orderIds: sequence },
     );
-    if (succeeded) setMessage("Delivery sequence saved.");
+    if (succeeded) setMessage(t("Delivery sequence saved."));
   }
 
   async function startBatch() {
@@ -106,72 +115,83 @@ export function DeliveryBatchActions({
   }
 
   return (
-    <section className="mt-6 rounded-xl border bg-white p-5">
-      <h2 className="text-lg font-semibold">Batch actions</h2>
+    <Card as="section" className="gap-0 mt-6 p-5">
+      <h2 className="text-lg font-semibold">
+        <Text value={t("Batch actions")} />
+      </h2>
       {status === "PENDING" ? (
         <>
-          <p className="mt-2 text-sm text-neutral-600">
-            Arrange every stop before starting. The sequence locks when delivery
-            begins.
+          <p className="mt-2 text-sm text-muted-foreground">
+            <Text
+              value={
+                "Arrange every stop before starting. The sequence locks when delivery begins. "
+              }
+            />
           </p>
           <ol className="mt-4 space-y-3">
             {sequence.map((orderId, index) => {
               const order = orderById.get(orderId);
               if (!order) return null;
               return (
-                <li
+                <Card
+                  as="li"
                   key={orderId}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
+                  className="gap-0 flex flex-wrap items-center justify-between gap-3 p-3"
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">
-                      Stop {index + 1} · {order.deliveryLocation.label}
+                      <Text value={"Stop "} />
+                      {index + 1} · {order.deliveryLocation.label}
                     </p>
-                    <p className="truncate text-sm text-neutral-600">
+                    <p className="truncate text-sm text-muted-foreground">
                       {order.deliveryLocation.address}
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button
+                    <IconActionButton
+                      variant="outline"
                       type="button"
-                      aria-label={`Move order ${orderId} up`}
+                      label={t("Move order {id} up", { id: orderId })}
                       disabled={index === 0 || pending !== ""}
                       onClick={() => move(index, -1)}
-                      className="rounded border px-3 py-1 text-sm disabled:opacity-40"
                     >
-                      ↑
-                    </button>
-                    <button
+                      <ArrowUp aria-hidden="true" />
+                    </IconActionButton>
+                    <IconActionButton
+                      variant="outline"
                       type="button"
-                      aria-label={`Move order ${orderId} down`}
+                      label={t("Move order {id} down", { id: orderId })}
                       disabled={index === sequence.length - 1 || pending !== ""}
                       onClick={() => move(index, 1)}
-                      className="rounded border px-3 py-1 text-sm disabled:opacity-40"
                     >
-                      ↓
-                    </button>
+                      <ArrowDown aria-hidden="true" />
+                    </IconActionButton>
                   </div>
-                </li>
+                </Card>
               );
             })}
           </ol>
           <div className="mt-4 flex flex-wrap gap-3">
-            <button
+            <Button
+              variant="outline"
               type="button"
               disabled={pending !== ""}
               onClick={saveSequence}
-              className="rounded-md border border-neutral-900 px-4 py-2 text-sm font-medium disabled:opacity-50"
             >
-              {pending.endsWith("/sequence") ? "Saving…" : "Save sequence"}
-            </button>
-            <button
+              {pending.endsWith("/sequence")
+                ? t("Saving…")
+                : t("Save sequence")}
+            </Button>
+            <Button
+              variant="success"
               type="button"
               disabled={pending !== ""}
               onClick={startBatch}
-              className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
-              {pending.endsWith("/start") ? "Starting…" : "Start delivery"}
-            </button>
+              {pending.endsWith("/start")
+                ? t("Starting…")
+                : t("Start delivery")}
+            </Button>
           </div>
         </>
       ) : null}
@@ -179,53 +199,56 @@ export function DeliveryBatchActions({
       {status === "IN_PROGRESS" ? (
         <div className="mt-4 space-y-3">
           {orders.map((order) => (
-            <div
+            <Card
               key={order.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"
+              className="gap-0 flex flex-wrap items-center justify-between gap-3 p-4"
             >
               <div>
                 <p className="text-sm font-semibold">
-                  Stop {order.sequence} · {order.deliveryLocation.label}
+                  <Text value={"Stop "} />
+                  {order.sequence} · {order.deliveryLocation.label}
                 </p>
-                <p className="mt-1 text-sm text-neutral-600">
-                  {order.status.replaceAll("_", " ")}
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t(orderStatusLabels[order.status])}
                 </p>
               </div>
               {order.status === "OUT_FOR_DELIVERY" ? (
                 <div className="flex flex-wrap gap-2">
-                  <button
+                  <IconActionButton
+                    variant="success"
                     type="button"
+                    label={`${t("Mark delivered")} · ${order.deliveryLocation.label}`}
                     disabled={pending !== ""}
                     onClick={() => finishOrder(order.id, "DELIVERED")}
-                    className="rounded-md bg-emerald-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
                   >
-                    Mark delivered
-                  </button>
-                  <button
+                    <CircleCheck aria-hidden="true" />
+                  </IconActionButton>
+                  <IconActionButton
+                    variant="destructive"
                     type="button"
+                    label={`${t("Mark failed")} · ${order.deliveryLocation.label}`}
                     disabled={pending !== ""}
                     onClick={() => finishOrder(order.id, "FAILED_DELIVERY")}
-                    className="rounded-md bg-red-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
                   >
-                    Mark failed
-                  </button>
+                    <CircleX aria-hidden="true" />
+                  </IconActionButton>
                 </div>
               ) : null}
-            </div>
+            </Card>
           ))}
         </div>
       ) : null}
 
       {error ? (
-        <p role="alert" className="mt-4 text-sm text-red-700">
+        <Alert variant="destructive" role="alert" className="mt-4">
           {error}
-        </p>
+        </Alert>
       ) : null}
       {message ? (
-        <p role="status" className="mt-4 text-sm text-emerald-700">
+        <Alert variant="success" role="status" className="mt-4">
           {message}
-        </p>
+        </Alert>
       ) : null}
-    </section>
+    </Card>
   );
 }

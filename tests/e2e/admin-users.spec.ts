@@ -3,11 +3,7 @@ import { randomUUID } from "node:crypto";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { expect, test, type Page } from "@playwright/test";
 
-import {
-  PrismaClient,
-  UserRole,
-  UserStatus,
-} from "../../src/generated/prisma/client";
+import { PrismaClient, UserRole } from "../../src/generated/prisma/client";
 import { hashPassword } from "../../src/lib/auth/password";
 
 const databaseUrl =
@@ -22,7 +18,7 @@ const email = `admin-ui-${suffix}@example.test`;
 let userId = "";
 
 async function signIn(page: Page, emailAddress: string, destination: string) {
-  await page.goto("/login");
+  await page.goto("/auth");
   await page.getByLabel("Email or phone").fill(emailAddress);
   await page.getByLabel("Password").fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
@@ -61,8 +57,10 @@ test.describe.serial("admin user management", () => {
     ).toBeVisible();
 
     await page.getByLabel("Search users").fill(name);
-    await page.getByLabel("Role").selectOption(UserRole.CUSTOMER);
-    await page.getByLabel("Status").selectOption(UserStatus.ACTIVE);
+    await page.getByRole("combobox", { name: "Role" }).click();
+    await page.getByRole("option", { name: "Customer", exact: true }).click();
+    await page.getByRole("combobox", { name: "Status" }).click();
+    await page.getByRole("option", { name: "Active", exact: true }).click();
     await page.getByRole("button", { name: "Apply filters" }).click();
 
     const row = page.getByTestId("admin-user-row").filter({ hasText: name });

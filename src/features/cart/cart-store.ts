@@ -11,18 +11,24 @@ import {
   type CartState,
 } from "@/features/cart/cart-state";
 
-const STORAGE_KEY = "ag-stores-cart-v1";
+const LEGACY_STORAGE_KEY = "ag-stores-cart-v1";
+const STORAGE_PREFIX = "ag-stores-cart-v2:";
 const listeners = new Set<() => void>();
 let state = emptyCartState;
 let loaded = false;
+let ownerId: string | null = null;
+
+function storageKey(): string | null {
+  return ownerId ? `${STORAGE_PREFIX}${ownerId}` : null;
+}
 
 function loadState(): void {
   if (loaded || typeof window === "undefined") return;
   loaded = true;
+  const key = storageKey();
+  if (!key) return;
   try {
-    const stored: unknown = JSON.parse(
-      localStorage.getItem(STORAGE_KEY) ?? "null",
-    );
+    const stored: unknown = JSON.parse(localStorage.getItem(key) ?? "null");
     if (
       stored &&
       typeof stored === "object" &&
@@ -32,14 +38,23 @@ function loadState(): void {
       state = cartReducer(state, { type: "hydrate", items: stored.items });
     }
   } catch {
-    localStorage.removeItem(STORAGE_KEY);
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Keep the cart usable in memory when browser storage is unavailable.
+    }
   }
 }
 
 function commit(nextState: CartState): void {
   state = nextState;
-  if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  const key = storageKey();
+  if (typeof window !== "undefined" && key) {
+    try {
+      localStorage.setItem(key, JSON.stringify(state));
+    } catch {
+      // Keep the cart usable in memory when browser storage is unavailable.
+    }
   }
   listeners.forEach((listener) => listener());
 }
@@ -67,6 +82,21 @@ function getServerSnapshot(): CartState {
 }
 
 export const cartStore = {
+  setOwner(userId: string | null) {
+    if (ownerId === userId) return;
+    ownerId = userId;
+    state = emptyCartState;
+    loaded = false;
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem(LEGACY_STORAGE_KEY);
+      } catch {
+        // Storage may be unavailable; the in-memory cart still works.
+      }
+      loadState();
+    }
+    listeners.forEach((listener) => listener());
+  },
   add(product: CartProduct) {
     return update({ type: "add", product });
   },

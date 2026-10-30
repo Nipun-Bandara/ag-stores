@@ -5,14 +5,15 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 
 import { localizedPath, type Locale } from "@/lib/i18n/config";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-export function LanguageSwitcher({
-  locale,
-  label,
-}: {
-  locale: Locale;
-  label: string;
-}) {
+export function useLocaleChange(locale: Locale) {
   const pathname = usePathname();
   const [pending, setPending] = useState(false);
 
@@ -31,19 +32,38 @@ export function LanguageSwitcher({
     window.location.assign(`${localizedPath(pathname, nextLocale)}${query}`);
   }
 
+  return { pending, changeLocale };
+}
+
+export function LanguageSwitcher({
+  locale,
+  label,
+  alignItemWithTrigger = false,
+}: {
+  locale: Locale;
+  label: string;
+  alignItemWithTrigger?: boolean;
+}) {
+  const { pending, changeLocale } = useLocaleChange(locale);
+
   return (
-    <label className="inline-flex items-center gap-2 text-sm font-semibold">
-      <span className="sr-only">{label}</span>
-      <select
-        aria-label={label}
-        value={locale}
-        disabled={pending}
-        onChange={(event) => void changeLocale(event.target.value as Locale)}
-        className="rounded-full border border-current/15 bg-white px-3 py-2 text-sm text-emerald-950 disabled:opacity-60"
+    <Select
+      value={locale}
+      disabled={pending}
+      onValueChange={(value) => {
+        if (value === "en" || value === "si") void changeLocale(value);
+      }}
+    >
+      <SelectTrigger aria-label={label} className="min-w-28">
+        <SelectValue>{locale === "si" ? "සිංහල" : "English"}</SelectValue>
+      </SelectTrigger>
+      <SelectContent
+        alignItemWithTrigger={alignItemWithTrigger}
+        className="min-w-0"
       >
-        <option value="en">English</option>
-        <option value="si">සිංහල</option>
-      </select>
-    </label>
+        <SelectItem value="en">English</SelectItem>
+        <SelectItem value="si">සිංහල</SelectItem>
+      </SelectContent>
+    </Select>
   );
 }

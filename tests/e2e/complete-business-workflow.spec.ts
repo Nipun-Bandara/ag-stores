@@ -51,7 +51,7 @@ async function signIn(
   accountPassword = password,
 ) {
   await page.context().clearCookies();
-  await page.goto("/login");
+  await page.goto("/auth");
   await page.getByLabel("Email or phone").fill(email);
   await page.getByLabel("Password").fill(accountPassword);
   await page.getByRole("button", { name: "Sign in" }).click();
@@ -252,14 +252,19 @@ test.describe.serial("complete retail order and delivery workflow", () => {
   test("customer, owner, rider, and customer complete the full workflow", async ({
     page,
   }) => {
-    await page.goto("/register");
+    await page.goto("/auth?mode=register");
     await page.getByLabel("Name").fill(`Workflow Customer ${shortSuffix}`);
     await page.getByLabel("Email").fill(customerEmail);
     await page.getByLabel("Password").fill(password);
-    await page.getByLabel("Preferred language").selectOption("EN");
-    await page.getByRole("button", { name: "Create customer account" }).click();
+    await page
+      .locator("form:visible")
+      .getByRole("button", { name: "Register", exact: true })
+      .click();
     await expect(page).toHaveURL(/\/account$/);
-    await page.getByRole("button", { name: "Sign out" }).click();
+    await page
+      .locator('[data-slot="sidebar-footer"] [data-slot="sidebar-menu-button"]')
+      .click();
+    await page.getByRole("menuitem", { name: "Sign out" }).click();
 
     await signIn(page, customerEmail, "/account");
     const customer = await prisma.user.findUniqueOrThrow({
@@ -380,14 +385,14 @@ test.describe.serial("complete retail order and delivery workflow", () => {
     page,
   }) => {
     await page.context().clearCookies();
-    await page.goto("/login");
+    await page.goto("/auth");
     await page.getByLabel("Email or phone").fill(customerEmail);
     await page.getByLabel("Password").fill("DefinitelyWrong123!");
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(
       page.getByText("Invalid email/phone or password.", { exact: true }),
     ).toBeVisible();
-    await expect(page).toHaveURL(/\/login$/);
+    await expect(page).toHaveURL(/\/auth$/);
 
     await signIn(page, customerEmail, "/account");
     const apiStatus = await page.evaluate(async () =>

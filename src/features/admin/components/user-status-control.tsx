@@ -1,9 +1,13 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { CircleCheck, CircleX } from "lucide-react";
 
 import type { UserStatus } from "@/generated/prisma/client";
+import { IconActionButton } from "@/components/ui/icon-action-button";
+import { Alert } from "@/components/ui/alert";
 
 interface StatusResponse {
   data?: { status?: UserStatus };
@@ -19,12 +23,13 @@ export function UserStatusControl({
   userName: string;
   initialStatus: UserStatus;
 }) {
+  const t = useText();
   const router = useRouter();
   const [status, setStatus] = useState(initialStatus);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
   const nextStatus: UserStatus = status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
-  const action = nextStatus === "ACTIVE" ? "Activate" : "Deactivate";
+  const action = nextStatus === "ACTIVE" ? t("Activate") : t("Deactivate");
 
   async function changeStatus() {
     setPending(true);
@@ -39,7 +44,7 @@ export function UserStatusControl({
       : {};
 
     if (!response?.ok || !payload.data?.status) {
-      setError(payload.error?.message ?? "Unable to update account status.");
+      setError(t(payload.error?.message ?? "Unable to update account status."));
     } else {
       setStatus(payload.data.status);
       router.refresh();
@@ -49,18 +54,31 @@ export function UserStatusControl({
 
   return (
     <div>
-      <button
+      <IconActionButton
+        label={pending ? t("Updating…") : `${action} ${userName}`}
+        variant={nextStatus === "ACTIVE" ? "success" : "destructive"}
+        className={
+          nextStatus === "INACTIVE"
+            ? "text-white [html.dark_&]:text-black"
+            : undefined
+        }
         type="button"
         disabled={pending}
         onClick={changeStatus}
-        className="rounded-md border px-3 py-2 text-sm font-medium disabled:opacity-60"
       >
-        {pending ? "Updating…" : `${action} ${userName}`}
-      </button>
+        {nextStatus === "ACTIVE" ? (
+          <CircleCheck aria-hidden="true" />
+        ) : (
+          <CircleX
+            aria-hidden="true"
+            className="stroke-white [html.dark_&]:stroke-black"
+          />
+        )}
+      </IconActionButton>
       {error ? (
-        <p role="alert" className="mt-2 max-w-sm text-sm text-red-700">
+        <Alert variant="destructive" role="alert" className="mt-2 max-w-sm">
           {error}
-        </p>
+        </Alert>
       ) : null}
     </div>
   );

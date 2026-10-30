@@ -10,4 +10,5 @@ test-results/
 src/generated/prisma/
 *.tsbuildinfo
 .DS_Store
-
+.codex
+.agents

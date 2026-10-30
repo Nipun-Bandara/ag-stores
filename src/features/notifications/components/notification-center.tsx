@@ -1,16 +1,20 @@
 "use client";
+import { useLocale, useText } from "@/features/i18n/components/locale-provider";
+import { formatLocaleDate, translateOrderNotification } from "@/lib/i18n/text";
+import { Text } from "@/features/i18n/components/text";
 
 import Link from "next/link";
 import { useState } from "react";
+import { CircleCheck } from "lucide-react";
 
 import type { NotificationType, UserRole } from "@/generated/prisma/client";
 import type { NotificationCenterView } from "@/services/notification.service";
-
-const dateFormatter = new Intl.DateTimeFormat("en-LK", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "Asia/Colombo",
-});
+import { Button } from "@/components/ui/button";
+import { IconActionButton } from "@/components/ui/icon-action-button";
+import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 function notificationHref(
   role: UserRole,
@@ -34,6 +38,8 @@ export function NotificationCenter({
   role: UserRole;
   initialData: NotificationCenterView;
 }) {
+  const t = useText();
+  const locale = useLocale();
   const [notifications, setNotifications] = useState(initialData.notifications);
   const [unreadCount, setUnreadCount] = useState(initialData.unreadCount);
   const [pendingId, setPendingId] = useState<string>();
@@ -47,7 +53,7 @@ export function NotificationCenter({
       method: "PATCH",
     }).catch(() => null);
     if (!response?.ok) {
-      setError("Unable to mark the notification as read.");
+      setError(t("Unable to mark the notification as read."));
     } else {
       const readAt = new Date().toISOString();
       setNotifications((current) =>
@@ -69,7 +75,7 @@ export function NotificationCenter({
       method: "PATCH",
     }).catch(() => null);
     if (!response?.ok) {
-      setError("Unable to mark all notifications as read.");
+      setError(t("Unable to mark all notifications as read."));
     } else {
       const readAt = new Date().toISOString();
       setNotifications((current) =>
@@ -88,51 +94,55 @@ export function NotificationCenter({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 id="notification-list-heading" className="text-lg font-semibold">
-            Recent notifications
+            <Text value={"Recent notifications "} />
           </h2>
           <p
             data-testid="notification-unread-count"
-            className="mt-1 text-sm text-neutral-500"
+            className="mt-1 text-sm text-muted-foreground"
           >
-            {unreadCount} unread
+            {unreadCount} <Text value={"unread "} />
           </p>
         </div>
-        <button
+        <Button
+          variant="success"
           type="button"
           disabled={markingAll || unreadCount === 0}
           onClick={markAllRead}
-          className="rounded-md border px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
-          {markingAll ? "Updating…" : "Mark all as read"}
-        </button>
+          {markingAll ? t("Updating…") : t("Mark all as read")}
+        </Button>
       </div>
       {error ? (
-        <p role="alert" className="mt-4 text-sm text-red-700">
+        <Alert variant="destructive" role="alert" className="mt-4">
           {error}
-        </p>
+        </Alert>
       ) : null}
       {notifications.length ? (
-        <div className="mt-4 divide-y overflow-hidden rounded-xl border bg-white">
+        <Card className="gap-0 py-0 mt-4 divide-y overflow-hidden">
           {notifications.map((notification) => (
             <article
               key={notification.id}
               data-testid="notification-item"
-              className={`p-5 ${notification.readAt ? "" : "bg-blue-50/60"}`}
+              className={`p-5 ${notification.readAt ? "" : "bg-primary/5"}`}
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <h3 className="font-semibold">{notification.title}</h3>
-                  <p className="mt-1 text-sm text-neutral-700">
-                    {notification.message}
+                  <h3 className="font-semibold">{t(notification.title)}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {translateOrderNotification(
+                      locale,
+                      notification.message,
+                      notification.orderId,
+                    )}
                   </p>
-                  <p className="mt-2 text-xs text-neutral-500">
-                    {dateFormatter.format(new Date(notification.createdAt))}
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {formatLocaleDate(locale, notification.createdAt)}
                   </p>
                 </div>
                 {!notification.readAt ? (
-                  <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-900">
-                    Unread
-                  </span>
+                  <Badge variant="info">
+                    <Text value={t("Unread")} />
+                  </Badge>
                 ) : null}
               </div>
               <div className="mt-4 flex flex-wrap gap-4 text-sm font-medium">
@@ -144,27 +154,35 @@ export function NotificationCenter({
                   )}
                   className="underline"
                 >
-                  View related order
+                  <Text value={"View related order "} />
                 </Link>
                 {!notification.readAt ? (
-                  <button
+                  <IconActionButton
+                    variant="success"
                     type="button"
+                    label={
+                      pendingId === notification.id
+                        ? t("Updating…")
+                        : t("Mark as read")
+                    }
                     disabled={pendingId === notification.id}
                     onClick={() => markRead(notification.id)}
                   >
-                    {pendingId === notification.id
-                      ? "Updating…"
-                      : "Mark as read"}
-                  </button>
+                    <CircleCheck aria-hidden="true" />
+                  </IconActionButton>
                 ) : null}
               </div>
             </article>
           ))}
-        </div>
+        </Card>
       ) : (
-        <p className="mt-4 rounded-xl border border-dashed p-6 text-sm text-neutral-600">
-          You do not have any notifications yet.
-        </p>
+        <Empty className="mt-4">
+          <EmptyHeader>
+            <EmptyTitle>
+              <Text value={"You do not have any notifications yet. "} />
+            </EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       )}
     </section>
   );

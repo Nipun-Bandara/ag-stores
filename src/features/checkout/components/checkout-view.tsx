@@ -1,8 +1,12 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
+import { BilingualText } from "@/features/i18n/components/bilingual-text";
 
 import { useEffect, useState, type FormEvent } from "react";
 
 import Link from "next/link";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useRouter } from "next/navigation";
 
 import { useCart } from "@/features/cart/cart-store";
@@ -12,6 +16,18 @@ import {
   moneyToMinorUnits,
 } from "@/lib/money";
 import type { CustomerAddressView } from "@/services/customer-address.service";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert } from "@/components/ui/alert";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
 interface CheckoutPayload {
   data?: { id?: string };
@@ -27,6 +43,7 @@ export function CheckoutView({
 }: {
   addresses: CustomerAddressView[];
 }) {
+  const t = useText();
   const router = useRouter();
   const { items, subtotal, clear } = useCart();
   const [error, setError] = useState<string>();
@@ -96,7 +113,7 @@ export function CheckoutView({
       : {};
 
     if (!response?.ok || !payload.data?.id) {
-      setError(payload.error?.message ?? "Unable to place your order.");
+      setError(t(payload.error?.message ?? "Unable to place your order."));
       setPending(false);
       return;
     }
@@ -107,39 +124,43 @@ export function CheckoutView({
 
   if (items.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-emerald-950/20 bg-white p-10 text-center">
-        <h2 className="text-xl font-black text-emerald-950">
-          Your cart is empty
-        </h2>
-        <p className="mt-2 text-sm text-neutral-600">
-          Add at least one available product before checkout.
-        </p>
-        <Link
-          href="/products"
-          className="mt-6 inline-flex rounded-xl bg-emerald-950 px-5 py-3 text-sm font-bold text-white"
-        >
-          Browse products
-        </Link>
-      </div>
+      <Empty>
+        <EmptyHeader>
+          <EmptyTitle>
+            <Text value={"Your cart is empty "} />
+          </EmptyTitle>
+          <EmptyDescription>
+            <Text
+              value={"Add at least one available product before checkout. "}
+            />
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Link href="/products" className={buttonVariants()}>
+            <Text value={"Browse products "} />
+          </Link>
+        </EmptyContent>
+      </Empty>
     );
   }
 
   if (addresses.length === 0) {
     return (
-      <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8">
-        <h2 className="text-xl font-black text-amber-950">
-          Add a delivery address first
-        </h2>
-        <p className="mt-2 text-sm text-amber-900">
-          Checkout needs one of your saved addresses.
-        </p>
-        <Link
-          href="/account/addresses"
-          className="mt-5 inline-flex rounded-xl bg-amber-950 px-5 py-3 text-sm font-bold text-white"
-        >
-          Manage addresses
-        </Link>
-      </div>
+      <Empty>
+        <EmptyHeader>
+          <EmptyTitle>
+            <Text value={"Add a delivery address first "} />
+          </EmptyTitle>
+          <EmptyDescription>
+            <Text value={"Checkout needs one of your saved addresses. "} />
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Link href="/account/addresses" className={buttonVariants()}>
+            <Text value={"Manage addresses "} />
+          </Link>
+        </EmptyContent>
+      </Empty>
     );
   }
 
@@ -149,41 +170,38 @@ export function CheckoutView({
       className="grid gap-8 lg:grid-cols-[1fr_22rem]"
     >
       <div className="space-y-6">
-        <section className="rounded-2xl border border-emerald-950/10 bg-white p-5 shadow-sm sm:p-6">
-          <h2 className="text-xl font-black text-emerald-950">
-            Delivery address
+        <Card as="section" className="gap-0 p-5 sm:p-6">
+          <h2 className="text-xl font-black text-foreground">
+            <Text value={"Delivery address "} />
           </h2>
-          <div className="mt-4 space-y-3">
+          <RadioGroup
+            className="mt-4"
+            name="deliveryAddressId"
+            defaultValue={defaultAddress?.id ?? addresses[0]?.id}
+            required
+          >
             {addresses.map((address) => (
-              <label
+              <Label
                 key={address.id}
-                className="flex cursor-pointer gap-3 rounded-xl border p-4 has-checked:border-emerald-700 has-checked:bg-emerald-50"
+                className="flex cursor-pointer gap-3 rounded-xl border p-4 has-data-checked:border-primary has-data-checked:bg-primary/5"
               >
-                <input
-                  type="radio"
-                  name="deliveryAddressId"
-                  value={address.id}
-                  defaultChecked={
-                    address.id === (defaultAddress?.id ?? addresses[0]?.id)
-                  }
-                  required
-                />
-                <span>
-                  <span className="block font-bold text-emerald-950">
+                <RadioGroupItem value={address.id} />
+                <span className="min-w-0 break-words">
+                  <span className="block font-bold text-foreground">
                     {address.label}
                   </span>
-                  <span className="mt-1 block text-sm text-neutral-600">
+                  <span className="mt-1 block text-sm text-muted-foreground">
                     {address.address}
                   </span>
                 </span>
-              </label>
+              </Label>
             ))}
-          </div>
-        </section>
+          </RadioGroup>
+        </Card>
 
-        <section className="rounded-2xl border border-emerald-950/10 bg-white p-5 shadow-sm sm:p-6">
-          <h2 className="text-xl font-black text-emerald-950">
-            Review products
+        <Card as="section" className="gap-0 p-5 sm:p-6">
+          <h2 className="text-xl font-black text-foreground">
+            <Text value={"Review products "} />
           </h2>
           <div className="mt-4 divide-y">
             {items.map((item) => (
@@ -192,82 +210,106 @@ export function CheckoutView({
                 data-testid="checkout-item"
                 className="flex justify-between gap-4 py-4"
               >
-                <div>
-                  <p className="font-bold text-emerald-950">{item.name}</p>
-                  <p className="text-sm text-neutral-500">
-                    Quantity {item.quantity}
+                <div className="min-w-0">
+                  <p className="break-words font-bold text-foreground">
+                    <BilingualText
+                      english={item.nameEn ?? item.name}
+                      sinhala={item.nameSi ?? null}
+                    />
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    <Text value={"Quantity "} />
+                    {item.quantity}
                   </p>
                 </div>
-                <p className="font-semibold text-emerald-950">
-                  LKR {item.price} each
+                <p className="shrink-0 font-semibold text-foreground">
+                  LKR {item.price} <Text value={"each "} />
                 </p>
               </div>
             ))}
           </div>
-        </section>
+        </Card>
 
-        <section className="rounded-2xl border border-emerald-950/10 bg-white p-5 shadow-sm sm:p-6">
-          <label
+        <Card as="section" className="gap-0 p-5 sm:p-6">
+          <Label
             htmlFor="deliveryInstructions"
-            className="text-base font-bold text-emerald-950"
+            className="text-base font-bold text-foreground"
           >
-            Delivery instructions{" "}
-            <span className="font-normal">(optional)</span>
-          </label>
-          <textarea
+            <Text value={t("Delivery instructions")} />{" "}
+            <span className="font-normal">
+              <Text value={t("(optional)")} />
+            </span>
+          </Label>
+          <Textarea
             id="deliveryInstructions"
             name="deliveryInstructions"
             maxLength={1000}
             rows={4}
-            placeholder="Gate code, landmark, or delivery note"
-            className="mt-3 w-full rounded-xl border p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-700"
+            placeholder={t("Gate code, landmark, or delivery note")}
+            className="mt-3 w-full p-3"
           />
-        </section>
+        </Card>
       </div>
 
-      <aside className="h-fit rounded-2xl border border-emerald-950/10 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-black text-emerald-950">Order summary</h2>
+      <Card as="aside" className="gap-0 h-fit p-6">
+        <h2 className="text-xl font-black text-foreground">
+          <Text value={t("Order summary")} />
+        </h2>
         <dl className="mt-6 space-y-4 text-sm">
           <div className="flex justify-between">
-            <dt>Subtotal</dt>
+            <dt>
+              <Text value={t("Subtotal")} />
+            </dt>
             <dd data-testid="checkout-subtotal">LKR {quotedSubtotal}</dd>
           </div>
           <div className="flex justify-between">
-            <dt>Delivery fee</dt>
+            <dt>
+              <Text value={t("Delivery fee")} />
+            </dt>
             <dd data-testid="checkout-delivery-fee">
               {deliveryFee
                 ? `LKR ${deliveryFee}`
-                : "Calculated at confirmation"}
+                : t("Calculated at confirmation")}
             </dd>
           </div>
-          <div className="flex justify-between border-t pt-4 text-base font-black text-emerald-950">
-            <dt>Total</dt>
+          <div className="flex justify-between border-t pt-4 text-base font-black text-foreground">
+            <dt>
+              <Text value={t("Total")} />
+            </dt>
             <dd data-testid="checkout-total">
-              {total ? `LKR ${total}` : "Calculated at confirmation"}
+              {total ? `LKR ${total}` : t("Calculated at confirmation")}
             </dd>
           </div>
         </dl>
-        <div className="mt-6 rounded-xl bg-amber-50 p-4 text-sm">
-          <span className="block font-bold text-amber-950">Payment method</span>
-          <span className="mt-1 block text-amber-900">Cash on Delivery</span>
-        </div>
-        <p className="mt-4 text-xs leading-5 text-neutral-500">
-          Prices, availability, stock, delivery fee, and total are recalculated
-          by the server when you confirm.
+        <Card className="mt-6 gap-0 bg-muted/50 p-4">
+          <span className="block font-bold">
+            <Text value={t("Payment method")} />
+          </span>
+          <span className="mt-1 block text-muted-foreground">
+            <Text value={"Cash on Delivery "} />
+          </span>
+        </Card>
+        <p className="mt-4 text-xs leading-5 text-muted-foreground">
+          <Text
+            value={
+              "Prices, availability, stock, delivery fee, and total are recalculated by the server when you confirm. "
+            }
+          />
         </p>
         {error ? (
-          <p className="mt-4 text-sm font-semibold text-red-700" role="alert">
+          <Alert variant="destructive" className="mt-4" role="alert">
             {error}
-          </p>
+          </Alert>
         ) : null}
-        <button
+        <Button
+          variant="success"
           type="submit"
           disabled={pending}
-          className="mt-6 w-full rounded-xl bg-emerald-950 px-5 py-3 text-sm font-bold text-white disabled:opacity-60"
+          className="mt-6 h-auto min-h-9 w-full whitespace-normal break-words py-2 text-center"
         >
-          {pending ? "Placing order…" : "Confirm Cash on Delivery order"}
-        </button>
-      </aside>
+          {pending ? t("Placing order…") : t("Confirm Cash on Delivery order")}
+        </Button>
+      </Card>
     </form>
   );
 }

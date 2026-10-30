@@ -6,11 +6,14 @@ test("customer manages profile and changes password", async ({ page }) => {
   const currentPassword = "CurrentPassword123!";
   const newPassword = "NewSecurePassword123!";
 
-  await page.goto("/register");
+  await page.goto("/auth?mode=register");
   await page.getByLabel("Name").fill("Profile E2E Customer");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(currentPassword);
-  await page.getByRole("button", { name: "Create customer account" }).click();
+  await page
+    .locator("form:visible")
+    .getByRole("button", { name: "Register", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/account$/);
 
   await page.goto("/account/profile");
@@ -31,7 +34,10 @@ test("customer manages profile and changes password", async ({ page }) => {
     "Password changed successfully.",
   );
 
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await page
+    .locator('[data-slot="sidebar-footer"] [data-slot="sidebar-menu-button"]')
+    .click();
+  await page.getByRole("menuitem", { name: "Sign out" }).click();
   await page.getByLabel("Email or phone").fill(email);
   await page.getByLabel("Password").fill(newPassword);
   await page.getByRole("button", { name: "Sign in" }).click();

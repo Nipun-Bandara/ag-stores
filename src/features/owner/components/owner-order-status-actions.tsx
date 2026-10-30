@@ -1,10 +1,15 @@
 "use client";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
 import type { OrderStatus } from "@/generated/prisma/client";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
 
 const actions: Partial<
   Record<OrderStatus, Array<{ status: OrderStatus; label: string }>>
@@ -29,6 +34,7 @@ export function OwnerOrderStatusActions({
   orderId: string;
   status: OrderStatus;
 }) {
+  const t = useText();
   const router = useRouter();
   const [pending, setPending] = useState<OrderStatus | null>(null);
   const [error, setError] = useState("");
@@ -47,41 +53,44 @@ export function OwnerOrderStatusActions({
       });
       const payload = await response.json();
       if (!response.ok) {
-        setError(payload.error?.message ?? "Unable to update this order.");
+        setError(t(payload.error?.message ?? "Unable to update this order."));
         return;
       }
       router.refresh();
     } catch {
-      setError("Unable to update this order.");
+      setError(t("Unable to update this order."));
     } finally {
       setPending(null);
     }
   }
 
   return (
-    <section
-      className="mt-6 rounded-xl border bg-white p-5"
-      aria-label="Order actions"
+    <Card
+      as="section"
+      className="gap-0 mt-6 p-5"
+      aria-label={t("Order actions")}
     >
-      <h2 className="font-semibold">Update order status</h2>
+      <h2 className="font-semibold">
+        <Text value={t("Update order status")} />
+      </h2>
       <div className="mt-4 flex flex-wrap gap-3">
         {availableActions.map((action) => (
-          <button
+          <Button
             key={action.status}
+            variant={action.status === "REJECTED" ? "destructive" : "success"}
             type="button"
             disabled={pending !== null}
             onClick={() => transition(action.status)}
-            className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
-            {pending === action.status ? "Updating…" : action.label}
-          </button>
+            {pending === action.status ? t("Updating…") : t(action.label)}
+          </Button>
         ))}
       </div>
       {error ? (
-        <p role="alert" className="mt-3 text-sm text-red-700">
+        <Alert variant="destructive" role="alert" className="mt-3">
           {error}
-        </p>
+        </Alert>
       ) : null}
-    </section>
+    </Card>
   );
 }

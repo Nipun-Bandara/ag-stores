@@ -1,18 +1,28 @@
 "use client";
+import { useLocale, useText } from "@/features/i18n/components/locale-provider";
+import { Text } from "@/features/i18n/components/text";
 
 import { useMemo, useState, type FormEvent } from "react";
 
 import { useRouter } from "next/navigation";
 
-import {
-  FormError,
-  FormField,
-  SelectField,
-} from "@/features/auth/components/form-fields";
+import { FormError, FormField } from "@/features/auth/components/form-fields";
 import type {
   ProductFormOptions,
   ProductView,
 } from "@/services/product.service";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { localizeBilingual } from "@/lib/i18n/config";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 
 interface ApiPayload {
   error?: { message?: string };
@@ -25,9 +35,17 @@ export function ProductForm({
   options: ProductFormOptions;
   product?: ProductView;
 }) {
+  const t = useText();
+  const locale = useLocale();
   const router = useRouter();
   const initialShopId = product?.shopId ?? options.shops[0]?.id ?? "";
+  const initialCategoryId =
+    product?.categoryId ??
+    options.categories.find((category) => category.shopId === initialShopId)
+      ?.id ??
+    "";
   const [shopId, setShopId] = useState(initialShopId);
+  const [categoryId, setCategoryId] = useState(initialCategoryId);
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
   const categories = useMemo(
@@ -65,7 +83,7 @@ export function ProductForm({
       const payload = response
         ? ((await response.json().catch(() => ({}))) as ApiPayload)
         : {};
-      setError(payload.error?.message ?? "Unable to save this product.");
+      setError(t(payload.error?.message ?? "Unable to save this product."));
       setPending(false);
       return;
     }
@@ -75,44 +93,88 @@ export function ProductForm({
   }
 
   return (
-    <form className="mt-8 max-w-3xl space-y-5" onSubmit={handleSubmit}>
+    <form
+      className="mx-auto mt-8 grid w-full max-w-5xl gap-5 sm:grid-cols-6 lg:grid-cols-12"
+      onSubmit={handleSubmit}
+    >
       {product ? (
-        <div>
-          <p className="text-sm font-medium">Shop</p>
-          <p className="mt-1.5 text-sm text-neutral-600">{product.shopName}</p>
+        <div className="sm:col-span-3 lg:col-span-6">
+          <p className="text-sm font-medium">
+            <Text value={t("Shop")} />
+          </p>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            {product.shopName}
+          </p>
         </div>
       ) : (
-        <SelectField
-          id="shopId"
-          name="shopId"
-          label="Shop"
-          value={shopId}
-          onChange={(event) => setShopId(event.target.value)}
+        <div className="min-w-0 sm:col-span-3 lg:col-span-6">
+          <Label htmlFor="shopId" className="block text-sm font-medium">
+            <Text value={"Shop"} />
+          </Label>
+          <Select
+            name="shopId"
+            value={shopId}
+            onValueChange={(value) => {
+              const nextShopId = value ?? "";
+              setShopId(nextShopId);
+              setCategoryId(
+                options.categories.find(
+                  (category) => category.shopId === nextShopId,
+                )?.id ?? "",
+              );
+            }}
+            required
+          >
+            <SelectTrigger id="shopId" className="mt-1.5 h-10 w-full">
+              <SelectValue>
+                {(value) =>
+                  options.shops.find((shop) => shop.id === value)?.name ??
+                  t("Select a shop")
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {options.shops.map((shop) => (
+                <SelectItem key={shop.id} value={shop.id}>
+                  {shop.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      <div className="min-w-0 sm:col-span-3 lg:col-span-6">
+        <Label htmlFor="categoryId" className="block text-sm font-medium">
+          <Text value={"Category"} />
+        </Label>
+        <Select
+          name="categoryId"
+          value={categoryId}
+          onValueChange={(value) => setCategoryId(value ?? "")}
+          disabled={categories.length === 0}
           required
         >
-          {options.shops.map((shop) => (
-            <option key={shop.id} value={shop.id}>
-              {shop.name}
-            </option>
-          ))}
-        </SelectField>
-      )}
-      <SelectField
-        id="categoryId"
-        name="categoryId"
-        label="Category"
-        defaultValue={product?.categoryId ?? categories[0]?.id ?? ""}
-        key={`${shopId}-${product?.categoryId ?? "new"}`}
-        required
-      >
-        {categories.map((category) => (
-          <option key={category.id} value={category.id}>
-            {category.nameEn}
-            {category.status === "INACTIVE" ? " (inactive)" : ""}
-          </option>
-        ))}
-      </SelectField>
-      <div className="grid gap-5 sm:grid-cols-3">
+          <SelectTrigger id="categoryId" className="mt-1.5 h-10 w-full">
+            <SelectValue>
+              {(value) => {
+                const category = categories.find((item) => item.id === value);
+                return category
+                  ? `${localizeBilingual(category.nameEn, category.nameSi, locale)}${category.status === "INACTIVE" ? t(" (inactive)") : ""}`
+                  : t("Select a category");
+              }}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {categories.map((category) => (
+              <SelectItem key={category.id} value={category.id}>
+                {localizeBilingual(category.nameEn, category.nameSi, locale)}
+                {category.status === "INACTIVE" ? t(" (inactive)") : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="min-w-0 sm:col-span-3 lg:col-span-6">
         <FormField
           id="nameEn"
           name="nameEn"
@@ -121,6 +183,8 @@ export function ProductForm({
           maxLength={180}
           required
         />
+      </div>
+      <div className="min-w-0 sm:col-span-3 lg:col-span-6">
         <FormField
           id="nameSi"
           name="nameSi"
@@ -129,29 +193,33 @@ export function ProductForm({
           maxLength={180}
         />
       </div>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <label className="block text-sm font-medium" htmlFor="descriptionEn">
-          English description
-          <textarea
-            id="descriptionEn"
-            name="descriptionEn"
-            defaultValue={product?.descriptionEn ?? ""}
-            maxLength={5000}
-            className="mt-1.5 min-h-28 w-full rounded-md border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900"
-          />
-        </label>
-        <label className="block text-sm font-medium" htmlFor="descriptionSi">
-          Sinhala description
-          <textarea
-            id="descriptionSi"
-            name="descriptionSi"
-            defaultValue={product?.descriptionSi ?? ""}
-            maxLength={5000}
-            className="mt-1.5 min-h-28 w-full rounded-md border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900"
-          />
-        </label>
-      </div>
-      <div className="grid gap-5 sm:grid-cols-2">
+      <Label
+        className="block min-w-0 text-sm font-medium sm:col-span-3 lg:col-span-6"
+        htmlFor="descriptionEn"
+      >
+        <Text value={"English description "} />
+        <Textarea
+          id="descriptionEn"
+          name="descriptionEn"
+          defaultValue={product?.descriptionEn ?? ""}
+          maxLength={5000}
+          className="mt-1.5 min-h-28 w-full"
+        />
+      </Label>
+      <Label
+        className="block min-w-0 text-sm font-medium sm:col-span-3 lg:col-span-6"
+        htmlFor="descriptionSi"
+      >
+        <Text value={"Sinhala description "} />
+        <Textarea
+          id="descriptionSi"
+          name="descriptionSi"
+          defaultValue={product?.descriptionSi ?? ""}
+          maxLength={5000}
+          className="mt-1.5 min-h-28 w-full"
+        />
+      </Label>
+      <div className="min-w-0 sm:col-span-2 lg:col-span-4">
         <FormField
           id="price"
           name="price"
@@ -163,6 +231,8 @@ export function ProductForm({
           defaultValue={product?.price ?? "0.00"}
           required
         />
+      </div>
+      <div className="min-w-0 sm:col-span-2 lg:col-span-4">
         <FormField
           id="stockQuantity"
           name="stockQuantity"
@@ -174,6 +244,8 @@ export function ProductForm({
           defaultValue={product?.stockQuantity ?? 0}
           required
         />
+      </div>
+      <div className="min-w-0 sm:col-span-2 lg:col-span-4">
         <FormField
           id="lowStockThreshold"
           name="lowStockThreshold"
@@ -186,43 +258,58 @@ export function ProductForm({
           required
         />
       </div>
-      <FormField
-        id="imageUrl"
-        name="imageUrl"
-        label="Image URL"
-        type="url"
-        defaultValue={product?.imageUrl ?? ""}
-        maxLength={2048}
-        placeholder="https://example.com/product.jpg"
-        hint="Image uploads are not available yet. Provide a hosted image URL."
-      />
-      <label className="flex items-center gap-2 text-sm font-medium">
-        <input
+      <div className="min-w-0 sm:col-span-6 lg:col-span-12">
+        <FormField
+          id="imageUrl"
+          name="imageUrl"
+          label="Image URL"
+          type="url"
+          defaultValue={product?.imageUrl ?? ""}
+          maxLength={2048}
+          placeholder="https://example.com/product.jpg"
+          hint="Image uploads are not available yet. Provide a hosted image URL."
+        />
+      </div>
+      <Label className="flex items-center gap-2 text-sm font-medium sm:col-span-6 lg:col-span-12">
+        <Checkbox
           name="isAvailable"
-          type="checkbox"
           defaultChecked={product?.isAvailable ?? true}
         />
-        Product is available
-      </label>
+        <Text value={"Product is available "} />
+      </Label>
       {categories.length === 0 ? (
-        <FormError>Create a category for this shop first.</FormError>
+        <div className="sm:col-span-6 lg:col-span-12">
+          <FormError>
+            <Text value={t("Create a category for this shop first.")} />
+          </FormError>
+        </div>
       ) : null}
-      {error ? <FormError>{error}</FormError> : null}
-      <div className="flex gap-3">
-        <button
+      {error ? (
+        <div className="sm:col-span-6 lg:col-span-12">
+          <FormError>{error}</FormError>
+        </div>
+      ) : null}
+      <div className="flex flex-wrap gap-3 sm:col-span-6 lg:col-span-12">
+        <Button
+          variant="success"
           type="submit"
           disabled={pending || categories.length === 0}
-          className="h-10 rounded-md bg-neutral-950 px-5 text-sm font-medium text-white disabled:opacity-60"
+          className="h-10"
         >
-          {pending ? "Saving…" : product ? "Save product" : "Create product"}
-        </button>
-        <button
+          {pending
+            ? t("Saving…")
+            : product
+              ? t("Save product")
+              : t("Create product")}
+        </Button>
+        <Button
+          variant="outline"
           type="button"
-          className="h-10 rounded-md border px-5 text-sm font-medium"
+          className="h-10"
           onClick={() => router.push("/owner/products")}
         >
-          Cancel
-        </button>
+          <Text value={"Cancel "} />
+        </Button>
       </div>
     </form>
   );

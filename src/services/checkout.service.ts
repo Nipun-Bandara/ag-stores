@@ -70,6 +70,7 @@ function toOrderView(order: OrderConfirmationRecord) {
     items: order.items.map((item) => ({
       productId: item.productId,
       name: item.product.nameEn,
+      nameSi: item.product.nameSi,
       quantity: item.quantity,
       unitPrice: item.unitPrice.toFixed(2),
       lineTotal: minorUnitsToMoney(
