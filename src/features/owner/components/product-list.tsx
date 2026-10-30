@@ -4,7 +4,7 @@ import { useLocale, useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
-import { CircleCheck, CircleX } from "lucide-react";
+import { CircleCheck, CircleX, Pencil, Save } from "lucide-react";
 
 import Link from "next/link";
 
@@ -12,8 +12,13 @@ import { FormError } from "@/features/auth/components/form-fields";
 import type { ProductView } from "@/services/product.service";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { IconActionButton } from "@/components/ui/icon-action-button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { localizeBilingual } from "@/lib/i18n/config";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -32,13 +37,20 @@ async function readPayload(response: Response): Promise<ApiPayload> {
 function StockForm({
   product,
   onSaved,
+  onToggleAvailability,
+  availabilityPending,
 }: {
   product: ProductView;
   onSaved: (product: ProductView) => void;
+  onToggleAvailability: () => void;
+  availabilityPending: boolean;
 }) {
   const t = useText();
+  const locale = useLocale();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
+  const productName = localizeBilingual(product.nameEn, product.nameSi, locale);
+  const editLabel = `${t("Edit")} ${productName}`;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -64,25 +76,9 @@ function StockForm({
   }
 
   return (
-    <form
-      className="mt-4 flex flex-wrap items-end gap-2"
-      onSubmit={handleSubmit}
-    >
-      <Label className="text-xs font-medium" htmlFor={`stock-${product.id}`}>
-        <Text value={"Stock "} />
-        <Input
-          id={`stock-${product.id}`}
-          name="stockQuantity"
-          type="number"
-          min="0"
-          step="1"
-          defaultValue={product.stockQuantity}
-          className="mt-1 block h-9 w-28"
-          required
-        />
-      </Label>
+    <form className="mt-auto flex flex-wrap items-end gap-2 border-t border-border pt-4" onSubmit={handleSubmit}>
       <Label
-        className="text-xs font-medium"
+        className="order-1 w-full text-xs font-medium @min-[420px]/product-card:order-2 @min-[420px]/product-card:w-36"
         htmlFor={`threshold-${product.id}`}
       >
         <Text value={"Low-stock threshold "} />
@@ -93,20 +89,68 @@ function StockForm({
           min="0"
           step="1"
           defaultValue={product.lowStockThreshold}
-          className="mt-1 block h-9 w-36"
+          className="mt-1 block h-9 w-full"
           required
         />
       </Label>
-      <Button
-        variant="success"
-        type="submit"
-        disabled={pending}
-        className="h-9"
+      <Label
+        className="order-2 w-20 text-xs font-medium @min-[420px]/product-card:order-1"
+        htmlFor={`stock-${product.id}`}
       >
-        {pending ? t("Updating…") : t("Update stock")}
-      </Button>
+        <Text value={"Stock "} />
+        <Input
+          id={`stock-${product.id}`}
+          name="stockQuantity"
+          type="number"
+          min="0"
+          step="1"
+          defaultValue={product.stockQuantity}
+          className="mt-1 block h-9 w-full"
+          required
+        />
+      </Label>
+      <div className="order-3 flex items-center gap-2">
+        <IconActionButton
+          variant="success"
+          size="icon-sm"
+          type="submit"
+          label={pending ? t("Updating…") : t("Update stock")}
+          disabled={pending}
+        >
+          <Save aria-hidden="true" />
+        </IconActionButton>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Link
+                href={`/owner/products/${product.id}/edit`}
+                className={buttonVariants({ variant: "outline", size: "icon-sm" })}
+                aria-label={editLabel}
+              >
+                <Pencil aria-hidden="true" />
+              </Link>
+            }
+          />
+          <TooltipContent>{editLabel}</TooltipContent>
+        </Tooltip>
+        <IconActionButton
+          variant={product.isAvailable ? "destructive" : "success"}
+          className={product.isAvailable ? "text-white [html.dark_&]:text-black" : undefined}
+          size="icon-sm"
+          type="button"
+          label={`${t(product.isAvailable ? "Mark unavailable" : "Mark available")} ${productName}`}
+          disabled={availabilityPending}
+          onClick={onToggleAvailability}
+        >
+          {product.isAvailable ? (
+            <CircleX aria-hidden="true" className="stroke-white [html.dark_&]:stroke-black" />
+          ) : (
+            <CircleCheck aria-hidden="true" />
+          )}
+        </IconActionButton>
+      </div>
       {error ? (
-        <Alert variant="destructive" role="alert" className="w-full">
+        <Alert variant="destructive" role="alert" className="order-4 w-full">
           {error}
         </Alert>
       ) : null}
@@ -120,7 +164,6 @@ export function ProductList({
   initialProducts: ProductView[];
 }) {
   const t = useText();
-  const locale = useLocale();
   const [products, setProducts] = useState(initialProducts);
   const [pendingId, setPendingId] = useState<string>();
   const [error, setError] = useState<string>();
@@ -170,7 +213,7 @@ export function ProductList({
       {error ? <FormError>{error}</FormError> : null}
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         {products.map((product) => (
-          <Card as="article" key={product.id} className="gap-0 p-5">
+          <Card as="article" key={product.id} className="@container/product-card gap-0 p-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
                 <h2 className="break-words font-semibold">
@@ -186,6 +229,16 @@ export function ProductList({
                   />{" "}
                   · {product.shopName}
                 </p>
+                {product.imageUrl ? (
+                  <a
+                    href={product.imageUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                    className="mt-2 inline-block text-xs text-primary hover:underline"
+                  >
+                    <Text value={"View image "} />
+                  </a>
+                ) : null}
               </div>
               <div className="flex flex-col items-end gap-2">
                 <Badge variant="secondary">
@@ -220,37 +273,12 @@ export function ProductList({
                 <dd className="font-medium">{product.lowStockThreshold}</dd>
               </div>
             </dl>
-            <StockForm product={product} onSaved={saveProduct} />
-            <div className="mt-4 flex flex-wrap gap-4 text-sm font-medium">
-              <Link
-                href={`/owner/products/${product.id}/edit`}
-                className="min-w-0 break-words"
-              >
-                <Text value={"Edit "} />
-                <BilingualText
-                  english={product.nameEn}
-                  sinhala={product.nameSi}
-                />
-              </Link>
-              <IconActionButton
-                variant={product.isAvailable ? "destructive" : "success"}
-                type="button"
-                label={`${t(product.isAvailable ? "Mark unavailable" : "Mark available")} ${localizeBilingual(product.nameEn, product.nameSi, locale)}`}
-                disabled={pendingId === product.id}
-                onClick={() => toggleAvailability(product)}
-              >
-                {product.isAvailable ? (
-                  <CircleX aria-hidden="true" />
-                ) : (
-                  <CircleCheck aria-hidden="true" />
-                )}
-              </IconActionButton>
-              {product.imageUrl ? (
-                <a href={product.imageUrl} rel="noreferrer" target="_blank">
-                  <Text value={"View image "} />
-                </a>
-              ) : null}
-            </div>
+            <StockForm
+              product={product}
+              onSaved={saveProduct}
+              onToggleAvailability={() => toggleAvailability(product)}
+              availabilityPending={pendingId === product.id}
+            />
           </Card>
         ))}
       </div>

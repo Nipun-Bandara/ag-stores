@@ -6,18 +6,21 @@ import { Text } from "@/features/i18n/components/text";
 import { useState, type FormEvent } from "react";
 import { CircleCheck, CircleX, Pencil } from "lucide-react";
 
-import {
-  FormError,
-  FormField,
-  SelectField,
-} from "@/features/auth/components/form-fields";
+import { FormError, FormField } from "@/features/auth/components/form-fields";
 import type {
   CategoryManagementView,
   CategoryView,
 } from "@/services/category.service";
-import { NativeSelectOption } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { IconActionButton } from "@/components/ui/icon-action-button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { localizeBilingual } from "@/lib/i18n/config";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -46,6 +49,7 @@ function CategoryForm({
   const t = useText();
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
+  const [shopId, setShopId] = useState(shops[0]?.id ?? "");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,7 +65,7 @@ function CategoryForm({
         method: category ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...(!category ? { shopId: form.get("shopId") } : {}),
+          ...(!category ? { shopId } : {}),
           nameEn: form.get("nameEn"),
           nameSi: form.get("nameSi"),
         }),
@@ -77,14 +81,20 @@ function CategoryForm({
 
     const payload = await readPayload(response);
     if (payload.data) onSaved(payload.data);
-    if (!category) formElement.reset();
+    if (!category) {
+      formElement.reset();
+      setShopId(shops[0]?.id ?? "");
+    }
     setPending(false);
   }
 
   return (
     <Card className="gap-0 p-5">
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <h2 className="text-lg font-semibold">
+      <form
+        className="grid gap-4 md:grid-cols-2 lg:grid-cols-[repeat(3,minmax(0,1fr))_auto] lg:items-end"
+        onSubmit={handleSubmit}
+      >
+        <h2 className="text-lg font-semibold md:col-span-2 lg:col-span-4">
           {category ? (
             <>
               <Text value="Edit" />{" "}
@@ -98,15 +108,35 @@ function CategoryForm({
           )}
         </h2>
         {!category ? (
-          <SelectField id="shopId" name="shopId" label="Shop" required>
-            {shops.map((shop) => (
-              <NativeSelectOption key={shop.id} value={shop.id}>
-                {shop.name}
-              </NativeSelectOption>
-            ))}
-          </SelectField>
+          <div className="min-w-0">
+            <Label htmlFor="shopId" className="block text-sm font-medium">
+              <Text value="Shop" />
+            </Label>
+            <Select
+              name="shopId"
+              value={shopId}
+              onValueChange={(value) => setShopId(value ?? "")}
+              required
+            >
+              <SelectTrigger id="shopId" className="mt-1.5 h-10 w-full">
+                <SelectValue>
+                  {(value) =>
+                    shops.find((shop) => shop.id === value)?.name ??
+                    t("Select a shop")
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {shops.map((shop) => (
+                  <SelectItem key={shop.id} value={shop.id}>
+                    {shop.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
+          <p className="min-w-0 text-sm text-muted-foreground">
             <Text value={"Shop: "} />
             {category.shopName}
           </p>
@@ -126,8 +156,7 @@ function CategoryForm({
           defaultValue={category?.nameSi ?? ""}
           maxLength={120}
         />
-        {error ? <FormError>{error}</FormError> : null}
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2 md:col-span-2 lg:col-span-1 lg:flex-col lg:items-stretch">
           <Button
             variant="success"
             type="submit"
@@ -151,6 +180,11 @@ function CategoryForm({
             </Button>
           ) : null}
         </div>
+        {error ? (
+          <div className="md:col-span-2 lg:col-span-4">
+            <FormError>{error}</FormError>
+          </div>
+        ) : null}
       </form>
     </Card>
   );
@@ -205,7 +239,7 @@ export function CategoryManager({
   }
 
   return (
-    <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+    <div className="mt-8 space-y-8">
       {initialData.shops.length === 0 ? (
         <Empty>
           <EmptyHeader>
@@ -245,10 +279,10 @@ export function CategoryManager({
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="mt-4 space-y-4">
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {categories.map((category) => (
-              <Card as="article" key={category.id} className="gap-0 p-5">
-                <div className="flex flex-wrap items-start justify-between gap-4">
+              <Card as="article" key={category.id} className="gap-0 p-4">
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="break-words font-semibold">
                       <BilingualText
@@ -256,41 +290,59 @@ export function CategoryManager({
                         sinhala={category.nameSi}
                       />
                     </h3>
-                    {category.nameSi ? (
-                      <p className="mt-1 text-sm">{category.nameSi}</p>
+                    {(locale === "si" ? category.nameEn : category.nameSi) ? (
+                      <p className="mt-1 break-words text-sm">
+                        {locale === "si" ? category.nameEn : category.nameSi}
+                      </p>
                     ) : null}
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 break-words text-xs text-muted-foreground">
                       {category.shopName}
                     </p>
                   </div>
-                  <Badge variant="secondary">
-                    {category.status === "ACTIVE" ? t("Active") : t("Inactive")}
-                  </Badge>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2 text-sm font-medium">
-                  <IconActionButton
-                    variant="ghost"
-                    type="button"
-                    label={`${t("Edit")} ${localizeBilingual(category.nameEn, category.nameSi, locale)}`}
-                    onClick={() => setEditingId(category.id)}
-                  >
-                    <Pencil aria-hidden="true" />
-                  </IconActionButton>
-                  <IconActionButton
-                    variant={
-                      category.status === "ACTIVE" ? "destructive" : "success"
-                    }
-                    type="button"
-                    label={`${t(category.status === "ACTIVE" ? "Deactivate" : "Activate")} ${localizeBilingual(category.nameEn, category.nameSi, locale)}`}
-                    disabled={pendingId === category.id}
-                    onClick={() => changeStatus(category)}
-                  >
-                    {category.status === "ACTIVE" ? (
-                      <CircleX aria-hidden="true" />
-                    ) : (
-                      <CircleCheck aria-hidden="true" />
-                    )}
-                  </IconActionButton>
+                  <div className="flex shrink-0 flex-col items-center gap-2">
+                    <Badge variant="secondary">
+                      {category.status === "ACTIVE"
+                        ? t("Active")
+                        : t("Inactive")}
+                    </Badge>
+                    <div className="flex items-center gap-1">
+                      <IconActionButton
+                        size="icon-sm"
+                        variant="ghost"
+                        type="button"
+                        label={`${t("Edit")} ${localizeBilingual(category.nameEn, category.nameSi, locale)}`}
+                        onClick={() => setEditingId(category.id)}
+                      >
+                        <Pencil aria-hidden="true" />
+                      </IconActionButton>
+                      <IconActionButton
+                        size="icon-sm"
+                        variant={
+                          category.status === "ACTIVE"
+                            ? "destructive"
+                            : "success"
+                        }
+                        className={
+                          category.status === "ACTIVE"
+                            ? "text-white [html.dark_&]:text-black"
+                            : undefined
+                        }
+                        type="button"
+                        label={`${t(category.status === "ACTIVE" ? "Deactivate" : "Activate")} ${localizeBilingual(category.nameEn, category.nameSi, locale)}`}
+                        disabled={pendingId === category.id}
+                        onClick={() => changeStatus(category)}
+                      >
+                        {category.status === "ACTIVE" ? (
+                          <CircleX
+                            aria-hidden="true"
+                            className="stroke-white [html.dark_&]:stroke-black"
+                          />
+                        ) : (
+                          <CircleCheck aria-hidden="true" />
+                        )}
+                      </IconActionButton>
+                    </div>
+                  </div>
                 </div>
               </Card>
             ))}

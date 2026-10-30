@@ -1,22 +1,24 @@
 "use client";
-import { BilingualText } from "@/features/i18n/components/bilingual-text";
-import { useText } from "@/features/i18n/components/locale-provider";
+import { useLocale, useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 
 import { useMemo, useState, type FormEvent } from "react";
 
 import { useRouter } from "next/navigation";
 
-import {
-  FormError,
-  FormField,
-  SelectField,
-} from "@/features/auth/components/form-fields";
+import { FormError, FormField } from "@/features/auth/components/form-fields";
 import type {
   ProductFormOptions,
   ProductView,
 } from "@/services/product.service";
-import { NativeSelectOption } from "@/components/ui/native-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { localizeBilingual } from "@/lib/i18n/config";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,9 +36,16 @@ export function ProductForm({
   product?: ProductView;
 }) {
   const t = useText();
+  const locale = useLocale();
   const router = useRouter();
   const initialShopId = product?.shopId ?? options.shops[0]?.id ?? "";
+  const initialCategoryId =
+    product?.categoryId ??
+    options.categories.find((category) => category.shopId === initialShopId)
+      ?.id ??
+    "";
   const [shopId, setShopId] = useState(initialShopId);
+  const [categoryId, setCategoryId] = useState(initialCategoryId);
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
   const categories = useMemo(
@@ -84,9 +93,12 @@ export function ProductForm({
   }
 
   return (
-    <form className="mt-8 max-w-3xl space-y-5" onSubmit={handleSubmit}>
+    <form
+      className="mx-auto mt-8 grid w-full max-w-5xl gap-5 sm:grid-cols-6 lg:grid-cols-12"
+      onSubmit={handleSubmit}
+    >
       {product ? (
-        <div>
+        <div className="sm:col-span-3 lg:col-span-6">
           <p className="text-sm font-medium">
             <Text value={t("Shop")} />
           </p>
@@ -95,40 +107,74 @@ export function ProductForm({
           </p>
         </div>
       ) : (
-        <SelectField
-          id="shopId"
-          name="shopId"
-          label="Shop"
-          value={shopId}
-          onChange={(event) => setShopId(event.target.value)}
+        <div className="min-w-0 sm:col-span-3 lg:col-span-6">
+          <Label htmlFor="shopId" className="block text-sm font-medium">
+            <Text value={"Shop"} />
+          </Label>
+          <Select
+            name="shopId"
+            value={shopId}
+            onValueChange={(value) => {
+              const nextShopId = value ?? "";
+              setShopId(nextShopId);
+              setCategoryId(
+                options.categories.find(
+                  (category) => category.shopId === nextShopId,
+                )?.id ?? "",
+              );
+            }}
+            required
+          >
+            <SelectTrigger id="shopId" className="mt-1.5 h-10 w-full">
+              <SelectValue>
+                {(value) =>
+                  options.shops.find((shop) => shop.id === value)?.name ??
+                  t("Select a shop")
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {options.shops.map((shop) => (
+                <SelectItem key={shop.id} value={shop.id}>
+                  {shop.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      <div className="min-w-0 sm:col-span-3 lg:col-span-6">
+        <Label htmlFor="categoryId" className="block text-sm font-medium">
+          <Text value={"Category"} />
+        </Label>
+        <Select
+          name="categoryId"
+          value={categoryId}
+          onValueChange={(value) => setCategoryId(value ?? "")}
+          disabled={categories.length === 0}
           required
         >
-          {options.shops.map((shop) => (
-            <NativeSelectOption key={shop.id} value={shop.id}>
-              {shop.name}
-            </NativeSelectOption>
-          ))}
-        </SelectField>
-      )}
-      <SelectField
-        id="categoryId"
-        name="categoryId"
-        label="Category"
-        defaultValue={product?.categoryId ?? categories[0]?.id ?? ""}
-        key={`${shopId}-${product?.categoryId ?? "new"}`}
-        required
-      >
-        {categories.map((category) => (
-          <NativeSelectOption key={category.id} value={category.id}>
-            <BilingualText
-              english={category.nameEn}
-              sinhala={category.nameSi}
-            />
-            {category.status === "INACTIVE" ? t(" (inactive)") : ""}
-          </NativeSelectOption>
-        ))}
-      </SelectField>
-      <div className="grid gap-5 sm:grid-cols-3">
+          <SelectTrigger id="categoryId" className="mt-1.5 h-10 w-full">
+            <SelectValue>
+              {(value) => {
+                const category = categories.find((item) => item.id === value);
+                return category
+                  ? `${localizeBilingual(category.nameEn, category.nameSi, locale)}${category.status === "INACTIVE" ? t(" (inactive)") : ""}`
+                  : t("Select a category");
+              }}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {categories.map((category) => (
+              <SelectItem key={category.id} value={category.id}>
+                {localizeBilingual(category.nameEn, category.nameSi, locale)}
+                {category.status === "INACTIVE" ? t(" (inactive)") : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="min-w-0 sm:col-span-3 lg:col-span-6">
         <FormField
           id="nameEn"
           name="nameEn"
@@ -137,6 +183,8 @@ export function ProductForm({
           maxLength={180}
           required
         />
+      </div>
+      <div className="min-w-0 sm:col-span-3 lg:col-span-6">
         <FormField
           id="nameSi"
           name="nameSi"
@@ -145,29 +193,33 @@ export function ProductForm({
           maxLength={180}
         />
       </div>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Label className="block text-sm font-medium" htmlFor="descriptionEn">
-          <Text value={"English description "} />
-          <Textarea
-            id="descriptionEn"
-            name="descriptionEn"
-            defaultValue={product?.descriptionEn ?? ""}
-            maxLength={5000}
-            className="mt-1.5 min-h-28 w-full"
-          />
-        </Label>
-        <Label className="block text-sm font-medium" htmlFor="descriptionSi">
-          <Text value={"Sinhala description "} />
-          <Textarea
-            id="descriptionSi"
-            name="descriptionSi"
-            defaultValue={product?.descriptionSi ?? ""}
-            maxLength={5000}
-            className="mt-1.5 min-h-28 w-full"
-          />
-        </Label>
-      </div>
-      <div className="grid gap-5 sm:grid-cols-2">
+      <Label
+        className="block min-w-0 text-sm font-medium sm:col-span-3 lg:col-span-6"
+        htmlFor="descriptionEn"
+      >
+        <Text value={"English description "} />
+        <Textarea
+          id="descriptionEn"
+          name="descriptionEn"
+          defaultValue={product?.descriptionEn ?? ""}
+          maxLength={5000}
+          className="mt-1.5 min-h-28 w-full"
+        />
+      </Label>
+      <Label
+        className="block min-w-0 text-sm font-medium sm:col-span-3 lg:col-span-6"
+        htmlFor="descriptionSi"
+      >
+        <Text value={"Sinhala description "} />
+        <Textarea
+          id="descriptionSi"
+          name="descriptionSi"
+          defaultValue={product?.descriptionSi ?? ""}
+          maxLength={5000}
+          className="mt-1.5 min-h-28 w-full"
+        />
+      </Label>
+      <div className="min-w-0 sm:col-span-2 lg:col-span-4">
         <FormField
           id="price"
           name="price"
@@ -179,6 +231,8 @@ export function ProductForm({
           defaultValue={product?.price ?? "0.00"}
           required
         />
+      </div>
+      <div className="min-w-0 sm:col-span-2 lg:col-span-4">
         <FormField
           id="stockQuantity"
           name="stockQuantity"
@@ -190,6 +244,8 @@ export function ProductForm({
           defaultValue={product?.stockQuantity ?? 0}
           required
         />
+      </div>
+      <div className="min-w-0 sm:col-span-2 lg:col-span-4">
         <FormField
           id="lowStockThreshold"
           name="lowStockThreshold"
@@ -202,17 +258,19 @@ export function ProductForm({
           required
         />
       </div>
-      <FormField
-        id="imageUrl"
-        name="imageUrl"
-        label="Image URL"
-        type="url"
-        defaultValue={product?.imageUrl ?? ""}
-        maxLength={2048}
-        placeholder="https://example.com/product.jpg"
-        hint="Image uploads are not available yet. Provide a hosted image URL."
-      />
-      <Label className="flex items-center gap-2 text-sm font-medium">
+      <div className="min-w-0 sm:col-span-6 lg:col-span-12">
+        <FormField
+          id="imageUrl"
+          name="imageUrl"
+          label="Image URL"
+          type="url"
+          defaultValue={product?.imageUrl ?? ""}
+          maxLength={2048}
+          placeholder="https://example.com/product.jpg"
+          hint="Image uploads are not available yet. Provide a hosted image URL."
+        />
+      </div>
+      <Label className="flex items-center gap-2 text-sm font-medium sm:col-span-6 lg:col-span-12">
         <Checkbox
           name="isAvailable"
           defaultChecked={product?.isAvailable ?? true}
@@ -220,12 +278,18 @@ export function ProductForm({
         <Text value={"Product is available "} />
       </Label>
       {categories.length === 0 ? (
-        <FormError>
-          <Text value={t("Create a category for this shop first.")} />
-        </FormError>
+        <div className="sm:col-span-6 lg:col-span-12">
+          <FormError>
+            <Text value={t("Create a category for this shop first.")} />
+          </FormError>
+        </div>
       ) : null}
-      {error ? <FormError>{error}</FormError> : null}
-      <div className="flex flex-wrap gap-3">
+      {error ? (
+        <div className="sm:col-span-6 lg:col-span-12">
+          <FormError>{error}</FormError>
+        </div>
+      ) : null}
+      <div className="flex flex-wrap gap-3 sm:col-span-6 lg:col-span-12">
         <Button
           variant="success"
           type="submit"

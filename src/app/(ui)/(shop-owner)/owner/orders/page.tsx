@@ -6,15 +6,19 @@ import Link from "next/link";
 
 import { OrderStatus, UserRole } from "@/generated/prisma/client";
 import { OwnerOrderList } from "@/features/owner/components/owner-order-list";
+import { OrderDateFilter } from "@/features/owner/components/order-date-filter";
 import { orderStatusLabels } from "@/features/orders/order-presentation";
 import { requireRole } from "@/lib/auth/server";
 import { getOwnerOrderDashboard } from "@/services/owner-order.service";
 import { ownerOrderFiltersSchema } from "@/validations/owner-order";
 import { Label } from "@/components/ui/label";
 import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
@@ -79,36 +83,30 @@ export default async function OwnerOrdersPage({
       </div>
 
       <Card className="gap-0 mt-8 p-5">
-        <form className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-          <Label className="text-sm font-medium" htmlFor="status">
+        <form
+          key={JSON.stringify(filters)}
+          className="grid gap-x-4 gap-y-5 sm:grid-cols-2 xl:grid-cols-4"
+        >
+          <Label className="min-w-0 text-sm font-medium" htmlFor="status">
             <Text value={"Status "} />
-            <NativeSelect
-              id="status"
-              name="status"
-              defaultValue={filters.status ?? ""}
-              className="mt-1.5 h-10 w-full"
-            >
-              <NativeSelectOption value="">
-                <Text value={"All statuses"} />
-              </NativeSelectOption>
-              {Object.values(OrderStatus).map((status) => (
-                <NativeSelectOption key={status} value={status}>
-                  <Text value={orderStatusLabels[status]} />
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+            <Select name="status" defaultValue={filters.status ?? ""}>
+              <SelectTrigger id="status" className="mt-1.5 h-10 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">
+                  <Text value={"All statuses"} />
+                </SelectItem>
+                {Object.values(OrderStatus).map((status) => (
+                  <SelectItem key={status} value={status}>
+                    <Text value={orderStatusLabels[status]} />
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Label>
-          <Label className="text-sm font-medium" htmlFor="date">
-            <Text value={"Date "} />
-            <Input
-              id="date"
-              name="date"
-              type="date"
-              defaultValue={filters.date ?? ""}
-              className="mt-1.5 h-10 w-full"
-            />
-          </Label>
-          <Label className="text-sm font-medium" htmlFor="customer">
+          <OrderDateFilter initialDate={filters.date ?? ""} />
+          <Label className="min-w-0 text-sm font-medium" htmlFor="customer">
             <Text value={"Customer "} />
             <Input
               id="customer"
@@ -118,7 +116,7 @@ export default async function OwnerOrdersPage({
               className="mt-1.5 h-10 w-full"
             />
           </Label>
-          <Label className="text-sm font-medium" htmlFor="orderNumber">
+          <Label className="min-w-0 text-sm font-medium" htmlFor="orderNumber">
             <Text value={"Order number "} />
             <Input
               id="orderNumber"
@@ -128,15 +126,15 @@ export default async function OwnerOrdersPage({
               className="mt-1.5 h-10 w-full font-mono"
             />
           </Label>
-          <div className="flex items-end gap-2">
-            <Button type="submit" className="h-10">
+          <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row sm:justify-end xl:col-span-4">
+            <Button type="submit" className="h-10 sm:min-w-32">
               <Text value={"Apply filters "} />
             </Button>
             <Link
               href="/owner/orders"
               className={buttonVariants({
                 variant: "outline",
-                className: "inline-flex h-10 items-center",
+                className: "inline-flex h-10 items-center sm:min-w-24",
               })}
             >
               <Text value={"Clear "} />

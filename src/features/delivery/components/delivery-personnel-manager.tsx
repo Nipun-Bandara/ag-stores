@@ -5,21 +5,24 @@ import { Text } from "@/features/i18n/components/text";
 import { useState, type FormEvent } from "react";
 import { CircleCheck, CircleX, Pencil } from "lucide-react";
 
-import {
-  FormError,
-  FormField,
-  SelectField,
-} from "@/features/auth/components/form-fields";
+import { FormError, FormField } from "@/features/auth/components/form-fields";
 import type {
   DeliveryPersonnelManagementView,
   DeliveryPersonnelView,
 } from "@/services/delivery-personnel.service";
-import { NativeSelectOption } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { IconActionButton } from "@/components/ui/icon-action-button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ApiPayload {
   data?:
@@ -51,6 +54,10 @@ function PersonnelForm({
   const t = useText();
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
+  const [assignedShopId, setAssignedShopId] = useState(
+    person?.assignedShopId ?? shops[0]?.id ?? "",
+  );
+  const [status, setStatus] = useState("ACTIVE");
   const suffix = person?.id ?? "new";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -70,8 +77,8 @@ function PersonnelForm({
           name: form.get("name"),
           email: form.get("email"),
           phone: form.get("phone"),
-          assignedShopId: form.get("assignedShopId"),
-          ...(!person ? { status: form.get("status") } : {}),
+          assignedShopId,
+          ...(!person ? { status } : {}),
         }),
       },
     ).catch(() => null);
@@ -90,6 +97,8 @@ function PersonnelForm({
       onSaved(payload.data.personnel);
       onTemporaryPassword(payload.data.temporaryPassword);
       formElement.reset();
+      setAssignedShopId(shops[0]?.id ?? "");
+      setStatus("ACTIVE");
     } else if (payload.data) {
       onSaved(payload.data);
     }
@@ -102,86 +111,127 @@ function PersonnelForm({
         <h2 className="text-lg font-semibold">
           {person ? `Edit ${person.name}` : t("Create delivery account")}
         </h2>
-        <FormField
-          id={`delivery-name-${suffix}`}
-          name="name"
-          label="Name"
-          defaultValue={person?.name ?? ""}
-          maxLength={150}
-          required
-        />
-        <FormField
-          id={`delivery-email-${suffix}`}
-          name="email"
-          label="Email"
-          type="email"
-          defaultValue={person?.email ?? ""}
-          maxLength={320}
-          required
-        />
-        <FormField
-          id={`delivery-phone-${suffix}`}
-          name="phone"
-          label="Phone"
-          type="tel"
-          defaultValue={person?.phone ?? ""}
-          placeholder="+94771234567"
-          required
-        />
-        <SelectField
-          id={`delivery-shop-${suffix}`}
-          name="assignedShopId"
-          label="Assigned shop"
-          defaultValue={person?.assignedShopId ?? shops[0]?.id}
-          required
-        >
-          {shops.map((shop) => (
-            <NativeSelectOption key={shop.id} value={shop.id}>
-              {shop.name}
-            </NativeSelectOption>
-          ))}
-        </SelectField>
-        {!person ? (
-          <SelectField
-            id="delivery-status-new"
-            name="status"
-            label="Status"
-            defaultValue="ACTIVE"
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <FormField
+            id={`delivery-name-${suffix}`}
+            name="name"
+            label="Name"
+            defaultValue={person?.name ?? ""}
+            maxLength={150}
             required
-          >
-            <NativeSelectOption value="ACTIVE">
-              <Text value={t("Active")} />
-            </NativeSelectOption>
-            <NativeSelectOption value="INACTIVE">
-              <Text value={t("Inactive")} />
-            </NativeSelectOption>
-          </SelectField>
-        ) : null}
-        {error ? <FormError>{error}</FormError> : null}
-        <div className="flex flex-wrap gap-3">
-          <Button
-            variant="success"
-            type="submit"
-            disabled={pending || shops.length === 0}
-            className="h-10"
-          >
-            {pending
-              ? t("Saving…")
-              : person
-                ? t("Save delivery person")
-                : t("Create delivery account")}
-          </Button>
-          {onCancel ? (
-            <Button
-              variant="outline"
-              type="button"
-              className="h-10"
-              onClick={onCancel}
-            >
-              <Text value={"Cancel "} />
-            </Button>
-          ) : null}
+          />
+          <FormField
+            id={`delivery-email-${suffix}`}
+            name="email"
+            label="Email"
+            type="email"
+            defaultValue={person?.email ?? ""}
+            maxLength={320}
+            required
+          />
+          <FormField
+            id={`delivery-phone-${suffix}`}
+            name="phone"
+            label="Phone"
+            type="tel"
+            defaultValue={person?.phone ?? ""}
+            placeholder="+94771234567"
+            required
+          />
         </div>
+        <div
+          className={`grid gap-4 md:grid-cols-2 xl:items-end ${
+            person ? "xl:grid-cols-2" : "xl:grid-cols-3"
+          }`}
+        >
+          <div className="min-w-0">
+            <Label
+              htmlFor={`delivery-shop-${suffix}`}
+              className="block text-sm font-medium"
+            >
+              <Text value="Assigned shop" />
+            </Label>
+            <Select
+              name="assignedShopId"
+              value={assignedShopId}
+              onValueChange={(value) => setAssignedShopId(value ?? "")}
+              required
+            >
+              <SelectTrigger
+                id={`delivery-shop-${suffix}`}
+                className="mt-1.5 h-10 w-full"
+              >
+                <SelectValue>
+                  {(value) =>
+                    shops.find((shop) => shop.id === value)?.name ??
+                    t("Select a shop")
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {shops.map((shop) => (
+                  <SelectItem key={shop.id} value={shop.id}>
+                    {shop.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {!person ? (
+            <div className="min-w-0">
+              <Label
+                htmlFor="delivery-status-new"
+                className="block text-sm font-medium"
+              >
+                <Text value="Status" />
+              </Label>
+              <Select
+                name="status"
+                value={status}
+                onValueChange={(value) => setStatus(value ?? "ACTIVE")}
+                required
+              >
+                <SelectTrigger
+                  id="delivery-status-new"
+                  className="mt-1.5 h-10 w-full"
+                >
+                  <SelectValue>
+                    {(value) => t(value === "INACTIVE" ? "Inactive" : "Active")}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ACTIVE">{t("Active")}</SelectItem>
+                  <SelectItem value="INACTIVE">{t("Inactive")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+          <div className="flex flex-wrap items-end gap-2 md:col-span-2 xl:col-span-1">
+            <Button
+              variant="success"
+              type="submit"
+              disabled={pending || shops.length === 0}
+              className="h-10"
+            >
+              {pending
+                ? t("Saving…")
+                : person
+                  ? t("Save delivery person")
+                  : t("Create delivery account")}
+            </Button>
+            {onCancel ? (
+              <Button
+                variant="outline"
+                type="button"
+                className="h-10"
+                onClick={onCancel}
+              >
+                <Text value={"Cancel "} />
+              </Button>
+            ) : null}
+          </div>
+        </div>
+        {error ? <FormError>{error}</FormError> : null}
       </form>
     </Card>
   );
@@ -236,7 +286,7 @@ export function DeliveryPersonnelManager({
   }
 
   return (
-    <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+    <div className="mt-8 space-y-8">
       <div>
         {initialData.shops.length ? (
           <PersonnelForm
@@ -265,7 +315,7 @@ export function DeliveryPersonnelManager({
         {temporaryPassword ? (
           <Card
             as="section"
-            className="gap-0 mt-4 bg-amber-50 p-4"
+            className="mt-4 max-w-xl gap-0 bg-amber-50 p-4"
             aria-label={t("Temporary password")}
           >
             <h3 className="font-semibold">
@@ -298,25 +348,28 @@ export function DeliveryPersonnelManager({
           </div>
         ) : null}
         {personnel.length ? (
-          <div className="mt-4 space-y-4">
+          <div className="mt-4 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
             {personnel.map((person) => (
               <Card
                 as="article"
                 key={person.id}
                 data-testid="delivery-person-card"
-                className="gap-0 p-5"
+                className="gap-0 p-4"
               >
-                <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="font-semibold">{person.name}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {person.email} · {person.phone}
+                    <h3 className="break-words font-semibold">{person.name}</h3>
+                    <p className="mt-1 break-all text-sm text-muted-foreground">
+                      {person.email}
                     </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {person.phone}
+                    </p>
+                    <p className="mt-1 break-words text-xs text-muted-foreground">
                       {person.assignedShopName ?? t("Unassigned")}
                     </p>
                   </div>
-                  <div className="ml-auto flex flex-col items-center gap-2 rounded-lg bg-muted/40 px-3 py-2">
+                  <div className="flex shrink-0 flex-col items-center gap-2 rounded-lg bg-muted/40 px-2 py-2">
                     <Badge variant="secondary">
                       {person.status === "ACTIVE" ? t("Active") : t("Inactive")}
                     </Badge>
@@ -334,6 +387,11 @@ export function DeliveryPersonnelManager({
                         variant={
                           person.status === "ACTIVE" ? "destructive" : "success"
                         }
+                        className={
+                          person.status === "ACTIVE"
+                            ? "text-white [html.dark_&]:text-black"
+                            : undefined
+                        }
                         size="icon-sm"
                         type="button"
                         label={`${t(person.status === "ACTIVE" ? "Deactivate" : "Activate")} ${person.name}`}
@@ -341,7 +399,10 @@ export function DeliveryPersonnelManager({
                         onClick={() => changeStatus(person)}
                       >
                         {person.status === "ACTIVE" ? (
-                          <CircleX aria-hidden="true" />
+                          <CircleX
+                            aria-hidden="true"
+                            className="stroke-white [html.dark_&]:stroke-black"
+                          />
                         ) : (
                           <CircleCheck aria-hidden="true" />
                         )}

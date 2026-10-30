@@ -8,8 +8,10 @@ import {
   type FormEvent,
 } from "react";
 import type mapboxgl from "mapbox-gl";
+import { CircleCheck, MapPin } from "lucide-react";
 
 import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,7 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+// import { Label } from "@/components/ui/label";
 import { useLocale, useText } from "@/features/i18n/components/locale-provider";
 import { translate } from "@/lib/i18n/text";
 
@@ -83,8 +85,8 @@ export function LocationPicker({
   const [searching, setSearching] = useState(false);
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState("");
-  const [manualLatitude, setManualLatitude] = useState("");
-  const [manualLongitude, setManualLongitude] = useState("");
+  // const [manualLatitude, setManualLatitude] = useState("");
+  // const [manualLongitude, setManualLongitude] = useState("");
   const [mapContainer, setMapContainer] = useState<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
@@ -249,15 +251,15 @@ export function LocationPicker({
     );
   }
 
-  function applyManualLocation() {
-    const location = parsePickedLocation(manualLatitude, manualLongitude);
-    if (!location) {
-      setError(t("Enter valid latitude and longitude values."));
-      return;
-    }
-    onChange(location);
-    setError("");
-  }
+  // function applyManualLocation() {
+  //   const location = parsePickedLocation(manualLatitude, manualLongitude);
+  //   if (!location) {
+  //     setError(t("Enter valid latitude and longitude values."));
+  //     return;
+  //   }
+  //   onChange(location);
+  //   setError("");
+  // }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -275,7 +277,17 @@ export function LocationPicker({
           readOnly
         />
         <div>
-          <p className="text-sm font-medium">{t("Pin location")}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-medium">{t("Pin location")}</p>
+            <Badge variant={value ? "success" : "warning"} aria-live="polite">
+              {value ? (
+                <CircleCheck aria-hidden="true" />
+              ) : (
+                <MapPin aria-hidden="true" />
+              )}
+              {t(value ? "Location pinned" : "No location selected")}
+            </Badge>
+          </div>
           <p className="mt-1 text-sm text-muted-foreground">
             {value
               ? t("Location selected. Open the map to adjust the pin.")
@@ -321,7 +333,7 @@ export function LocationPicker({
           </p>
         ) : null}
         {error && !open ? <Alert variant="destructive">{error}</Alert> : null}
-        <details className="text-sm text-muted-foreground">
+        {/* <details className="text-sm text-muted-foreground">
           <summary className="cursor-pointer">
             {t("Enter coordinates manually")}
           </summary>
@@ -358,7 +370,7 @@ export function LocationPicker({
               {t("Use these coordinates")}
             </Button>
           </div>
-        </details>
+        </details> */}
         <DialogContent className="max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t("Choose a location")}</DialogTitle>

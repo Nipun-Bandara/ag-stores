@@ -80,9 +80,9 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
 
   return (
     <Card className="gap-0 p-5 sm:p-6">
-      <form onSubmit={submit} className="">
+      <form onSubmit={submit} className="space-y-5">
         {!settings.isActive ? (
-          <p className="mb-5 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+          <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
             <Text
               value={
                 "This shop is administratively inactive. Customers cannot browse or order from it until an administrator reactivates it. "
@@ -90,8 +90,8 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
             />
           </p>
         ) : null}
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Label className="text-sm font-medium sm:col-span-2">
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end">
+          <Label className="min-w-0 text-sm font-medium sm:col-span-2 xl:col-span-1">
             <Text value={"Shop name "} />
             <Input
               name="name"
@@ -100,16 +100,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
               required
             />
           </Label>
-          <Label className="text-sm font-medium sm:col-span-2">
-            <Text value={"Address "} />
-            <Textarea
-              name="address"
-              defaultValue={settings.address}
-              className="mt-1.5 min-h-24 w-full p-3"
-              required
-            />
-          </Label>
-          <Label className="text-sm font-medium">
+          <Label className="min-w-0 text-sm font-medium">
             <Text value={"Phone "} />
             <Input
               name="phone"
@@ -127,8 +118,23 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
             />
             <Text value={"Open for customer orders "} />
           </Label>
-          <LocationPicker value={location} onChange={setLocation} />
-          <Label className="text-sm font-medium">
+        </div>
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+          <Label className="flex min-w-0 flex-col text-sm font-medium">
+            <Text value={"Address "} />
+            <Textarea
+              name="address"
+              defaultValue={settings.address}
+              className="mt-1.5 min-h-28 w-full flex-1 p-3"
+              required
+            />
+          </Label>
+          <div className="min-w-0 rounded-lg bg-muted/40 p-3">
+            <LocationPicker value={location} onChange={setLocation} />
+          </div>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <Label className="min-w-0 text-sm font-medium">
             <Text value={"Minimum order amount (LKR) "} />
             <Input
               name="minimumOrderAmount"
@@ -140,7 +146,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
               required
             />
           </Label>
-          <Label className="text-sm font-medium">
+          <Label className="min-w-0 text-sm font-medium">
             <Text value={"Delivery fee (LKR) "} />
             <Input
               name="deliveryFee"
@@ -152,7 +158,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
               required
             />
           </Label>
-          <Label className="text-sm font-medium sm:col-span-2">
+          <Label className="min-w-0 text-sm font-medium sm:col-span-2 lg:col-span-1">
             <Text value={"Maximum delivery radius (km) "} />
             <Input
               name="maximumDeliveryRadiusKm"
@@ -172,7 +178,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
             </span>
           </Label>
         </div>
-        <div className="mt-6 flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <Button variant="success" type="submit" disabled={pending}>
             {pending ? t("Saving…") : t("Save settings")}
           </Button>

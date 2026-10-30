@@ -206,11 +206,11 @@ html:not(.light) body::before {
 @layer base {
   html {
     scrollbar-width: thin;
-    scrollbar-color: oklch(54.182% 0.15203 148.834) transparent;
+    scrollbar-color: oklch(0.488 0.243 264.376) transparent;
   }
 
   html.dark {
-    scrollbar-color: oklch(69.348% 0.20107 147.948) transparent;
+    scrollbar-color: oklch(0.488 0.243 264.376) transparent;
   }
 
   html::-webkit-scrollbar,
@@ -226,24 +226,24 @@ html:not(.light) body::before {
 
   html::-webkit-scrollbar-thumb,
   *::-webkit-scrollbar-thumb {
-    background: oklch(0.527 0.154 150.069 / 40%);
+    background: oklch(0.488 0.243 264.376);
     border-radius: 9999px;
     transition: background 0.2s ease;
   }
 
   html::-webkit-scrollbar-thumb:hover,
   *::-webkit-scrollbar-thumb:hover {
-    background: oklch(0.527 0.154 150.069 / 75%);
+    background: oklch(0.488 0.243 264.376);
   }
 
   html.dark::-webkit-scrollbar-thumb,
   .dark *::-webkit-scrollbar-thumb {
-    background: oklch(0.448 0.119 151.328 / 45%);
+    background: oklch(40.763% 0.19958 264.363);
   }
 
   html.dark::-webkit-scrollbar-thumb:hover,
   .dark *::-webkit-scrollbar-thumb:hover {
-    background: oklch(0.448 0.119 151.328 / 80%);
+    background: oklch(0.488 0.243 264.376);
   }
 }
 

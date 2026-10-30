@@ -2,20 +2,13 @@ import { BilingualText } from "@/features/i18n/components/bilingual-text";
 import { getServerText } from "@/lib/i18n/server";
 import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
-import Link from "next/link";
 
-import { OrderStatus, UserRole } from "@/generated/prisma/client";
+import { UserRole } from "@/generated/prisma/client";
 import { orderStatusLabels } from "@/features/orders/order-presentation";
+import { ReportFilters } from "@/features/owner/components/report-filters";
 import { requireRole } from "@/lib/auth/server";
 import { getOwnerReports } from "@/services/owner-report.service";
 import { ownerReportFiltersSchema } from "@/validations/owner-report";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
-import { Button, buttonVariants } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import {
   Table,
@@ -78,60 +71,12 @@ export default async function OwnerReportsPage({
       </p>
 
       <Card className="gap-0 mt-8 p-5">
-        <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Label className="text-sm font-medium" htmlFor="from">
-            <Text value={"From "} />
-            <Input
-              id="from"
-              name="from"
-              type="date"
-              defaultValue={reports.filters.from}
-              className="mt-1.5 h-10 w-full"
-            />
-          </Label>
-          <Label className="text-sm font-medium" htmlFor="to">
-            <Text value={"To "} />
-            <Input
-              id="to"
-              name="to"
-              type="date"
-              defaultValue={reports.filters.to}
-              className="mt-1.5 h-10 w-full"
-            />
-          </Label>
-          <Label className="text-sm font-medium" htmlFor="status">
-            <Text value={"Status "} />
-            <NativeSelect
-              id="status"
-              name="status"
-              defaultValue={reports.filters.status ?? ""}
-              className="mt-1.5 h-10 w-full"
-            >
-              <NativeSelectOption value="">
-                <Text value={"All statuses"} />
-              </NativeSelectOption>
-              {Object.values(OrderStatus).map((status) => (
-                <NativeSelectOption key={status} value={status}>
-                  <Text value={orderStatusLabels[status]} />
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </Label>
-          <div className="flex items-end gap-2">
-            <Button type="submit" className="h-10">
-              <Text value={"Apply filters "} />
-            </Button>
-            <Link
-              href="/owner/reports"
-              className={buttonVariants({
-                variant: "outline",
-                className: "inline-flex h-10 items-center",
-              })}
-            >
-              <Text value={"Reset "} />
-            </Link>
-          </div>
-        </form>
+        <ReportFilters
+          key={`${reports.filters.from}:${reports.filters.to}:${reports.filters.status ?? ""}`}
+          from={reports.filters.from}
+          to={reports.filters.to}
+          initialStatus={reports.filters.status}
+        />
       </Card>
       {!parsed.success ? (
         <Alert variant="destructive" role="alert" className="mt-3">

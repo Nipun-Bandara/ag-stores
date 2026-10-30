@@ -1,4 +1,3 @@
-import { BilingualText } from "@/features/i18n/components/bilingual-text";
 import { getServerText } from "@/lib/i18n/server";
 import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
@@ -7,6 +6,7 @@ import Link from "next/link";
 
 import { UserRole } from "@/generated/prisma/client";
 import { ProductList } from "@/features/owner/components/product-list";
+import { ProductFilterSelects } from "@/features/owner/components/product-filter-selects";
 import { requireRole } from "@/lib/auth/server";
 import {
   getProductFormOptions,
@@ -19,10 +19,6 @@ import {
 } from "@/validations/product";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -107,46 +103,12 @@ export default async function OwnerProductsPage({
               className="mt-1.5 h-10 w-full"
             />
           </Label>
-          <Label className="text-sm font-medium" htmlFor="categoryId">
-            <Text value={"Category "} />
-            <NativeSelect
-              id="categoryId"
-              name="categoryId"
-              defaultValue={category?.success ? category.data : ""}
-              className="mt-1.5 h-10 w-full"
-            >
-              <NativeSelectOption value="">
-                <Text value={"All categories"} />
-              </NativeSelectOption>
-              {options.categories.map((item) => (
-                <NativeSelectOption key={item.id} value={item.id}>
-                  <BilingualText english={item.nameEn} sinhala={item.nameSi} />
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </Label>
-          <Label className="text-sm font-medium" htmlFor="inventoryStatus">
-            <Text value={"Inventory "} />
-            <NativeSelect
-              id="inventoryStatus"
-              name="inventoryStatus"
-              defaultValue={inventory?.success ? inventory.data : ""}
-              className="mt-1.5 h-10 w-full"
-            >
-              <NativeSelectOption value="">
-                <Text value={"All stock levels"} />
-              </NativeSelectOption>
-              <NativeSelectOption value="OUT_OF_STOCK">
-                <Text value={"Out of stock "} />
-              </NativeSelectOption>
-              <NativeSelectOption value="LOW_STOCK">
-                <Text value={"Low stock "} />
-              </NativeSelectOption>
-              <NativeSelectOption value="AVAILABLE">
-                <Text value={"Available "} />
-              </NativeSelectOption>
-            </NativeSelect>
-          </Label>
+          <ProductFilterSelects
+            key={`${category?.success ? category.data : ""}:${inventory?.success ? inventory.data : ""}`}
+            categories={options.categories}
+            initialCategoryId={category?.success ? category.data : ""}
+            initialInventoryStatus={inventory?.success ? inventory.data : ""}
+          />
           <Button variant="outline" type="submit" className="h-10 self-end">
             <Text value={"Apply filters "} />
           </Button>

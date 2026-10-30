@@ -128,7 +128,8 @@ test.describe.serial("owner reports", () => {
       "2026-10-08",
     );
 
-    await page.getByLabel("Status").selectOption(OrderStatus.FAILED_DELIVERY);
+    await page.getByRole("combobox", { name: "Status" }).click();
+    await page.getByRole("option", { name: "Failed delivery" }).click();
     await page.getByRole("button", { name: "Apply filters" }).click();
     await expect(page.getByTestId("owner-report-orders")).toContainText("0");
     await expect(

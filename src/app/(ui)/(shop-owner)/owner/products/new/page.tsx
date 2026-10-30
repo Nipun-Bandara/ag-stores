@@ -17,7 +17,7 @@ export default async function NewProductPage() {
   const options = await getProductFormOptions(user);
 
   return (
-    <section className="min-w-0 w-full">
+    <section className="mx-auto min-w-0 w-full max-w-5xl">
       <h1 className="text-3xl font-semibold tracking-tight">
         <Text value={"Add product"} />
       </h1>
