@@ -6,7 +6,7 @@ import {
 } from "@/generated/prisma/client";
 import {
   type AuditEntry,
-  writeAuditLog,
+  writeAuditLogs,
 } from "@/repositories/audit-write.repository";
 import { createNotifications } from "@/repositories/notification-write.repository";
 import type { NotificationCreateRecord } from "@/services/order-notification.service";
@@ -146,8 +146,8 @@ class PrismaDeliveryBatchTransaction implements DeliveryBatchTransaction {
     return createNotifications(this.prisma, notifications);
   }
 
-  async writeAudits(entries: readonly AuditEntry[]): Promise<void> {
-    for (const entry of entries) await writeAuditLog(this.prisma, entry);
+  writeAudits(entries: readonly AuditEntry[]): Promise<void> {
+    return writeAuditLogs(this.prisma, entries);
   }
 }
 
@@ -160,7 +160,11 @@ export class PrismaDeliveryBatchRepository implements DeliveryBatchRepository {
     return this.prisma.$transaction(
       (transaction) =>
         operation(new PrismaDeliveryBatchTransaction(transaction)),
-      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+        maxWait: 10_000,
+        timeout: 30_000,
+      },
     );
   }
 }
