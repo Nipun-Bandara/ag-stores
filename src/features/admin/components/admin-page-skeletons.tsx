@@ -1,6 +1,13 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowUpRight, ClipboardList, Store, Truck, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  ClipboardList,
+  Store,
+  Truck,
+  Users,
+} from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -61,9 +68,10 @@ function DetailHeading({ shop = false }: { shop?: boolean }) {
     <>
       <Link
         href={shop ? "/admin/shops" : "/admin/users"}
-        className="text-sm font-medium underline"
+        className={buttonVariants({ variant: null, className: "px-0" })}
       >
-        <Text value={shop ? "← Back to shops " : "← Back to users "} />
+        <ArrowLeft className="size-4" aria-hidden="true" />
+        <Text value={shop ? "Back to shops" : "Back to users"} />
       </Link>
       <div className="mt-5 flex flex-wrap justify-between gap-4">
         <div className="w-full max-w-md space-y-2">
@@ -198,62 +206,70 @@ function RecordCardSkeleton({ badges = 1 }: { badges?: number }) {
 function ShopFormPlaceholder({ editing = false }: { editing?: boolean }) {
   return (
     <Card className="min-w-0 gap-0 p-5 sm:p-6">
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div className="sm:col-span-2">
-          <FieldPlaceholder label="Shop owner" />
-        </div>
-        <div className="sm:col-span-2">
+      <div className="space-y-5">
+        <div
+          className={`grid gap-4 sm:grid-cols-2 ${editing ? "xl:grid-cols-3" : ""}`}
+        >
+          <div className={!editing ? "sm:col-span-2" : ""}>
+            <FieldPlaceholder label="Shop owner" />
+          </div>
           <FieldPlaceholder label="Shop name" loading={editing} />
+          <FieldPlaceholder label="Phone" loading={editing} />
         </div>
-        <div className="sm:col-span-2">
+        <div
+          className={`grid gap-5 ${editing ? "lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]" : ""}`}
+        >
           <FieldPlaceholder label="Address" loading={editing} tall />
-        </div>
-        <FieldPlaceholder label="Phone" loading={editing} />
-        <div className="flex items-center gap-3 self-end py-2">
-          {editing ? (
-            <Skeleton className="size-4 shrink-0" />
-          ) : (
-            <Checkbox disabled aria-label="Open for customer orders" />
-          )}
-          <p className="text-sm">
-            <Text value="Open for customer orders" />
-          </p>
-        </div>
-        <div className="space-y-3 sm:col-span-2">
-          <p className="text-sm font-medium">
-            <Text value="Pin location" />
-          </p>
-          {editing ? (
-            <Skeleton className="h-4 w-full" />
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              <Text value="Search the map, tap your exact spot, or use your current location." />
+          <div className="min-w-0 space-y-3 rounded-lg bg-muted/40 p-3">
+            <p className="text-sm font-medium">
+              <Text value="Pin location" />
             </p>
-          )}
-          <div className="flex flex-wrap gap-2">
-            <Button disabled variant="outline">
-              <Text value="Choose on map" />
-            </Button>
-            <Button disabled variant="outline">
-              <Text value="Use my current location" />
-            </Button>
+            {editing ? (
+              <Skeleton className="h-4 w-full" />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                <Text value="Search the map, tap your exact spot, or use your current location." />
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <Button disabled variant="outline">
+                <Text value="Choose on map" />
+              </Button>
+              <Button disabled variant="outline">
+                <Text value="Use my current location" />
+              </Button>
+            </div>
           </div>
         </div>
-        <FieldPlaceholder
-          label="Minimum order amount (LKR)"
-          loading={editing}
-        />
-        <FieldPlaceholder label="Delivery fee (LKR)" loading={editing} />
-        <div className="sm:col-span-2">
+        <div
+          className={`grid gap-4 sm:grid-cols-2 ${editing ? "lg:grid-cols-3" : ""}`}
+        >
           <FieldPlaceholder
-            label="Maximum delivery radius (km)"
+            label="Minimum order amount (LKR)"
             loading={editing}
           />
+          <FieldPlaceholder label="Delivery fee (LKR)" loading={editing} />
+          <div className={!editing ? "sm:col-span-2" : ""}>
+            <FieldPlaceholder
+              label="Maximum delivery radius (km)"
+              loading={editing}
+            />
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {editing ? (
+              <Skeleton className="size-4 shrink-0" />
+            ) : (
+              <Checkbox disabled aria-label="Open for customer orders" />
+            )}
+            <Text value="Open for customer orders" />
+          </div>
+          <Button disabled variant="success" className="h-10">
+            <Text value={editing ? "Save shop" : "Create shop"} />
+          </Button>
         </div>
       </div>
-      <Button disabled variant="success" className="mt-6 w-fit">
-        <Text value={editing ? "Save shop" : "Create shop"} />
-      </Button>
     </Card>
   );
 }
@@ -459,45 +475,58 @@ export function AdminUsersSkeleton() {
 }
 
 export function AdminUserDetailSkeleton() {
-  const sections = [
-    {
-      title: "Identity and access",
-      fields: ["Email", "Phone", "Role", "Status", "Preferred language"],
-    },
-    {
-      title: "Account activity",
-      fields: [
-        "Created",
-        "Last updated",
-        "Saved addresses",
-        "Customer orders",
-        "Delivery batches",
-      ],
-    },
-  ];
   return (
     <LoadingPage>
       <DetailHeading />
-      <div className="mt-8 grid gap-6 md:grid-cols-2">
-        {sections.map((section) => (
-          <Card key={section.title} className="min-w-0 gap-0 p-5">
-            <SectionTitle>{section.title}</SectionTitle>
-            <dl className="mt-4 space-y-4">
-              {section.fields.map((label) => (
-                <div key={label}>
-                  <dt className="text-sm text-muted-foreground">
+      <div className="mt-6 grid items-start gap-4 xl:grid-cols-2">
+        <Card className="min-w-0 gap-0 p-4 sm:p-5">
+          <SectionTitle>Identity and access</SectionTitle>
+          <dl className="mt-4 grid gap-x-5 gap-y-4 text-sm sm:grid-cols-2">
+            {["Email", "Phone", "Role", "Status", "Preferred language"].map(
+              (label) => (
+                <div key={label} className="min-w-0">
+                  <dt className="text-muted-foreground">
                     <Text value={label} />
                   </dt>
                   <dd>
                     <Skeleton className="mt-1 h-4 w-3/4" />
                   </dd>
                 </div>
-              ))}
-            </dl>
-          </Card>
-        ))}
+              ),
+            )}
+          </dl>
+        </Card>
+        <Card className="min-w-0 gap-0 p-4 sm:p-5">
+          <SectionTitle>Account activity</SectionTitle>
+          <dl className="mt-4 grid grid-cols-1 gap-3 min-[360px]:grid-cols-3">
+            {["Saved addresses", "Customer orders", "Delivery batches"].map(
+              (label) => (
+                <div key={label} className="min-w-0 rounded-lg bg-muted/50 p-3">
+                  <dt className="text-xs text-muted-foreground">
+                    <Text value={label} />
+                  </dt>
+                  <dd>
+                    <Skeleton className="mt-2 h-8 w-10" />
+                  </dd>
+                </div>
+              ),
+            )}
+          </dl>
+          <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+            {["Created", "Last updated"].map((label) => (
+              <div key={label}>
+                <dt className="text-muted-foreground">
+                  <Text value={label} />
+                </dt>
+                <dd>
+                  <Skeleton className="mt-1 h-4 w-3/4" />
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </Card>
       </div>
-      <Card className="mt-6 gap-3 p-5">
+      <Card className="mt-4 gap-3 p-4 sm:p-5">
         <SectionTitle>Shop relationships</SectionTitle>
         <Skeleton className="h-4 w-2/3" />
         <Skeleton className="h-4 w-1/2" />
@@ -533,10 +562,10 @@ export function AdminShopDetailSkeleton() {
   return (
     <LoadingPage>
       <DetailHeading shop />
-      <div className="mt-8">
+      <div className="mt-6">
         <StatsSkeleton />
       </div>
-      <div className="mt-8 space-y-4">
+      <div className="mt-6 space-y-4">
         <SectionTitle>Edit shop</SectionTitle>
         <ShopFormPlaceholder editing />
       </div>
@@ -587,7 +616,13 @@ export function AdminAuditLogsSkeleton() {
       />
       <Card className="mt-6 min-w-0 gap-0 py-0">
         <TableSkeleton
-          columns={["Time", "Action", "Actor", "Entity", "Safe metadata"]}
+          columns={[
+            "Time",
+            "Activity",
+            "Changed by",
+            "Affected record",
+            "Details",
+          ]}
         />
       </Card>
     </LoadingPage>

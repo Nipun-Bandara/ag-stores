@@ -14,6 +14,8 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: databaseUrl }),
 });
 let auditLogId = "";
+let shopName = "";
+let administratorName = "";
 
 async function signIn(page: Page, email: string, destination: string) {
   await page.goto("/auth");
@@ -31,6 +33,8 @@ test.describe.serial("admin audit logs", () => {
       }),
       prisma.shop.findFirstOrThrow(),
     ]);
+    shopName = shop.name;
+    administratorName = administrator.name;
     auditLogId = (
       await prisma.auditLog.create({
         data: {
@@ -60,10 +64,19 @@ test.describe.serial("admin audit logs", () => {
     ).toBeVisible();
     const row = page
       .getByTestId("audit-log-row")
-      .filter({ hasText: "deliveryFee" });
-    await expect(row).toContainText(AuditAction.SHOP_UPDATED);
-    await expect(row).toContainText(AuditEntityType.SHOP);
-    await expect(row).toContainText("deliveryFee");
+      .filter({ hasText: "Updated fields: Delivery fee (LKR)" })
+      .filter({ hasText: shopName })
+      .first();
+    await expect(row).toContainText("Shop details updated");
+    await expect(row).toContainText(administratorName);
+    await expect(row).not.toContainText("SHOP_UPDATED");
+    await row
+      .getByRole("button", { name: "View audit details: Shop details updated" })
+      .click();
+    const details = page.getByRole("dialog");
+    await expect(details).toContainText("SHOP_UPDATED");
+    await expect(details).toContainText('"deliveryFee"');
+    await expect(details).toContainText(auditLogId);
     await expect(page.getByText(/passwordHash/i)).toHaveCount(0);
   });
 

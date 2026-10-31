@@ -4,6 +4,7 @@ import { useText } from "@/features/i18n/components/locale-provider";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CircleCheck, CircleX } from "lucide-react";
+import { toast } from "sonner";
 import { IconActionButton } from "@/components/ui/icon-action-button";
 import { Alert } from "@/components/ui/alert";
 
@@ -38,9 +39,21 @@ export function AdminShopStatusControl({
         })
       : {};
     if (!response?.ok || typeof payload.data?.isActive !== "boolean") {
-      setError(t(payload.error?.message ?? "Unable to update shop status."));
+      const message = t(
+        payload.error?.message ?? "Unable to update shop status.",
+      );
+      setError(message);
+      toast.error(message);
     } else {
       setIsActive(payload.data.isActive);
+      toast.success(
+        t(
+          payload.data.isActive
+            ? "{name} was activated."
+            : "{name} was deactivated.",
+          { name: shopName },
+        ),
+      );
       router.refresh();
     }
     setPending(false);
@@ -51,15 +64,16 @@ export function AdminShopStatusControl({
       <IconActionButton
         label={pending ? t("Updating…") : `${action} ${shopName}`}
         variant={isActive ? "destructive" : "success"}
+        className="text-white"
         size="icon-sm"
         type="button"
         disabled={pending}
         onClick={changeStatus}
       >
         {isActive ? (
-          <CircleX aria-hidden="true" />
+          <CircleX aria-hidden="true" className="stroke-white" />
         ) : (
-          <CircleCheck aria-hidden="true" />
+          <CircleCheck aria-hidden="true" className="stroke-white" />
         )}
       </IconActionButton>
       {error ? (
