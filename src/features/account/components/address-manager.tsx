@@ -4,8 +4,9 @@ import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
 import { CircleCheck, MapPin, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
-import { FormError, FormField } from "@/features/auth/components/form-fields";
+import { FormField } from "@/features/auth/components/form-fields";
 import type { CustomerAddressView } from "@/services/customer-address.service";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -31,12 +32,11 @@ interface AddressFormProps {
 }
 
 async function readPayload(response: Response): Promise<ApiPayload> {
-  return (await response.json().catch(() => ({}))) as ApiPayload;
+  return ((await response.json().catch(() => ({}))) ?? {}) as ApiPayload;
 }
 
 function AddressForm({ address, onCancel, onSaved }: AddressFormProps) {
   const t = useText();
-  const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
   const [location, setLocation] = useState(() =>
     parsePickedLocation(address?.latitude, address?.longitude),
@@ -44,9 +44,8 @@ function AddressForm({ address, onCancel, onSaved }: AddressFormProps) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(undefined);
     if (!location) {
-      setError(t("Choose a location before saving."));
+      toast.error(t("Choose a location before saving."));
       return;
     }
     setPending(true);
@@ -71,15 +70,15 @@ function AddressForm({ address, onCancel, onSaved }: AddressFormProps) {
       },
     ).catch(() => null);
 
-    if (!response?.ok) {
-      const payload = response ? await readPayload(response) : {};
-      setError(t(payload.error?.message ?? "Unable to save this address."));
+    const payload = response ? await readPayload(response) : {};
+    if (!response?.ok || !payload.data?.id) {
+      toast.error(t(payload.error?.message ?? "Unable to save this address."));
       setPending(false);
       return;
     }
 
-    const payload = await readPayload(response);
-    if (payload.data) onSaved(payload.data);
+    onSaved(payload.data);
+    toast.success(t(address ? "Address updated." : "Address added."));
     if (!address) {
       formElement.reset();
       setLocation(null);
@@ -125,7 +124,6 @@ function AddressForm({ address, onCancel, onSaved }: AddressFormProps) {
           />
           <Text value={"Use as default address "} />
         </Label>
-        {error ? <FormError>{error}</FormError> : null}
         <div className="flex flex-wrap gap-3">
           <Button
             variant="success"
@@ -163,7 +161,6 @@ export function AddressManager({
   const t = useText();
   const [addresses, setAddresses] = useState(initialAddresses);
   const [editingId, setEditingId] = useState<string>();
-  const [error, setError] = useState<string>();
   const [pendingId, setPendingId] = useState<string>();
   const editingAddress = addresses.find(({ id }) => id === editingId);
 
@@ -184,16 +181,15 @@ export function AddressManager({
   }
 
   async function setDefault(addressId: string) {
-    setError(undefined);
     setPendingId(addressId);
     const response = await fetch(
       `/api/account/addresses/${addressId}/default`,
       { method: "POST" },
     ).catch(() => null);
 
-    if (!response?.ok) {
-      const payload = response ? await readPayload(response) : {};
-      setError(
+    const payload = response ? await readPayload(response) : {};
+    if (!response?.ok || !payload.data?.id) {
+      toast.error(
         t(payload.error?.message ?? "Unable to set the default address."),
       );
     } else {
@@ -203,12 +199,12 @@ export function AddressManager({
           isDefault: item.id === addressId,
         })),
       );
+      toast.success(t("Default address updated."));
     }
     setPendingId(undefined);
   }
 
   async function deleteAddress(addressId: string) {
-    setError(undefined);
     setPendingId(addressId);
     const response = await fetch(`/api/account/addresses/${addressId}`, {
       method: "DELETE",
@@ -216,7 +212,9 @@ export function AddressManager({
 
     if (!response?.ok) {
       const payload = response ? await readPayload(response) : {};
-      setError(t(payload.error?.message ?? "Unable to delete this address."));
+      toast.error(
+        t(payload.error?.message ?? "Unable to delete this address."),
+      );
     } else {
       const deletedWasDefault = addresses.some(
         (item) => item.id === addressId && item.isDefault,
@@ -234,6 +232,7 @@ export function AddressManager({
         }
         return next;
       });
+      toast.success(t("Address deleted."));
     }
     setPendingId(undefined);
   }
@@ -250,11 +249,6 @@ export function AddressManager({
         <h2 id="saved-addresses-heading" className="text-lg font-semibold">
           <Text value={"Saved addresses "} />
         </h2>
-        {error ? (
-          <div className="mt-4">
-            <FormError>{error}</FormError>
-          </div>
-        ) : null}
         {addresses.length === 0 ? (
           <Empty className="mt-4">
             <EmptyHeader>
@@ -311,7 +305,10 @@ export function AddressManager({
                     disabled={pendingId === item.id}
                     onClick={() => deleteAddress(item.id)}
                   >
-                    <Trash2 aria-hidden="true" />
+                    <Trash2
+                      aria-hidden="true"
+                      className="text-white [html.dark_&]:text-black"
+                    />
                   </IconActionButton>
                 </div>
               </Card>

@@ -23,7 +23,7 @@ test("customer manages profile and changes password", async ({ page }) => {
   await page.getByLabel("Phone").fill(phone);
   await page.getByLabel("Preferred language").selectOption("SI");
   await page.getByRole("button", { name: "Save profile" }).click();
-  await expect(page.getByRole("status")).toHaveText("Profile updated.");
+  await expect(page.getByText("Profile updated.", { exact: true })).toBeVisible();
 
   await page.getByRole("link", { name: "Security" }).click();
   await page.getByLabel("Current password").fill(currentPassword);

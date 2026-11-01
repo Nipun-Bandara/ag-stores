@@ -3,17 +3,13 @@ import { useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
+import { toast } from "sonner";
 
 import { useRouter } from "next/navigation";
 
-import {
-  FormError,
-  FormField,
-  SelectField,
-} from "@/features/auth/components/form-fields";
+import { FormField, SelectField } from "@/features/auth/components/form-fields";
 import type { AuthenticatedUser } from "@/types/auth";
 import { NativeSelectOption } from "@/components/ui/native-select";
-import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
 interface ApiPayload {
@@ -23,14 +19,10 @@ interface ApiPayload {
 export function ProfileForm({ user }: { user: AuthenticatedUser }) {
   const t = useText();
   const router = useRouter();
-  const [error, setError] = useState<string>();
-  const [message, setMessage] = useState<string>();
   const [pending, setPending] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(undefined);
-    setMessage(undefined);
     setPending(true);
 
     const form = new FormData(event.currentTarget);
@@ -48,12 +40,14 @@ export function ProfileForm({ user }: { user: AuthenticatedUser }) {
       const payload = response
         ? ((await response.json().catch(() => ({}))) as ApiPayload)
         : {};
-      setError(t(payload.error?.message ?? "Unable to update your profile."));
+      toast.error(
+        t(payload?.error?.message ?? "Unable to update your profile."),
+      );
       setPending(false);
       return;
     }
 
-    setMessage(t("Profile updated."));
+    toast.success(t("Profile updated."));
     setPending(false);
     router.refresh();
   }
@@ -98,12 +92,6 @@ export function ProfileForm({ user }: { user: AuthenticatedUser }) {
         </NativeSelectOption>
         <NativeSelectOption value="SI">සිංහල</NativeSelectOption>
       </SelectField>
-      {error ? <FormError>{error}</FormError> : null}
-      {message ? (
-        <Alert variant="success" role="status" className="">
-          {message}
-        </Alert>
-      ) : null}
       <Button
         variant="success"
         type="submit"

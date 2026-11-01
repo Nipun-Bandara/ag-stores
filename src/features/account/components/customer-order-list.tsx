@@ -2,6 +2,7 @@ import { CountNoun } from "@/features/i18n/components/count-noun";
 import { DateText } from "@/features/i18n/components/date-text";
 import { Text } from "@/features/i18n/components/text";
 import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 
 import { orderStatusLabels } from "@/features/orders/order-presentation";
 import type { listCustomerOrders } from "@/services/customer-order.service";
@@ -9,49 +10,77 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type CustomerOrders = Awaited<ReturnType<typeof listCustomerOrders>>;
 type CustomerOrderSummary = CustomerOrders["activeOrders"][number];
 
 function OrderCard({ order }: { order: CustomerOrderSummary }) {
   return (
-    <Card as="article" data-testid="customer-order-card" className="gap-0 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            {order.shopName}
-          </p>
-          <p className="mt-1 break-all font-mono text-sm font-semibold">
+    <Card
+      as="article"
+      data-testid="customer-order-card"
+      className="min-w-0 gap-0 p-4"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="break-words font-semibold">{order.shopName}</h3>
+          <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
             {order.id}
           </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {order.itemCount}{" "}
-            <CountNoun count={order.itemCount} singular="item" plural="items" />{" "}
-            <Text value={"· Ordered"} /> <DateText value={order.createdAt} />
+        </div>
+        <div className="max-w-1/2 text-right">
+          <Badge variant="success" className="max-w-full whitespace-normal">
+            <Text value={orderStatusLabels[order.status]} />
+          </Badge>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <p className="text-sm text-muted-foreground">
+          {order.itemCount}{" "}
+          <CountNoun count={order.itemCount} singular="item" plural="items" />
+        </p>
+        <p className="font-semibold tabular-nums">LKR {order.total}</p>
+      </div>
+      <div className="mt-auto flex items-end justify-between gap-3 pt-3">
+        <div className="min-w-0 text-xs text-muted-foreground">
+          <p>
+            <Text value="Ordered" /> <DateText value={order.createdAt} />
           </p>
           {order.updatedAt !== order.createdAt ? (
-            <p className="mt-1 text-xs text-muted-foreground">
-              <Text value={"Updated "} />
+            <p className="mt-1">
+              <Text value="Updated " />
               <DateText value={order.updatedAt} />
             </p>
           ) : null}
         </div>
-        <div className="text-right">
-          <Badge variant="success">
-            <Text value={orderStatusLabels[order.status]} />
-          </Badge>
-          <p className="mt-2 font-semibold">LKR {order.total}</p>
-        </div>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Link
+                href={`/account/orders/${order.id}`}
+                className={buttonVariants({
+                  variant: "outline",
+                  size: "icon",
+                  className: "shrink-0",
+                })}
+              >
+                <ArrowUpRight aria-hidden="true" />
+                <span className="sr-only">
+                  <Text value="View order details" />
+                </span>
+              </Link>
+            }
+          />
+          <TooltipContent>
+            <Text value="View order details" />
+          </TooltipContent>
+        </Tooltip>
       </div>
-      <Link
-        href={`/account/orders/${order.id}`}
-        className={buttonVariants({
-          variant: "outline",
-          className: "mt-4 inline-flex",
-        })}
-      >
-        <Text value={"View order details "} />
-      </Link>
     </Card>
   );
 }
@@ -69,20 +98,23 @@ function OrderSection({
 }) {
   return (
     <section
-      className="mt-8"
+      className="min-w-0"
       aria-labelledby={`${title.replaceAll(" ", "-").toLowerCase()}-heading`}
     >
-      <h2
-        id={`${title.replaceAll(" ", "-").toLowerCase()}-heading`}
-        className="text-xl font-semibold"
-      >
-        <Text value={title} />
-      </h2>
+      <div className="flex items-center gap-2">
+        <h2
+          id={`${title.replaceAll(" ", "-").toLowerCase()}-heading`}
+          className="text-xl font-semibold"
+        >
+          <Text value={title} />
+        </h2>
+        <Badge variant="secondary">{orders.length}</Badge>
+      </div>
       <p className="mt-1 text-sm text-muted-foreground">
         <Text value={description} />
       </p>
       {orders.length ? (
-        <div className="mt-4 grid gap-4">
+        <div className="mt-3 grid gap-3 xl:grid-cols-2 2xl:grid-cols-3">
           {orders.map((order) => (
             <OrderCard key={order.id} order={order} />
           ))}
@@ -102,7 +134,7 @@ function OrderSection({
 
 export function CustomerOrderList({ orders }: { orders: CustomerOrders }) {
   return (
-    <>
+    <div className="mt-6 space-y-6">
       <OrderSection
         title="Active orders"
         description="Orders that are being confirmed, prepared, assigned, or delivered."
@@ -115,6 +147,6 @@ export function CustomerOrderList({ orders }: { orders: CustomerOrders }) {
         orders={orders.orderHistory}
         emptyMessage="Your completed order history is empty."
       />
-    </>
+    </div>
   );
 }

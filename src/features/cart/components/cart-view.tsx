@@ -139,6 +139,7 @@ export function CartView() {
         <Link
           href="/checkout"
           className={buttonVariants({
+            variant: "success",
             className:
               "mt-3 flex h-auto min-h-9 w-full justify-center whitespace-normal break-words py-2 text-center",
           })}
@@ -149,7 +150,7 @@ export function CartView() {
           variant="destructive"
           type="button"
           onClick={clear}
-          className="mt-3 w-full no-underline"
+          className="mt-3 w-full text-white no-underline [html.dark_&]:text-black"
         >
           <Text value={"Clear cart "} />
         </Button>

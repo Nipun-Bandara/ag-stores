@@ -718,5 +718,15 @@
   "Delivered revenue (LKR)": "බෙදාහැරූ ඇණවුම් ආදායම (රු.)",
   "Revenue (LKR)": "ආදායම (රු.)",
   "Quantity sold": "විකුණුම් ප්‍රමාණය",
-  "No data available": "දත්ත නොමැත"
+  "No data available": "දත්ත නොමැත",
+  "Cart summary": "කරත්තයේ සාරාංශය",
+  "{count} item": "අයිතම {count}ක්",
+  "{count} items": "අයිතම {count}ක්",
+  "View cart": "කරත්තය බලන්න",
+  "Ordered": "ඇණවුම් කළේ",
+  "Back to your orders": "ඔබේ ඇණවුම් වෙත",
+  "Address updated.": "ලිපිනය යාවත්කාලීන කරන ලදී.",
+  "Address added.": "ලිපිනය එක් කරන ලදී.",
+  "Default address updated.": "පෙරනිමි ලිපිනය යාවත්කාලීන කරන ලදී.",
+  "Address deleted.": "ලිපිනය මකන ලදී."
 }

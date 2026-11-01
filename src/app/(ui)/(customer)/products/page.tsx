@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { ProductGrid } from "@/features/storefront/components/product-grid";
+import { StorefrontCartSummary } from "@/features/cart/components/storefront-cart-summary";
 import { getDictionary, localizeBilingual } from "@/lib/i18n/config";
 import { getLocaleContext, getServerText } from "@/lib/i18n/server";
 import {
@@ -91,7 +92,7 @@ export default async function ProductsPage({
               name="search"
               defaultValue={search?.success ? search.data : ""}
               placeholder={copy.searchPlaceholder}
-              className="mt-1.5 w-full"
+              className="mt-1.5 h-10 w-full"
             />
           </Label>
           <Label
@@ -104,10 +105,13 @@ export default async function ProductsPage({
               items={categoryOptions}
               defaultValue={category?.success ? category.data : ""}
             >
-              <SelectTrigger id="categoryId" className="mt-1.5 h-11 w-full">
+              <SelectTrigger
+                id="categoryId"
+                className="mt-1.5 h-10 w-full data-[size=default]:h-10"
+              >
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent alignItemWithTrigger={false} className="min-w-0">
                 {categoryOptions.map((item) => (
                   <SelectItem key={item.value} value={item.value}>
                     {item.label}
@@ -116,12 +120,13 @@ export default async function ProductsPage({
               </SelectContent>
             </Select>
           </Label>
-          <Button type="submit" className="h-11 self-end">
+          <Button type="submit" className="h-10 self-end">
             {copy.applyFilters}
           </Button>
         </form>
       </Card>
-      <p className="mt-8 text-sm font-semibold text-muted-foreground">
+      <StorefrontCartSummary locale={locale} localizedRoute={localizedRoute} />
+      <p className="mt-6 text-sm font-semibold text-muted-foreground">
         {products.length}{" "}
         {products.length === 1 ? copy.product : copy.productPlural}
       </p>
