@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 
 import { UserRole } from "@/generated/prisma/client";
 import { orderStatusLabels } from "@/features/orders/order-presentation";
+import { ReportExportButton } from "@/features/owner/components/report-export-button";
 import { ReportFilters } from "@/features/owner/components/report-filters";
 import { requireRole } from "@/lib/auth/server";
 import { getOwnerReports } from "@/services/owner-report.service";
@@ -59,16 +60,22 @@ export default async function OwnerReportsPage({
 
   return (
     <section className="min-w-0 w-full">
-      <h1 className="text-3xl font-semibold tracking-tight">
-        <Text value={"Reports"} />
-      </h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        <Text
-          value={
-            "Basic order, revenue, delivery, product, and stock reporting for your shops. "
-          }
-        />
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          {" "}
+          <h1 className="text-3xl font-semibold tracking-tight">
+            <Text value={"Reports"} />
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            <Text
+              value={
+                "Basic order, revenue, delivery, product, and stock reporting for your shops. "
+              }
+            />
+          </p>
+        </div>
+        <ReportExportButton report={reports} />
+      </div>
 
       <Card className="gap-0 mt-8 p-5">
         <ReportFilters

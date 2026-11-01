@@ -5,8 +5,9 @@ import { Text } from "@/features/i18n/components/text";
 import { useMemo, useState, type FormEvent } from "react";
 
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
-import { FormError, FormField } from "@/features/auth/components/form-fields";
+import { FormField } from "@/features/auth/components/form-fields";
 import type {
   ProductFormOptions,
   ProductView,
@@ -25,6 +26,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 
 interface ApiPayload {
+  data?: { id: string };
   error?: { message?: string };
 }
 
@@ -46,7 +48,6 @@ export function ProductForm({
     "";
   const [shopId, setShopId] = useState(initialShopId);
   const [categoryId, setCategoryId] = useState(initialCategoryId);
-  const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
   const categories = useMemo(
     () => options.categories.filter((category) => category.shopId === shopId),
@@ -55,7 +56,6 @@ export function ProductForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(undefined);
     setPending(true);
     const form = new FormData(event.currentTarget);
     const response = await fetch(
@@ -79,15 +79,18 @@ export function ProductForm({
       },
     ).catch(() => null);
 
-    if (!response?.ok) {
-      const payload = response
-        ? ((await response.json().catch(() => ({}))) as ApiPayload)
-        : {};
-      setError(t(payload.error?.message ?? "Unable to save this product."));
+    const payload = response
+      ? ((await response.json().catch(() => ({}))) as ApiPayload)
+      : {};
+    if (!response?.ok || !payload.data?.id) {
+      toast.error(t(payload.error?.message ?? "Unable to save this product."));
       setPending(false);
       return;
     }
 
+    toast.success(
+      t(product ? "Product details saved." : "Product created successfully."),
+    );
     router.push("/owner/products");
     router.refresh();
   }
@@ -279,14 +282,9 @@ export function ProductForm({
       </Label>
       {categories.length === 0 ? (
         <div className="sm:col-span-6 lg:col-span-12">
-          <FormError>
+          <p className="text-sm text-muted-foreground">
             <Text value={t("Create a category for this shop first.")} />
-          </FormError>
-        </div>
-      ) : null}
-      {error ? (
-        <div className="sm:col-span-6 lg:col-span-12">
-          <FormError>{error}</FormError>
+          </p>
         </div>
       ) : null}
       <div className="flex flex-wrap gap-3 sm:col-span-6 lg:col-span-12">

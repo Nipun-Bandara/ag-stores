@@ -4,8 +4,9 @@ import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
 import { CircleCheck, CircleX, Pencil } from "lucide-react";
+import { toast } from "sonner";
 
-import { FormError, FormField } from "@/features/auth/components/form-fields";
+import { FormField } from "@/features/auth/components/form-fields";
 import type {
   DeliveryPersonnelManagementView,
   DeliveryPersonnelView,
@@ -52,7 +53,6 @@ function PersonnelForm({
   onTemporaryPassword: (password: string) => void;
 }) {
   const t = useText();
-  const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
   const [assignedShopId, setAssignedShopId] = useState(
     person?.assignedShopId ?? shops[0]?.id ?? "",
@@ -62,7 +62,6 @@ function PersonnelForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(undefined);
     setPending(true);
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
@@ -83,23 +82,25 @@ function PersonnelForm({
       },
     ).catch(() => null);
 
-    if (!response?.ok) {
-      const payload = response ? await readPayload(response) : {};
-      setError(
-        t(payload.error?.message ?? "Unable to save delivery personnel."),
+    const payload = response ? await readPayload(response) : {};
+    if (!response?.ok || !payload.data) {
+      const message = t(
+        payload.error?.message ?? "Unable to save delivery personnel.",
       );
+      toast.error(message);
       setPending(false);
       return;
     }
 
-    const payload = await readPayload(response);
     if (payload.data && "personnel" in payload.data) {
+      toast.success(t("Delivery account created successfully."));
       onSaved(payload.data.personnel);
       onTemporaryPassword(payload.data.temporaryPassword);
       formElement.reset();
       setAssignedShopId(shops[0]?.id ?? "");
       setStatus("ACTIVE");
     } else if (payload.data) {
+      toast.success(t("Delivery personnel details saved."));
       onSaved(payload.data);
     }
     setPending(false);
@@ -159,7 +160,7 @@ function PersonnelForm({
             >
               <SelectTrigger
                 id={`delivery-shop-${suffix}`}
-                className="mt-1.5 h-10 w-full"
+                className="mt-1.5 h-10 w-full data-[size=default]:h-10"
               >
                 <SelectValue>
                   {(value) =>
@@ -168,7 +169,7 @@ function PersonnelForm({
                   }
                 </SelectValue>
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent alignItemWithTrigger={false} className="min-w-0">
                 {shops.map((shop) => (
                   <SelectItem key={shop.id} value={shop.id}>
                     {shop.name}
@@ -193,13 +194,13 @@ function PersonnelForm({
               >
                 <SelectTrigger
                   id="delivery-status-new"
-                  className="mt-1.5 h-10 w-full"
+                  className="mt-1.5 h-10 w-full data-[size=default]:h-10"
                 >
                   <SelectValue>
                     {(value) => t(value === "INACTIVE" ? "Inactive" : "Active")}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent alignItemWithTrigger={false} className="min-w-0">
                   <SelectItem value="ACTIVE">{t("Active")}</SelectItem>
                   <SelectItem value="INACTIVE">{t("Inactive")}</SelectItem>
                 </SelectContent>
@@ -231,7 +232,6 @@ function PersonnelForm({
             ) : null}
           </div>
         </div>
-        {error ? <FormError>{error}</FormError> : null}
       </form>
     </Card>
   );
@@ -246,7 +246,6 @@ export function DeliveryPersonnelManager({
   const [personnel, setPersonnel] = useState(initialData.personnel);
   const [editingId, setEditingId] = useState<string>();
   const [pendingId, setPendingId] = useState<string>();
-  const [error, setError] = useState<string>();
   const [temporaryPassword, setTemporaryPassword] = useState<string>();
   const editingPerson = personnel.find(({ id }) => id === editingId);
 
@@ -261,7 +260,6 @@ export function DeliveryPersonnelManager({
   }
 
   async function changeStatus(person: DeliveryPersonnelView) {
-    setError(undefined);
     setPendingId(person.id);
     const status = person.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     const response = await fetch(
@@ -273,14 +271,22 @@ export function DeliveryPersonnelManager({
       },
     ).catch(() => null);
 
-    if (!response?.ok) {
-      const payload = response ? await readPayload(response) : {};
-      setError(t(payload.error?.message ?? "Unable to update account status."));
+    const payload = response ? await readPayload(response) : {};
+    if (!response?.ok || !payload.data || "personnel" in payload.data) {
+      const message = t(
+        payload.error?.message ?? "Unable to update account status.",
+      );
+      toast.error(message);
     } else {
-      const payload = await readPayload(response);
-      if (payload.data && !("personnel" in payload.data)) {
-        savePerson(payload.data);
-      }
+      savePerson(payload.data);
+      toast.success(
+        t(
+          payload.data.status === "ACTIVE"
+            ? "{name} was activated."
+            : "{name} was deactivated.",
+          { name: payload.data.name },
+        ),
+      );
     }
     setPendingId(undefined);
   }
@@ -342,11 +348,6 @@ export function DeliveryPersonnelManager({
         >
           <Text value={"Delivery personnel "} />
         </h2>
-        {error ? (
-          <div className="mt-4">
-            <FormError>{error}</FormError>
-          </div>
-        ) : null}
         {personnel.length ? (
           <div className="mt-4 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
             {personnel.map((person) => (
@@ -387,11 +388,7 @@ export function DeliveryPersonnelManager({
                         variant={
                           person.status === "ACTIVE" ? "destructive" : "success"
                         }
-                        className={
-                          person.status === "ACTIVE"
-                            ? "text-white [html.dark_&]:text-black"
-                            : undefined
-                        }
+                        className="text-white"
                         size="icon-sm"
                         type="button"
                         label={`${t(person.status === "ACTIVE" ? "Deactivate" : "Activate")} ${person.name}`}
@@ -401,10 +398,13 @@ export function DeliveryPersonnelManager({
                         {person.status === "ACTIVE" ? (
                           <CircleX
                             aria-hidden="true"
-                            className="stroke-white [html.dark_&]:stroke-black"
+                            className="stroke-white"
                           />
                         ) : (
-                          <CircleCheck aria-hidden="true" />
+                          <CircleCheck
+                            aria-hidden="true"
+                            className="stroke-white"
+                          />
                         )}
                       </IconActionButton>
                     </div>

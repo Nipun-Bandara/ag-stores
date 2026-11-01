@@ -4,6 +4,7 @@ import { Text } from "@/features/i18n/components/text";
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { toast } from "sonner";
 
 import type {
   AdminShopManagementView,
@@ -11,14 +12,18 @@ import type {
 } from "@/services/admin-shop.service";
 import { Label } from "@/components/ui/label";
 import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Alert } from "@/components/ui/alert";
 import {
   LocationPicker,
   parsePickedLocation,
@@ -38,24 +43,38 @@ export function AdminShopForm({
 }) {
   const t = useText();
   const router = useRouter();
-  const [message, setMessage] = useState<string>();
-  const [isError, setIsError] = useState(false);
+  const [error, setError] = useState<string>();
+  const [ownerId, setOwnerId] = useState(shop?.ownerId ?? owners[0]?.id ?? "");
+  const [isOpen, setIsOpen] = useState(shop?.isOpen ?? false);
   const [pending, setPending] = useState(false);
   const [location, setLocation] = useState(() =>
     parsePickedLocation(shop?.latitude, shop?.longitude),
   );
   const inputClass = "mt-1.5 h-10 w-full";
+  const ownerOptions = owners.map((owner) => ({
+    value: owner.id,
+    label: `${owner.name}${owner.email ? ` (${owner.email})` : ""}`,
+    disabled: false,
+  }));
+  if (shop && !ownerOptions.some((option) => option.value === shop.ownerId)) {
+    ownerOptions.push({
+      value: shop.ownerId,
+      label: `${shop.owner.name}${t(" (inactive)")}`,
+      disabled: true,
+    });
+  }
+  const ownerInputId = `shop-owner-${shop?.id ?? "new"}`;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!location) {
-      setMessage(t("Choose a location before saving."));
-      setIsError(true);
+      const message = t("Choose a location before saving.");
+      setError(message);
+      toast.error(message);
       return;
     }
     setPending(true);
-    setMessage(undefined);
-    setIsError(false);
+    setError(undefined);
     const form = new FormData(event.currentTarget);
     const response = await fetch(
       shop ? `/api/admin/shops/${shop.id}` : "/api/admin/shops",
@@ -63,13 +82,13 @@ export function AdminShopForm({
         method: shop ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ownerId: form.get("ownerId"),
+          ownerId,
           name: form.get("name"),
           address: form.get("address"),
           phone: form.get("phone"),
           latitude: form.get("latitude"),
           longitude: form.get("longitude"),
-          isOpen: form.get("isOpen") === "on",
+          isOpen,
           minimumOrderAmount: form.get("minimumOrderAmount"),
           deliveryFee: form.get("deliveryFee"),
           maximumDeliveryRadiusKm: form.get("maximumDeliveryRadiusKm"),
@@ -81,16 +100,18 @@ export function AdminShopForm({
       : {};
 
     if (!response?.ok || !payload.data) {
-      setMessage(t(payload.error?.message ?? "Unable to save the shop."));
-      setIsError(true);
+      const message = t(payload.error?.message ?? "Unable to save the shop.");
+      setError(message);
+      toast.error(message);
       setPending(false);
       return;
     }
 
     if (shop) {
-      setMessage(t("Shop details saved."));
+      toast.success(t("Shop details saved."));
       router.refresh();
     } else {
+      toast.success(t("Shop created successfully."));
       router.push(`/admin/shops/${payload.data.id}`);
     }
     setPending(false);
@@ -98,30 +119,45 @@ export function AdminShopForm({
 
   return (
     <Card className="gap-0 p-5 sm:p-6">
-      <form onSubmit={submit} className="">
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Label className="text-sm font-medium sm:col-span-2">
-            <Text value={"Shop owner "} />
-            <NativeSelect
+      <form onSubmit={submit} className="space-y-5">
+        <div
+          className={`grid gap-4 sm:grid-cols-2 ${shop ? "xl:grid-cols-3" : ""}`}
+        >
+          <div className={`min-w-0 ${!shop ? "sm:col-span-2" : ""}`}>
+            <Label htmlFor={ownerInputId} className="block text-sm font-medium">
+              <Text value="Shop owner" />
+            </Label>
+            <Select
               name="ownerId"
-              defaultValue={shop?.ownerId ?? owners[0]?.id ?? ""}
-              className={inputClass}
+              value={ownerId}
+              onValueChange={(value) => {
+                if (value !== null) setOwnerId(value);
+              }}
+              items={ownerOptions}
               required
+              disabled={owners.length === 0}
             >
-              {!owners.length ? (
-                <NativeSelectOption value="">
-                  <Text value={"No active owners "} />
-                </NativeSelectOption>
-              ) : null}
-              {owners.map((owner) => (
-                <NativeSelectOption key={owner.id} value={owner.id}>
-                  {owner.name} {owner.email ? `(${owner.email})` : ""}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </Label>
-          <Label className="text-sm font-medium sm:col-span-2">
-            <Text value={"Shop name "} />
+              <SelectTrigger
+                id={ownerInputId}
+                className="mt-1.5 h-10 w-full data-[size=default]:h-10"
+              >
+                <SelectValue placeholder={t("No active owners")} />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false} className="min-w-0">
+                {ownerOptions.map((owner) => (
+                  <SelectItem
+                    key={owner.value}
+                    value={owner.value}
+                    disabled={owner.disabled}
+                  >
+                    {owner.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Label className="min-w-0 text-sm font-medium">
+            <Text value="Shop name" />
             <Input
               name="name"
               defaultValue={shop?.name ?? ""}
@@ -130,17 +166,8 @@ export function AdminShopForm({
               required
             />
           </Label>
-          <Label className="text-sm font-medium sm:col-span-2">
-            <Text value={"Address "} />
-            <Textarea
-              name="address"
-              defaultValue={shop?.address ?? ""}
-              className="mt-1.5 min-h-24 w-full p-3"
-              required
-            />
-          </Label>
-          <Label className="text-sm font-medium">
-            <Text value={"Phone "} />
+          <Label className="min-w-0 text-sm font-medium">
+            <Text value="Phone" />
             <Input
               name="phone"
               type="tel"
@@ -150,16 +177,28 @@ export function AdminShopForm({
               required
             />
           </Label>
-          <Label className="flex items-center gap-3 self-end py-2 text-sm font-medium">
-            <Checkbox
-              name="isOpen"
-              defaultChecked={shop?.isOpen ?? false}
+        </div>
+        <div
+          className={`grid gap-5 ${shop ? "lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]" : ""}`}
+        >
+          <Label className="flex min-w-0 flex-col text-sm font-medium">
+            <Text value="Address" />
+            <Textarea
+              name="address"
+              defaultValue={shop?.address ?? ""}
+              className="mt-1.5 min-h-28 w-full flex-1 p-3"
+              required
             />
-            <Text value={"Open for customer orders "} />
           </Label>
-          <LocationPicker value={location} onChange={setLocation} />
-          <Label className="text-sm font-medium">
-            <Text value={"Minimum order amount (LKR) "} />
+          <div className="min-w-0 rounded-lg bg-muted/40 p-3">
+            <LocationPicker value={location} onChange={setLocation} />
+          </div>
+        </div>
+        <div
+          className={`grid gap-4 sm:grid-cols-2 ${shop ? "lg:grid-cols-3" : ""}`}
+        >
+          <Label className="min-w-0 text-sm font-medium">
+            <Text value="Minimum order amount (LKR)" />
             <Input
               name="minimumOrderAmount"
               type="number"
@@ -170,8 +209,8 @@ export function AdminShopForm({
               required
             />
           </Label>
-          <Label className="text-sm font-medium">
-            <Text value={"Delivery fee (LKR) "} />
+          <Label className="min-w-0 text-sm font-medium">
+            <Text value="Delivery fee (LKR)" />
             <Input
               name="deliveryFee"
               type="number"
@@ -182,8 +221,10 @@ export function AdminShopForm({
               required
             />
           </Label>
-          <Label className="text-sm font-medium sm:col-span-2">
-            <Text value={"Maximum delivery radius (km) "} />
+          <Label
+            className={`min-w-0 text-sm font-medium ${!shop ? "sm:col-span-2" : ""}`}
+          >
+            <Text value="Maximum delivery radius (km)" />
             <Input
               name="maximumDeliveryRadiusKm"
               type="number"
@@ -195,22 +236,28 @@ export function AdminShopForm({
             />
           </Label>
         </div>
-        <div className="mt-6 flex flex-wrap items-center gap-4">
+        {error ? (
+          <Alert variant="destructive" role="alert">
+            {error}
+          </Alert>
+        ) : null}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <Label className="flex items-center gap-3 text-sm font-medium">
+            <Checkbox
+              name="isOpen"
+              checked={isOpen}
+              onCheckedChange={setIsOpen}
+            />
+            <Text value="Open for customer orders" />
+          </Label>
           <Button
             variant="success"
             type="submit"
             disabled={pending || owners.length === 0}
+            className="h-10"
           >
             {pending ? t("Saving…") : shop ? t("Save shop") : t("Create shop")}
           </Button>
-          {message ? (
-            <p
-              role={isError ? "alert" : "status"}
-              className={isError ? "text-sm text-red-700" : "text-sm"}
-            >
-              {message}
-            </p>
-          ) : null}
         </div>
       </form>
     </Card>

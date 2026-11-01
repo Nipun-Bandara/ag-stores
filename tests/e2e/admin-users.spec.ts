@@ -68,6 +68,13 @@ test.describe.serial("admin user management", () => {
     await expect(row).toContainText("Customer");
     await expect(row).toContainText("Active");
 
+    await row.getByRole("button", { name: `Deactivate ${name}` }).click();
+    await page
+      .getByRole("dialog", { name: "Deactivate user" })
+      .getByRole("button", { name: "Cancel", exact: true })
+      .click();
+    await expect(row).toContainText("Active");
+
     await row.getByRole("link", { name }).click();
     await expect(page).toHaveURL(`/admin/users/${userId}`);
     await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
@@ -75,11 +82,19 @@ test.describe.serial("admin user management", () => {
     await expect(page.getByText("passwordHash")).toHaveCount(0);
 
     await page.getByRole("button", { name: `Deactivate ${name}` }).click();
+    await page
+      .getByRole("dialog", { name: "Deactivate user" })
+      .getByRole("button", { name: "Deactivate", exact: true })
+      .click();
     await expect(
       page.getByRole("button", { name: `Activate ${name}` }),
     ).toBeVisible();
 
     await page.getByRole("button", { name: `Activate ${name}` }).click();
+    await page
+      .getByRole("dialog", { name: "Activate user" })
+      .getByRole("button", { name: "Activate", exact: true })
+      .click();
     await expect(
       page.getByRole("button", { name: `Deactivate ${name}` }),
     ).toBeVisible();

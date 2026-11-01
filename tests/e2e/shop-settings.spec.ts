@@ -73,7 +73,9 @@ test.describe("owner shop settings", () => {
     await page.getByLabel("Delivery fee (LKR)").fill("80.50");
     await page.getByLabel("Maximum delivery radius (km)").fill("15.25");
     await page.getByRole("button", { name: "Save settings" }).click();
-    await expect(page.getByRole("status")).toHaveText("Shop settings saved.");
+    await expect(
+      page.getByText("Shop settings saved.", { exact: true }),
+    ).toBeVisible();
 
     const shop = await prisma.shop.findUniqueOrThrow({ where: { id: shopId } });
     expect(shop.name).toBe("Updated E2E Settings Shop");

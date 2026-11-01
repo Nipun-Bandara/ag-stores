@@ -26,7 +26,9 @@ export function ProductFilterSelects({
   const t = useText();
   const locale = useLocale();
   const [categoryId, setCategoryId] = useState(initialCategoryId);
-  const [inventoryStatus, setInventoryStatus] = useState(initialInventoryStatus);
+  const [inventoryStatus, setInventoryStatus] = useState(
+    initialInventoryStatus,
+  );
   const inventoryLabels: Record<string, string> = {
     OUT_OF_STOCK: t("Out of stock"),
     LOW_STOCK: t("Low stock"),
@@ -42,7 +44,10 @@ export function ProductFilterSelects({
           value={categoryId}
           onValueChange={(value) => setCategoryId(value ?? "")}
         >
-          <SelectTrigger id="categoryId" className="mt-1.5 h-10 w-full">
+          <SelectTrigger
+            id="categoryId"
+            className="mt-1.5 h-10 w-full data-[size=default]:h-10"
+          >
             <SelectValue>
               {(value) => {
                 const category = categories.find((item) => item.id === value);
@@ -69,16 +74,27 @@ export function ProductFilterSelects({
           value={inventoryStatus}
           onValueChange={(value) => setInventoryStatus(value ?? "")}
         >
-          <SelectTrigger id="inventoryStatus" className="mt-1.5 h-10 w-full">
+          <SelectTrigger
+            id="inventoryStatus"
+            className="mt-1.5 h-10 w-full data-[size=default]:h-10"
+          >
             <SelectValue>
-              {(value) => inventoryLabels[String(value)] ?? t("All stock levels")}
+              {(value) =>
+                inventoryLabels[String(value)] ?? t("All stock levels")
+              }
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="">{t("All stock levels")}</SelectItem>
-            <SelectItem value="OUT_OF_STOCK">{inventoryLabels.OUT_OF_STOCK}</SelectItem>
-            <SelectItem value="LOW_STOCK">{inventoryLabels.LOW_STOCK}</SelectItem>
-            <SelectItem value="AVAILABLE">{inventoryLabels.AVAILABLE}</SelectItem>
+            <SelectItem value="OUT_OF_STOCK">
+              {inventoryLabels.OUT_OF_STOCK}
+            </SelectItem>
+            <SelectItem value="LOW_STOCK">
+              {inventoryLabels.LOW_STOCK}
+            </SelectItem>
+            <SelectItem value="AVAILABLE">
+              {inventoryLabels.AVAILABLE}
+            </SelectItem>
           </SelectContent>
         </Select>
       </Label>

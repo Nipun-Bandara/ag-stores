@@ -72,12 +72,25 @@ test.describe.serial("admin shop management", () => {
       page.getByRole("heading", { name: "Shop management" }),
     ).toBeVisible();
 
-    await page.getByLabel("Shop owner").selectOption(firstOwnerId);
+    await page.getByRole("combobox", { name: "Shop owner" }).click();
+    await page
+      .getByRole("option", {
+        name: new RegExp(`Admin E2E Owner One ${suffix.slice(0, 6)}`),
+      })
+      .click();
     await page.getByLabel("Shop name").fill(initialName);
     await page.getByLabel("Address").fill("10 Admin E2E Road, Colombo");
     await page.getByLabel("Phone").fill(`+9416${digits}`);
-    await page.getByLabel("Latitude").fill("6.927079");
-    await page.getByLabel("Longitude").fill("79.861244");
+    await page.context().grantPermissions(["geolocation"]);
+    await page
+      .context()
+      .setGeolocation({ latitude: 6.927079, longitude: 79.861244 });
+    await page
+      .getByRole("button", { name: "Use my current location", exact: true })
+      .click();
+    await expect(
+      page.getByText("Location pinned", { exact: true }),
+    ).toBeVisible();
     await page.getByLabel("Open for customer orders").check();
     await page.getByLabel("Minimum order amount (LKR)").fill("250.00");
     await page.getByLabel("Delivery fee (LKR)").fill("100.00");
@@ -90,10 +103,17 @@ test.describe.serial("admin shop management", () => {
       page.getByRole("heading", { name: initialName, level: 1 }),
     ).toBeVisible();
 
-    await page.getByLabel("Shop owner").selectOption(secondOwnerId);
+    await page.getByRole("combobox", { name: "Shop owner" }).click();
+    await page
+      .getByRole("option", {
+        name: new RegExp(`Admin E2E Owner Two ${suffix.slice(0, 6)}`),
+      })
+      .click();
     await page.getByLabel("Shop name").fill(updatedName);
     await page.getByRole("button", { name: "Save shop" }).click();
-    await expect(page.getByRole("status")).toHaveText("Shop details saved.");
+    await expect(
+      page.getByText("Shop details saved.", { exact: true }),
+    ).toBeVisible();
 
     const saved = await prisma.shop.findUniqueOrThrow({
       where: { id: shopId },
