@@ -122,6 +122,7 @@ it.each([false, true])(
       ),
     );
     expect(mocks.success).not.toHaveBeenCalled();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   },
 );
 

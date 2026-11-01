@@ -57,6 +57,13 @@ export default async function OwnerOrdersPage({
   const parsed = ownerOrderFiltersSchema.safeParse(rawFilters);
   const filters = parsed.success ? parsed.data : {};
   const dashboard = await getOwnerOrderDashboard(user, filters);
+  const statusOptions = [
+    { value: "", label: t("All statuses") },
+    ...Object.values(OrderStatus).map((value) => ({
+      value,
+      label: t(orderStatusLabels[value]),
+    })),
+  ];
 
   return (
     <section className="min-w-0 w-full">
@@ -75,25 +82,32 @@ export default async function OwnerOrdersPage({
         {dashboard.summaries.map((summary) => (
           <Card key={summary.key} className="gap-0 p-4">
             <p className="text-xs font-medium text-muted-foreground">
-              {summary.label}
+              <Text value={summary.label} />
             </p>
             <p className="mt-2 text-2xl font-semibold">{summary.count}</p>
           </Card>
         ))}
       </div>
 
-      <Card className="gap-0 mt-8 p-5">
+      <Card className="gap-0 mt-6 p-4 sm:p-5">
         <form
           key={JSON.stringify(filters)}
-          className="grid gap-x-4 gap-y-5 sm:grid-cols-2 xl:grid-cols-4"
+          className="grid items-start gap-x-4 gap-y-3 sm:grid-cols-2 xl:grid-cols-4"
         >
           <Label className="min-w-0 text-sm font-medium" htmlFor="status">
             <Text value={"Status "} />
-            <Select name="status" defaultValue={filters.status ?? ""}>
-              <SelectTrigger id="status" className="mt-1.5 h-10 w-full">
+            <Select
+              name="status"
+              items={statusOptions}
+              defaultValue={filters.status ?? ""}
+            >
+              <SelectTrigger
+                id="status"
+                className="mt-1.5 h-10 w-full data-[size=default]:h-10"
+              >
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent alignItemWithTrigger={false} className="min-w-0">
                 <SelectItem value="">
                   <Text value={"All statuses"} />
                 </SelectItem>

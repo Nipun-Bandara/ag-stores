@@ -6,7 +6,7 @@ import { useState, type FormEvent } from "react";
 import { CircleCheck, CircleX, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
-import { FormError, FormField } from "@/features/auth/components/form-fields";
+import { FormField } from "@/features/auth/components/form-fields";
 import type {
   DeliveryPersonnelManagementView,
   DeliveryPersonnelView,
@@ -53,7 +53,6 @@ function PersonnelForm({
   onTemporaryPassword: (password: string) => void;
 }) {
   const t = useText();
-  const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
   const [assignedShopId, setAssignedShopId] = useState(
     person?.assignedShopId ?? shops[0]?.id ?? "",
@@ -63,7 +62,6 @@ function PersonnelForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(undefined);
     setPending(true);
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
@@ -89,7 +87,6 @@ function PersonnelForm({
       const message = t(
         payload.error?.message ?? "Unable to save delivery personnel.",
       );
-      setError(message);
       toast.error(message);
       setPending(false);
       return;
@@ -235,7 +232,6 @@ function PersonnelForm({
             ) : null}
           </div>
         </div>
-        {error ? <FormError>{error}</FormError> : null}
       </form>
     </Card>
   );
@@ -250,7 +246,6 @@ export function DeliveryPersonnelManager({
   const [personnel, setPersonnel] = useState(initialData.personnel);
   const [editingId, setEditingId] = useState<string>();
   const [pendingId, setPendingId] = useState<string>();
-  const [error, setError] = useState<string>();
   const [temporaryPassword, setTemporaryPassword] = useState<string>();
   const editingPerson = personnel.find(({ id }) => id === editingId);
 
@@ -265,7 +260,6 @@ export function DeliveryPersonnelManager({
   }
 
   async function changeStatus(person: DeliveryPersonnelView) {
-    setError(undefined);
     setPendingId(person.id);
     const status = person.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     const response = await fetch(
@@ -282,7 +276,6 @@ export function DeliveryPersonnelManager({
       const message = t(
         payload.error?.message ?? "Unable to update account status.",
       );
-      setError(message);
       toast.error(message);
     } else {
       savePerson(payload.data);
@@ -355,11 +348,6 @@ export function DeliveryPersonnelManager({
         >
           <Text value={"Delivery personnel "} />
         </h2>
-        {error ? (
-          <div className="mt-4">
-            <FormError>{error}</FormError>
-          </div>
-        ) : null}
         {personnel.length ? (
           <div className="mt-4 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
             {personnel.map((person) => (

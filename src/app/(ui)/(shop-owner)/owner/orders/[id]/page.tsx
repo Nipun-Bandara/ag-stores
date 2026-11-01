@@ -1,3 +1,6 @@
+import { ArrowLeft } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { OwnerOrderTimeline } from "@/features/owner/components/owner-order-timeline";
 import { BilingualText } from "@/features/i18n/components/bilingual-text";
 import { getServerText } from "@/lib/i18n/server";
 import { DateText } from "@/features/i18n/components/date-text";
@@ -14,7 +17,6 @@ import { requireRole } from "@/lib/auth/server";
 import { getOwnerOrder, OwnerOrderError } from "@/services/owner-order.service";
 import { orderIdSchema } from "@/validations/order";
 import { Card } from "@/components/ui/card";
-import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Badge } from "@/components/ui/badge";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -44,12 +46,13 @@ export default async function OwnerOrderDetailPage({
     <section className="min-w-0 w-full">
       <Link
         href="/owner/orders"
-        className="text-sm font-medium text-muted-foreground"
+        className={buttonVariants({ variant: null, className: "px-0" })}
       >
-        <Text value={"← Back to orders "} />
+        <ArrowLeft className="size-4" aria-hidden="true" />
+        <Text value="Back to orders" />
       </Link>
       <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-sm text-muted-foreground">
             <Text value={"Order number"} />
           </p>
@@ -68,16 +71,16 @@ export default async function OwnerOrderDetailPage({
       </div>
 
       {order.cancelledAt ? (
-        <Card as="section" className="gap-0 mt-6 bg-amber-50 p-5">
-          <h2 className="font-semibold text-amber-950">
+        <Card as="section" className="gap-0 mt-6 bg-muted/40 p-4 sm:p-5">
+          <h2 className="font-semibold">
             <Text value={"Customer cancellation "} />
           </h2>
-          <p className="mt-2 text-sm text-amber-900">
+          <p className="mt-2 text-sm text-muted-foreground">
             <Text value={"Cancelled "} />
             <DateText value={order.cancelledAt} />
           </p>
           {order.cancellationReason ? (
-            <p className="mt-2 text-sm text-amber-900">
+            <p className="mt-2 text-sm text-muted-foreground">
               <Text value={"Reason: "} />
               {order.cancellationReason}
             </p>
@@ -87,31 +90,33 @@ export default async function OwnerOrderDetailPage({
 
       <OwnerOrderStatusActions orderId={order.id} status={order.status} />
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <Card as="section" className="gap-0 p-5">
+      <div className="mt-6 grid items-start gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,1fr)]">
+        <Card as="section" className="min-w-0 gap-0 p-4 sm:p-5">
           <h2 className="text-lg font-semibold">
             <Text value={"Customer and delivery"} />
           </h2>
-          <dl className="mt-4 space-y-3 text-sm">
+          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-muted-foreground">
                 <Text value={"Customer"} />
               </dt>
-              <dd className="font-medium">{order.customer.name}</dd>
+              <dd className="break-words font-medium">{order.customer.name}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">
                 <Text value={"Contact"} />
               </dt>
-              <dd className="font-medium">
-                {order.customer.phone ?? order.customer.email ?? "Not provided"}
+              <dd className="break-words font-medium">
+                {order.customer.phone ?? order.customer.email ?? (
+                  <Text value="Not provided" />
+                )}
               </dd>
             </div>
             <div>
               <dt className="text-muted-foreground">
                 <Text value={"Delivery address"} />
               </dt>
-              <dd className="font-medium">
+              <dd className="break-words font-medium">
                 {order.deliveryAddress.label} · {order.deliveryAddress.address}
               </dd>
             </div>
@@ -120,13 +125,15 @@ export default async function OwnerOrderDetailPage({
                 <dt className="text-muted-foreground">
                   <Text value={"Delivery instructions"} />
                 </dt>
-                <dd className="font-medium">{order.customerNote}</dd>
+                <dd className="break-words font-medium">
+                  {order.customerNote}
+                </dd>
               </div>
             ) : null}
           </dl>
         </Card>
 
-        <Card as="section" className="gap-0 p-5">
+        <Card as="section" className="min-w-0 gap-0 p-4 sm:p-5">
           <h2 className="text-lg font-semibold">
             <Text value={"Payment summary"} />
           </h2>
@@ -143,7 +150,7 @@ export default async function OwnerOrderDetailPage({
               </dt>
               <dd>LKR {order.deliveryFee}</dd>
             </div>
-            <div className="flex justify-between gap-4 border-t pt-3 text-base font-semibold">
+            <div className="flex justify-between gap-4 border-t border-border pt-3 text-base font-semibold">
               <dt>
                 <Text value={"Total"} />
               </dt>
@@ -161,60 +168,41 @@ export default async function OwnerOrderDetailPage({
         </Card>
       </div>
 
-      <Card as="section" className="gap-0 mt-6 p-5">
-        <h2 className="text-lg font-semibold">
-          <Text value={"Products"} />
-        </h2>
-        <div className="mt-3 divide-y">
-          {order.items.map((item) => (
-            <div
-              key={item.id}
-              className="flex justify-between gap-4 py-4 text-sm"
-            >
-              <div>
-                <p className="font-medium">
-                  <BilingualText english={item.nameEn} sinhala={item.nameSi} />
-                </p>
-                <p className="text-muted-foreground">
-                  {item.quantity} × LKR {item.unitPrice}
-                </p>
+      <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(18rem,1fr)]">
+        <Card as="section" className="min-w-0 gap-0 p-4 sm:p-5">
+          <h2 className="text-lg font-semibold">
+            <Text value={"Products"} />
+          </h2>
+          <div className="mt-3 divide-y divide-border">
+            {order.items.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-start justify-between gap-4 py-3 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="break-words font-medium">
+                    <BilingualText
+                      english={item.nameEn}
+                      sinhala={item.nameSi}
+                    />
+                  </p>
+                  <p className="text-muted-foreground">
+                    {item.quantity} × LKR {item.unitPrice}
+                  </p>
+                </div>
+                <p className="shrink-0 font-medium">LKR {item.lineTotal}</p>
               </div>
-              <p className="font-medium">LKR {item.lineTotal}</p>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      <Card as="section" className="gap-0 mt-6 p-5">
-        <h2 className="text-lg font-semibold">
-          <Text value={"Status history"} />
-        </h2>
-        {order.statusHistory.length ? (
-          <ol className="mt-4 space-y-4">
-            {order.statusHistory.map((history) => (
-              <li key={history.id} className="border-l-2 pl-4 text-sm">
-                <p className="font-medium">
-                  <Text value={orderStatusLabels[history.fromStatus]} /> →{" "}
-                  <Text value={orderStatusLabels[history.toStatus]} />
-                </p>
-                <p className="mt-1 text-muted-foreground">
-                  {history.changedBy.name} ·{" "}
-                  <DateText value={history.createdAt} />
-                </p>
-                {history.note ? <p className="mt-1">{history.note}</p> : null}
-              </li>
             ))}
-          </ol>
-        ) : (
-          <Empty className="mt-3">
-            <EmptyHeader>
-              <EmptyTitle>
-                <Text value={"No status changes yet. "} />
-              </EmptyTitle>
-            </EmptyHeader>
-          </Empty>
-        )}
-      </Card>
+          </div>
+        </Card>
+
+        <Card as="section" className="min-w-0 gap-0 p-4 sm:p-5">
+          <h2 className="text-lg font-semibold">
+            <Text value={"Status history"} />
+          </h2>
+          <OwnerOrderTimeline history={order.statusHistory} />
+        </Card>
+      </div>
     </section>
   );
 }

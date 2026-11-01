@@ -16,8 +16,8 @@ describe("owner report filters", () => {
       />,
     );
 
-    expect(screen.getByLabelText("From")).toHaveTextContent("Oct 1, 2026");
-    expect(screen.getByLabelText("To")).toHaveTextContent("Oct 8, 2026");
+    expect(screen.getByLabelText("From")).toHaveValue("October 01, 2026");
+    expect(screen.getByLabelText("To")).toHaveValue("October 08, 2026");
     expect(screen.getByRole("combobox", { name: "Status" })).toHaveTextContent(
       "Delivered",
     );
@@ -27,7 +27,7 @@ describe("owner report filters", () => {
     expect(values.get("to")).toBe("2026-10-08");
     expect(values.get("status")).toBe(OrderStatus.DELIVERED);
 
-    fireEvent.click(screen.getByLabelText("From"));
+    fireEvent.keyDown(screen.getByLabelText("From"), { key: "ArrowDown" });
     expect(screen.getByRole("dialog", { name: "From" })).toBeInTheDocument();
   });
 });

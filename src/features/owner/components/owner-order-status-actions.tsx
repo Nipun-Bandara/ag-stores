@@ -67,24 +67,26 @@ export function OwnerOrderStatusActions({
   return (
     <Card
       as="section"
-      className="gap-0 mt-6 p-5"
+      className="gap-0 mt-6 p-4 sm:p-5"
       aria-label={t("Order actions")}
     >
-      <h2 className="font-semibold">
-        <Text value={t("Update order status")} />
-      </h2>
-      <div className="mt-4 flex flex-wrap gap-3">
-        {availableActions.map((action) => (
-          <Button
-            key={action.status}
-            variant={action.status === "REJECTED" ? "destructive" : "success"}
-            type="button"
-            disabled={pending !== null}
-            onClick={() => transition(action.status)}
-          >
-            {pending === action.status ? t("Updating…") : t(action.label)}
-          </Button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-semibold">
+          <Text value={t("Update order status")} />
+        </h2>
+        <div className="flex flex-wrap gap-2">
+          {availableActions.map((action) => (
+            <Button
+              key={action.status}
+              variant={action.status === "REJECTED" ? "destructive" : "success"}
+              type="button"
+              disabled={pending !== null}
+              onClick={() => transition(action.status)}
+            >
+              {pending === action.status ? t("Updating…") : t(action.label)}
+            </Button>
+          ))}
+        </div>
       </div>
       {error ? (
         <Alert variant="destructive" role="alert" className="mt-3">

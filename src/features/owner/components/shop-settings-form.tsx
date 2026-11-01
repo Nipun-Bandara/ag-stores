@@ -3,6 +3,7 @@ import { useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
+import { toast } from "sonner";
 
 import type { ShopSettingsView } from "@/services/shop-settings.service";
 import { Label } from "@/components/ui/label";
@@ -10,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import {
   LocationPicker,
@@ -25,8 +25,6 @@ interface ResponsePayload {
 export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
   const t = useText();
   const [settings, setSettings] = useState(initial);
-  const [message, setMessage] = useState<string>();
-  const [isError, setIsError] = useState(false);
   const [pending, setPending] = useState(false);
   const [location, setLocation] = useState(() =>
     parsePickedLocation(initial.latitude, initial.longitude),
@@ -35,13 +33,10 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!location) {
-      setMessage(t("Choose a location before saving."));
-      setIsError(true);
+      toast.error(t("Choose a location before saving."));
       return;
     }
     setPending(true);
-    setMessage(undefined);
-    setIsError(false);
     const form = new FormData(event.currentTarget);
     const response = await fetch("/api/owner/shop-settings", {
       method: "PATCH",
@@ -58,13 +53,12 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
         deliveryFee: form.get("deliveryFee"),
         maximumDeliveryRadiusKm: form.get("maximumDeliveryRadiusKm"),
       }),
-    });
-    const payload = (await response
-      .json()
-      .catch(() => ({}))) as ResponsePayload;
-    if (!response.ok || !payload.data) {
-      setMessage(t(payload.error?.message ?? "Unable to save shop settings."));
-      setIsError(true);
+    }).catch(() => null);
+    const payload = response
+      ? ((await response.json().catch(() => ({}))) as ResponsePayload)
+      : {};
+    if (!response?.ok || !payload.data?.id) {
+      toast.error(t(payload.error?.message ?? "Unable to save shop settings."));
       setPending(false);
       return;
     }
@@ -72,7 +66,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
     setLocation(
       parsePickedLocation(payload.data.latitude, payload.data.longitude),
     );
-    setMessage(t("Shop settings saved."));
+    toast.success(t("Shop settings saved."));
     setPending(false);
   }
 
@@ -182,14 +176,6 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
           <Button variant="success" type="submit" disabled={pending}>
             {pending ? t("Saving…") : t("Save settings")}
           </Button>
-          {message ? (
-            <Alert
-              variant={isError ? "destructive" : "success"}
-              role={isError ? "alert" : "status"}
-            >
-              {message}
-            </Alert>
-          ) : null}
         </div>
       </form>
     </Card>

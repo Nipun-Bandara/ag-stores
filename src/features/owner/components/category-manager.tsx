@@ -5,6 +5,7 @@ import { Text } from "@/features/i18n/components/text";
 
 import { useState, type FormEvent } from "react";
 import { CircleCheck, CircleX, Pencil } from "lucide-react";
+import { toast } from "sonner";
 
 import { FormError, FormField } from "@/features/auth/components/form-fields";
 import type {
@@ -72,15 +73,19 @@ function CategoryForm({
       },
     ).catch(() => null);
 
-    if (!response?.ok) {
-      const payload = response ? await readPayload(response) : {};
-      setError(t(payload.error?.message ?? "Unable to save this category."));
+    const payload = response ? await readPayload(response) : {};
+    if (!response?.ok || !payload.data) {
+      const message = t(
+        payload.error?.message ?? "Unable to save this category.",
+      );
+      setError(message);
+      if (!category) toast.error(message);
       setPending(false);
       return;
     }
 
-    const payload = await readPayload(response);
-    if (payload.data) onSaved(payload.data);
+    if (!category) toast.success(t("Category created successfully."));
+    onSaved(payload.data);
     if (!category) {
       formElement.reset();
       setShopId(shops[0]?.id ?? "");
@@ -118,7 +123,10 @@ function CategoryForm({
               onValueChange={(value) => setShopId(value ?? "")}
               required
             >
-              <SelectTrigger id="shopId" className="mt-1.5 h-10 w-full">
+              <SelectTrigger
+                id="shopId"
+                className="mt-1.5 h-10 w-full data-[size=default]:h-10"
+              >
                 <SelectValue>
                   {(value) =>
                     shops.find((shop) => shop.id === value)?.name ??
