@@ -78,13 +78,34 @@ export default async function ProductDetailPage({
             {name}
           </h1>
           <p className="mt-7 text-3xl font-black text-foreground">
-            LKR {product.price}
+            LKR {product.price} /{" "}
+            {product.sellingUnit === "KG"
+              ? "kg"
+              : locale === "si"
+                ? "ඒකකය"
+                : "unit"}
+          </p>
+          <p className="mt-2 text-sm">
+            {locale === "si" ? "අවම ප්‍රමාණය" : "Minimum"}:{" "}
+            {product.minimumOrderQuantity}{" "}
+            {product.sellingUnit === "KG"
+              ? "kg"
+              : locale === "si"
+                ? "ඒකක"
+                : "units"}
+            {product.sellingUnit !== "KG" ? (
+              <>
+                {" · "}
+                {locale === "si" ? "වැඩිවන ප්‍රමාණය" : "Increment"}:{" "}
+                {product.orderingIncrement}
+              </>
+            ) : null}
           </p>
           <div className="mt-5">
             <Badge variant={product.isOutOfStock ? "destructive" : "success"}>
               {product.isOutOfStock
                 ? copy.outOfStock
-                : `${product.stockQuantity} ${copy.inStockCount}`}
+                : `${product.stockQuantity}${product.sellingUnit === "KG" ? " kg" : ""} ${copy.inStockCount}`}
             </Badge>
           </div>
           {description ? (
@@ -101,6 +122,9 @@ export default async function ProductDetailPage({
                 nameEn: product.nameEn,
                 nameSi: product.nameSi,
                 price: product.price,
+                sellingUnit: product.sellingUnit,
+                minimumOrderQuantity: product.minimumOrderQuantity,
+                orderingIncrement: product.orderingIncrement,
                 stockQuantity: product.stockQuantity,
                 imageUrl: product.imageUrl,
               }}

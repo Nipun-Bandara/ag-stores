@@ -134,3 +134,20 @@ it("keeps original IDs and metadata available in a details dialog", async () => 
   fireEvent.click(screen.getByRole("button", { name: "Close" }));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
+
+it("shows exact fractional stock audit values and the snapshotted unit", () => {
+  expect(
+    presentAuditLog(
+      {
+        ...log,
+        action: "PRODUCT_STOCK_UPDATED",
+        metadata: {
+          previousQuantity: "2.5",
+          newQuantity: "2.125",
+          sellingUnit: "KG",
+        },
+      },
+      english,
+    ).summary,
+  ).toBe("Stock quantity: 2.5 → 2.125 kg");
+});

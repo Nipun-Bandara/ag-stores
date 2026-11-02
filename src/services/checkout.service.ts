@@ -1,3 +1,4 @@
+import { quantityValid } from "@/lib/quantity";
 import { getDb } from "@/db";
 import { CatalogStatus, NotificationType } from "@/generated/prisma/client";
 import {
@@ -19,6 +20,7 @@ import type { CheckoutInput } from "@/validations/checkout";
 
 type CheckoutErrorCode =
   | "CUSTOMER_ONLY"
+  | "INVALID_QUANTITY"
   | "EMPTY_CART"
   | "ADDRESS_NOT_FOUND"
   | "PRODUCT_UNAVAILABLE"
@@ -71,12 +73,13 @@ function toOrderView(order: OrderConfirmationRecord) {
       productId: item.productId,
       name: item.product.nameEn,
       nameSi: item.product.nameSi,
-      quantity: item.quantity,
+      quantity: Number(item.quantity),
+      sellingUnit: item.sellingUnit,
       unitPrice: item.unitPrice.toFixed(2),
       lineTotal: minorUnitsToMoney(
         multiplyMinorUnits(
           moneyToMinorUnits(item.unitPrice.toFixed(2)),
-          item.quantity,
+          Number(item.quantity),
         ),
       ),
     })),
@@ -125,7 +128,7 @@ export async function checkout(
         if (
           !current ||
           !current.isAvailable ||
-          current.stockQuantity === 0 ||
+          Number(current.stockQuantity) === 0 ||
           !current.shop.isActive ||
           current.category.status !== CatalogStatus.ACTIVE
         ) {
@@ -138,6 +141,16 @@ export async function checkout(
         throw new CheckoutError(
           "INSUFFICIENT_STOCK",
           `${current.nameEn} only has ${current.stockQuantity} available.`,
+          409,
+        );
+      }
+      if (
+        !quantityValid(item.quantity, product) ||
+        (item.sellingUnit ?? "UNIT") !== product.sellingUnit
+      ) {
+        throw new CheckoutError(
+          "INVALID_QUANTITY",
+          "Product selling setup changed. Review your cart quantity and unit.",
           409,
         );
       }
@@ -162,7 +175,12 @@ export async function checkout(
         subtotalMinor,
         multiplyMinorUnits(moneyToMinorUnits(unitPrice), quantity),
       );
-      return { productId: product.id, quantity, unitPrice };
+      return {
+        productId: product.id,
+        quantity,
+        unitPrice,
+        sellingUnit: product.sellingUnit,
+      };
     });
     const subtotal = minorUnitsToMoney(subtotalMinor);
     const shopId = reservedProducts[0]?.product.shopId ?? "";

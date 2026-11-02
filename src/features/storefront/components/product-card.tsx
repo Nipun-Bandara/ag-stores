@@ -71,7 +71,14 @@ export function ProductCard({
           </p>
         </div>
         <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
-          <p className="font-bold text-foreground">LKR {product.price}</p>
+          <p className="font-bold text-foreground">
+            LKR {product.price} /{" "}
+            {product.sellingUnit === "KG"
+              ? "kg"
+              : locale === "si"
+                ? "ඒකකය"
+                : "unit"}
+          </p>
           <AddToCartButton
             compact
             locale={locale}
@@ -81,6 +88,9 @@ export function ProductCard({
               nameEn: product.nameEn,
               nameSi: product.nameSi,
               price: product.price,
+              sellingUnit: product.sellingUnit,
+              minimumOrderQuantity: product.minimumOrderQuantity,
+              orderingIncrement: product.orderingIncrement,
               stockQuantity: product.stockQuantity,
               imageUrl: product.imageUrl,
             }}

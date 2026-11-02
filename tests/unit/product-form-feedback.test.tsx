@@ -42,7 +42,7 @@ function submitProduct() {
   fireEvent.change(screen.getByLabelText("English name"), {
     target: { value: "Tea" },
   });
-  fireEvent.change(screen.getByLabelText("Price"), {
+  fireEvent.change(screen.getByLabelText("Price per unit"), {
     target: { value: "100.00" },
   });
   fireEvent.submit(container.querySelector("form")!);
@@ -103,4 +103,36 @@ it("keeps missing-category guidance visible without a competing alert", () => {
   ).toBeVisible();
   expect(screen.getByRole("button", { name: "Create product" })).toBeDisabled();
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+it("preserves scanner text and prevents Enter from accidentally submitting identifier inputs", () => {
+  render(<ProductForm options={options} />);
+  for (const label of ["Item code", "Barcode (optional)"]) {
+    const field = screen.getByLabelText(label);
+    fireEvent.change(field, { target: { value: "00012345" } });
+    expect(field).toHaveValue("00012345");
+    expect(fireEvent.keyDown(field, { key: "Enter", code: "Enter" })).toBe(
+      false,
+    );
+  }
+  expect(mocks.fetch).not.toHaveBeenCalled();
+});
+
+it("submits automatic KG quantity rules without an editable increment", async () => {
+  mocks.fetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ data: { id: "rice" } }),
+  });
+  const { container } = render(<ProductForm options={options} />);
+  fireEvent.click(screen.getByRole("combobox", { name: "Selling unit" }));
+  const option = await screen.findByRole("option", { name: "Kilograms (kg)" });
+  fireEvent.pointerDown(option, { pointerType: "mouse" });
+  fireEvent.click(option);
+  fireEvent.submit(container.querySelector("form")!);
+  await waitFor(() => expect(mocks.fetch).toHaveBeenCalled());
+  expect(JSON.parse(mocks.fetch.mock.calls[0]![1].body)).toMatchObject({
+    sellingUnit: "KG",
+    minimumOrderQuantity: 0.002,
+    orderingIncrement: 0.001,
+  });
 });

@@ -99,7 +99,7 @@ export default async function OwnerProductsPage({
               id="search"
               name="search"
               defaultValue={search?.success ? search.data : ""}
-              placeholder={t("Name or description")}
+              placeholder={t("Name, description, item code or barcode")}
               className="mt-1.5 h-10 w-full"
             />
           </Label>

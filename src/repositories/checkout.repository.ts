@@ -1,4 +1,9 @@
 import {
+  quantityValid,
+  SellingSetupError,
+  type SellingUnit,
+} from "@/lib/quantity";
+import {
   CatalogStatus,
   Prisma,
   type PrismaClient,
@@ -12,6 +17,9 @@ const reservedProductSelect = {
   shopId: true,
   nameEn: true,
   price: true,
+  sellingUnit: true,
+  minimumOrderQuantity: true,
+  orderingIncrement: true,
   stockQuantity: true,
   isAvailable: true,
   category: { select: { status: true } },
@@ -37,6 +45,7 @@ const orderConfirmationSelect = {
     select: {
       productId: true,
       quantity: true,
+      sellingUnit: true,
       unitPrice: true,
       product: { select: { nameEn: true, nameSi: true } },
     },
@@ -77,7 +86,12 @@ export interface CheckoutOrderData {
   deliveryFee: string;
   total: string;
   customerNote: string | null;
-  items: Array<{ productId: string; quantity: number; unitPrice: string }>;
+  items: Array<{
+    productId: string;
+    quantity: number;
+    unitPrice: string;
+    sellingUnit: SellingUnit;
+  }>;
 }
 
 export interface CheckoutTransaction {
@@ -141,6 +155,13 @@ class PrismaCheckoutTransaction implements CheckoutTransaction {
     productId: string,
     quantity: number,
   ): Promise<ReservedProductRecord | null> {
+    await this.prisma
+      .$queryRaw`SELECT "id" FROM "products" WHERE "id" = ${productId}::uuid FOR UPDATE`;
+    const product = await this.findProduct(productId);
+    if (product && !quantityValid(quantity, product))
+      throw new SellingSetupError(
+        "Quantity does not meet the product minimum or increment.",
+      );
     const updated = await this.prisma.product.updateMany({
       where: {
         id: productId,

@@ -97,7 +97,9 @@ export default async function OrderConfirmationPage({
                     <BilingualText english={item.name} sinhala={item.nameSi} />
                   </span>
                   <span className="text-muted-foreground">
-                    {item.quantity} × LKR {item.unitPrice}
+                    {item.quantity}{" "}
+                    <Text value={item.sellingUnit === "KG" ? "kg" : "units"} />{" "}
+                    × LKR {item.unitPrice}
                   </span>
                 </span>
                 <span className="font-bold">LKR {item.lineTotal}</span>

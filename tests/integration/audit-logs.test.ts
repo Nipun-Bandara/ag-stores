@@ -137,6 +137,11 @@ describeWithDatabase("sensitive action audit logging", () => {
       data: {
         shopId: shop.id,
         categoryId: category.id,
+        itemCode: "audit-" + suffix,
+        barcode: null,
+        sellingUnit: "UNIT",
+        minimumOrderQuantity: 1,
+        orderingIncrement: 1,
         nameEn: `Audit Product ${suffix}`,
         price: "100.00",
         stockQuantity: 10,
@@ -198,6 +203,11 @@ describeWithDatabase("sensitive action audit logging", () => {
 
   it("writes audit records for important business and administrative actions", async () => {
     await updateProduct(owner, productId, {
+      itemCode: "audit-" + suffix,
+      barcode: null,
+      sellingUnit: "UNIT",
+      minimumOrderQuantity: 1,
+      orderingIncrement: 1,
       categoryId,
       nameEn: `Audit Product ${suffix}`,
       nameSi: null,

@@ -41,6 +41,7 @@ const customerOrderDetailSelect = {
       id: true,
       productId: true,
       quantity: true,
+      sellingUnit: true,
       unitPrice: true,
       product: { select: { nameEn: true, nameSi: true, imageUrl: true } },
     },

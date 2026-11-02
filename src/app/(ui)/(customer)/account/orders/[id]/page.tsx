@@ -135,7 +135,11 @@ export default async function CustomerOrderDetailsPage({
                       />
                     </p>
                     <p className="text-muted-foreground">
-                      {item.quantity} × LKR {item.unitPrice}
+                      {item.quantity}{" "}
+                      <Text
+                        value={item.sellingUnit === "KG" ? "kg" : "units"}
+                      />{" "}
+                      × LKR {item.unitPrice}
                     </p>
                   </div>
                   <p className="font-medium tabular-nums">

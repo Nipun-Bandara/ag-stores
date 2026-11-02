@@ -42,7 +42,9 @@ export function translate(
       ? (translations[english] ?? translations[normalized])
       : undefined;
   if (locale === "si" && !translated) {
-    const stock = /^(.+) only has (\d+) available\.$/.exec(normalized);
+    const stock = /^(.+) only has (\d+(?:\.\d{1,3})?) available\.$/.exec(
+      normalized,
+    );
     if (stock) {
       return translate(locale, "{name} only has {count} available.", {
         name: stock[1] ?? "",

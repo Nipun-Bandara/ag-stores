@@ -105,12 +105,13 @@ function toDetailView(order: CustomerOrderDetailRecord) {
       nameEn: item.product.nameEn,
       nameSi: item.product.nameSi,
       imageUrl: item.product.imageUrl,
-      quantity: item.quantity,
+      quantity: Number(item.quantity),
+      sellingUnit: item.sellingUnit,
       unitPrice: item.unitPrice.toFixed(2),
       lineTotal: minorUnitsToMoney(
         multiplyMinorUnits(
           moneyToMinorUnits(item.unitPrice.toFixed(2)),
-          item.quantity,
+          Number(item.quantity),
         ),
       ),
     })),

@@ -116,12 +116,13 @@ function toDetailView(order: OwnerOrderDetailRecord) {
       id: item.id,
       nameEn: item.product.nameEn,
       nameSi: item.product.nameSi,
-      quantity: item.quantity,
+      quantity: Number(item.quantity),
+      sellingUnit: item.sellingUnit,
       unitPrice: item.unitPrice.toFixed(2),
       lineTotal: minorUnitsToMoney(
         multiplyMinorUnits(
           moneyToMinorUnits(item.unitPrice.toFixed(2)),
-          item.quantity,
+          Number(item.quantity),
         ),
       ),
     })),

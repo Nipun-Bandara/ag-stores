@@ -44,7 +44,10 @@ export interface OrderStatusTransaction {
     createdAt: Date;
   }): Promise<{ id: string; createdAt: Date }>;
   restoreStock(
-    items: ReadonlyArray<{ productId: string; quantity: number }>,
+    items: ReadonlyArray<{
+      productId: string;
+      quantity: number | Prisma.Decimal;
+    }>,
   ): Promise<void>;
   findActiveDeliveryPersonIds(shopId: string): Promise<string[]>;
   createNotifications(
@@ -105,7 +108,10 @@ class PrismaOrderStatusTransaction implements OrderStatusTransaction {
   }
 
   async restoreStock(
-    items: ReadonlyArray<{ productId: string; quantity: number }>,
+    items: ReadonlyArray<{
+      productId: string;
+      quantity: number | Prisma.Decimal;
+    }>,
   ): Promise<void> {
     for (const item of items) {
       await this.prisma.product.update({

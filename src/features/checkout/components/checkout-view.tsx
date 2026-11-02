@@ -35,6 +35,7 @@ interface CheckoutPayload {
 }
 
 interface QuotePayload {
+  error?: { message?: string };
   data?: { subtotal?: string; deliveryFee?: string | null };
 }
 
@@ -74,6 +75,7 @@ export function CheckoutView({
         items: items.map((item) => ({
           productId: item.id,
           quantity: item.quantity,
+          sellingUnit: item.sellingUnit ?? "UNIT",
         })),
       }),
       signal: controller.signal,
@@ -81,13 +83,20 @@ export function CheckoutView({
       .then(async (response) => {
         const payload = (await response.json()) as QuotePayload;
         if (response.ok && payload.data?.subtotal && payload.data.deliveryFee) {
+          setError(undefined);
           setServerQuote({
             subtotal: payload.data.subtotal,
             deliveryFee: payload.data.deliveryFee,
           });
+        } else {
+          setServerQuote(undefined);
+          setError(payload.error?.message ?? "Unable to validate the cart.");
         }
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!controller.signal.aborted)
+          setError("Unable to validate the cart.");
+      });
     return () => controller.abort();
   }, [items]);
 
@@ -105,6 +114,7 @@ export function CheckoutView({
         items: items.map((item) => ({
           productId: item.id,
           quantity: item.quantity,
+          sellingUnit: item.sellingUnit ?? "UNIT",
         })),
       }),
     }).catch(() => null);
@@ -220,10 +230,14 @@ export function CheckoutView({
                   <p className="text-sm text-muted-foreground">
                     <Text value={"Quantity "} />
                     {item.quantity}
+                    {item.sellingUnit === "KG" ? " kg" : ""}
                   </p>
                 </div>
                 <p className="shrink-0 font-semibold text-foreground">
-                  LKR {item.price} <Text value={"each "} />
+                  LKR {item.price}{" "}
+                  <Text
+                    value={item.sellingUnit === "KG" ? "per kg" : "each "}
+                  />
                 </p>
               </div>
             ))}
@@ -298,7 +312,7 @@ export function CheckoutView({
         </p>
         {error ? (
           <Alert variant="destructive" className="mt-4" role="alert">
-            {error}
+            {t(error)}
           </Alert>
         ) : null}
         <Button

@@ -35,7 +35,7 @@ it("updates the count and subtotal when products are added, reduced, and removed
     cartStore.add(product);
     cartStore.add(product);
   });
-  expect(summary.getByRole("status")).toHaveTextContent("2 items");
+  expect(summary.getByRole("status")).toHaveTextContent("1 item");
   expect(summary.getByRole("status")).toHaveTextContent("LKR 200.00");
 
   act(() => {
@@ -64,7 +64,7 @@ it("includes a previously saved cart and uses Sinhala copy and the localized car
       <StorefrontCartSummary locale="si" localizedRoute />
     </LocaleProvider>,
   );
-  expect(screen.getByRole("status")).toHaveTextContent("අයිතම 3ක්");
+  expect(screen.getByRole("status")).toHaveTextContent("අයිතම 1ක්");
   expect(screen.getByRole("status")).toHaveTextContent("LKR 300.00");
   expect(screen.getByRole("link", { name: "කරත්තය බලන්න" })).toHaveAttribute(
     "href",

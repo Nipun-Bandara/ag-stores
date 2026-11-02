@@ -1,3 +1,4 @@
+import { firstOrderQuantity } from "@/lib/quantity";
 import { getDb } from "@/db";
 import {
   PrismaStorefrontRepository,
@@ -28,6 +29,9 @@ export interface StorefrontProductView {
   descriptionEn: string | null;
   descriptionSi: string | null;
   price: string;
+  sellingUnit: "UNIT" | "KG";
+  minimumOrderQuantity: number;
+  orderingIncrement: number;
   stockQuantity: number;
   imageUrl: string | null;
   isOutOfStock: boolean;
@@ -65,9 +69,12 @@ function toProductView(
     descriptionEn: product.descriptionEn,
     descriptionSi: product.descriptionSi,
     price: product.price.toFixed(2),
-    stockQuantity: product.stockQuantity,
+    sellingUnit: product.sellingUnit,
+    minimumOrderQuantity: Number(product.minimumOrderQuantity),
+    orderingIncrement: Number(product.orderingIncrement),
+    stockQuantity: Number(product.stockQuantity),
     imageUrl: product.imageUrl,
-    isOutOfStock: product.stockQuantity === 0,
+    isOutOfStock: Number(product.stockQuantity) < firstOrderQuantity(product),
   };
 }
 

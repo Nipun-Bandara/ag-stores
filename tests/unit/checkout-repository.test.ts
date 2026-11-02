@@ -16,7 +16,14 @@ const data: CheckoutOrderData = {
   deliveryFee: "50.00",
   total: "150.00",
   customerNote: null,
-  items: [{ productId: "product-id", quantity: 1, unitPrice: "100.00" }],
+  items: [
+    {
+      productId: "product-id",
+      quantity: 1,
+      sellingUnit: "UNIT",
+      unitPrice: "100.00",
+    },
+  ],
 };
 
 function setup() {

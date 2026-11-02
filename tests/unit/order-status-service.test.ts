@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  Prisma,
   OrderStatus,
   PreferredLanguage,
   UserRole,
@@ -44,7 +45,12 @@ function order(
     status,
     shop: { ownerId },
     batchAssignment: null,
-    items: [{ productId: "4d4fd014-a88d-4b6a-a557-f5822d64299d", quantity: 2 }],
+    items: [
+      {
+        productId: "4d4fd014-a88d-4b6a-a557-f5822d64299d",
+        quantity: new Prisma.Decimal(2),
+      },
+    ],
   };
 }
 

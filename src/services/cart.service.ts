@@ -1,3 +1,4 @@
+import { quantityValid } from "@/lib/quantity";
 import { getDb } from "@/db";
 import { CatalogStatus } from "@/generated/prisma/client";
 import {
@@ -14,7 +15,8 @@ import type { CartValidationInput } from "@/validations/cart";
 
 export class CartValidationError extends Error {
   constructor(
-    public readonly code: "PRODUCT_UNAVAILABLE" | "INSUFFICIENT_STOCK",
+    public readonly code:
+      "PRODUCT_UNAVAILABLE" | "INSUFFICIENT_STOCK" | "INVALID_QUANTITY",
     message: string,
   ) {
     super(message);
@@ -44,20 +46,29 @@ export async function validateCartForCheckout(
       !product ||
       !product.isAvailable ||
       product.category.status !== CatalogStatus.ACTIVE ||
-      product.stockQuantity === 0
+      Number(product.stockQuantity) === 0
     ) {
       throw new CartValidationError(
         "PRODUCT_UNAVAILABLE",
         "A product in your cart is no longer available.",
       );
     }
-    if (item.quantity > product.stockQuantity) {
+    if (item.quantity > Number(product.stockQuantity)) {
       throw new CartValidationError(
         "INSUFFICIENT_STOCK",
         `${product.nameEn} only has ${product.stockQuantity} available.`,
       );
     }
 
+    if (
+      !quantityValid(item.quantity, product) ||
+      (item.sellingUnit ?? "UNIT") !== product.sellingUnit
+    ) {
+      throw new CartValidationError(
+        "INVALID_QUANTITY",
+        "Product selling setup changed. Review your cart quantity and unit.",
+      );
+    }
     const unitPrice = product.price.toFixed(2);
     const lineTotal = multiplyMinorUnits(
       moneyToMinorUnits(unitPrice),
@@ -70,7 +81,8 @@ export async function validateCartForCheckout(
       quantity: item.quantity,
       unitPrice,
       lineTotal: minorUnitsToMoney(lineTotal),
-      stockQuantity: product.stockQuantity,
+      stockQuantity: Number(product.stockQuantity),
+      sellingUnit: product.sellingUnit,
     };
   });
 

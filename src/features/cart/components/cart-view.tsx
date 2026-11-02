@@ -11,7 +11,7 @@ import { useCart } from "@/features/cart/cart-store";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { IconActionButton } from "@/components/ui/icon-action-button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { CartQuantityInput } from "./cart-quantity-input";
 import { Card } from "@/components/ui/card";
 import {
   Empty,
@@ -76,29 +76,29 @@ export function CartView() {
                 />
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                LKR {item.price} <Text value={"each · "} />
-                {item.stockQuantity} <Text value={"available "} />
+                LKR {item.price}{" "}
+                <Text
+                  value={item.sellingUnit === "KG" ? "per kg ·" : "each · "}
+                />
+                {item.stockQuantity}
+                {item.sellingUnit === "KG" ? " kg" : ""}{" "}
+                <Text value={"available "} />
               </p>
             </div>
             <div className="col-span-2 flex items-end justify-between gap-3 sm:col-span-1 sm:justify-end">
               <Label className="text-xs font-medium text-muted-foreground">
                 <Text value={"Quantity "} />
-                <Input
-                  aria-label={t("Quantity for {name}", {
+                <CartQuantityInput
+                  key={`${item.id}:${item.quantity}`}
+                  item={item}
+                  label={t("Quantity for {name}", {
                     name: localizeBilingual(
                       item.nameEn ?? item.name,
                       item.nameSi ?? null,
                       locale,
                     ),
                   })}
-                  type="number"
-                  min={1}
-                  max={item.stockQuantity}
-                  value={item.quantity}
-                  onChange={(event) =>
-                    updateQuantity(item.id, Number(event.currentTarget.value))
-                  }
-                  className="mt-1 block h-9 w-20"
+                  onChange={updateQuantity}
                 />
               </Label>
               <IconActionButton

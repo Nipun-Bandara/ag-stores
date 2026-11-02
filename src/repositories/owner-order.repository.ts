@@ -49,6 +49,7 @@ const ownerOrderDetailSelect = {
     select: {
       id: true,
       quantity: true,
+      sellingUnit: true,
       unitPrice: true,
       product: { select: { nameEn: true, nameSi: true } },
     },

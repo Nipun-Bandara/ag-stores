@@ -1,3 +1,4 @@
+import { firstOrderQuantity } from "@/lib/quantity";
 import { getDb } from "@/db";
 import { isUniqueConstraintError } from "@/repositories/auth.repository";
 import {
@@ -23,6 +24,8 @@ type ProductErrorCode =
   | "DUPLICATE_PRODUCT";
 
 export interface ProductView {
+  itemCode: string | null;
+  barcode: string | null;
   id: string;
   shopId: string;
   shopName: string;
@@ -35,6 +38,9 @@ export interface ProductView {
   descriptionEn: string | null;
   descriptionSi: string | null;
   price: string;
+  sellingUnit: "UNIT" | "KG";
+  minimumOrderQuantity: number;
+  orderingIncrement: number;
   stockQuantity: number;
   lowStockThreshold: number;
   inventoryStatus: "OUT_OF_STOCK" | "LOW_STOCK" | "AVAILABLE";
@@ -72,12 +78,14 @@ function assertOwner(user: AuthenticatedUser): void {
 
 function toProductView(product: ProductRecord): ProductView {
   const inventoryStatus =
-    product.stockQuantity === 0
+    Number(product.stockQuantity) < firstOrderQuantity(product)
       ? "OUT_OF_STOCK"
-      : product.stockQuantity <= product.lowStockThreshold
+      : Number(product.stockQuantity) <= Number(product.lowStockThreshold)
         ? "LOW_STOCK"
         : "AVAILABLE";
   return {
+    itemCode: product.itemCode,
+    barcode: product.barcode,
     id: product.id,
     shopId: product.shopId,
     shopName: product.shop.name,
@@ -90,8 +98,11 @@ function toProductView(product: ProductRecord): ProductView {
     descriptionEn: product.descriptionEn,
     descriptionSi: product.descriptionSi,
     price: product.price.toFixed(2),
-    stockQuantity: product.stockQuantity,
-    lowStockThreshold: product.lowStockThreshold,
+    sellingUnit: product.sellingUnit,
+    minimumOrderQuantity: Number(product.minimumOrderQuantity),
+    orderingIncrement: Number(product.orderingIncrement),
+    stockQuantity: Number(product.stockQuantity),
+    lowStockThreshold: Number(product.lowStockThreshold),
     inventoryStatus,
     imageUrl: product.imageUrl,
     isAvailable: product.isAvailable,
@@ -107,7 +118,7 @@ async function handleWrite<T>(operation: () => Promise<T>): Promise<T> {
     if (isUniqueConstraintError(error)) {
       throw new ProductError(
         "DUPLICATE_PRODUCT",
-        "That shop already has a product with this English name.",
+        "That shop already has a product with this English name, item code or barcode.",
         409,
       );
     }
@@ -176,7 +187,15 @@ export async function createProduct(
     input.categoryId,
     repository,
   );
-  return toProductView(await handleWrite(() => repository.create(input)));
+  return toProductView(
+    await handleWrite(() =>
+      repository.create({
+        ...input,
+        minimumOrderQuantity: input.sellingUnit === "KG" ? 0.002 : 1,
+        orderingIncrement: input.sellingUnit === "KG" ? 0.001 : 1,
+      }),
+    ),
+  );
 }
 
 export async function updateProduct(

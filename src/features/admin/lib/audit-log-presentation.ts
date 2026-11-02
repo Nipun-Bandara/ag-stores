@@ -84,10 +84,11 @@ export function presentAuditLog(log: AuditLogView, t: Translate) {
     summary = `${t("Price")}: ${amount(metadata.previousPrice)} → ${amount(metadata.newPrice)}`;
   } else if (log.action === "PRODUCT_STOCK_UPDATED") {
     const quantity = (value: unknown) =>
-      typeof value === "number" && Number.isFinite(value)
+      (typeof value === "number" && Number.isFinite(value)) ||
+      (typeof value === "string" && /^\d+(?:\.\d{1,3})?$/.test(value))
         ? String(value)
         : t("Not recorded");
-    summary = `${t("Stock quantity")}: ${quantity(metadata.previousQuantity)} → ${quantity(metadata.newQuantity)}`;
+    summary = `${t("Stock quantity")}: ${quantity(metadata.previousQuantity)} → ${quantity(metadata.newQuantity)}${metadata.sellingUnit === "KG" ? ` ${t("kg")}` : metadata.sellingUnit === "UNIT" ? ` ${t("units")}` : ""}`;
   } else if (log.action === "SHOP_CREATED") {
     summary = t("Shop account created.");
   }

@@ -1,9 +1,21 @@
 import { z } from "zod";
+import { quantityMilli } from "@/lib/quantity";
 
 export const cartItemInputSchema = z
   .object({
     productId: z.uuid(),
-    quantity: z.number().int().min(1),
+    quantity: z
+      .number()
+      .positive()
+      .refine((value) => {
+        try {
+          quantityMilli(value);
+          return true;
+        } catch {
+          return false;
+        }
+      }, "Quantity must have at most three decimal places."),
+    sellingUnit: z.enum(["UNIT", "KG"]).optional(),
   })
   .strip();
 

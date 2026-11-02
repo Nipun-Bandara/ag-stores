@@ -92,7 +92,7 @@ describeWithDatabase("customer order cancellation API", () => {
       where: { shopId: shop.id },
     });
     productId = product.id;
-    originalStock = product.stockQuantity;
+    originalStock = Number(product.stockQuantity);
 
     const [address, otherAddress] = await Promise.all([
       prisma.customerAddress.create({
@@ -243,8 +243,9 @@ describeWithDatabase("customer order cancellation API", () => {
       }),
     );
     expect(
-      (await prisma.product.findUniqueOrThrow({ where: { id: productId } }))
-        .stockQuantity,
+      (
+        await prisma.product.findUniqueOrThrow({ where: { id: productId } })
+      ).stockQuantity.toNumber(),
     ).toBe(originalStock);
 
     const secondResponse = await cancelOrderRoute(
@@ -253,8 +254,9 @@ describeWithDatabase("customer order cancellation API", () => {
     );
     expect(secondResponse.status).toBe(409);
     expect(
-      (await prisma.product.findUniqueOrThrow({ where: { id: productId } }))
-        .stockQuantity,
+      (
+        await prisma.product.findUniqueOrThrow({ where: { id: productId } })
+      ).stockQuantity.toNumber(),
     ).toBe(originalStock);
   });
 

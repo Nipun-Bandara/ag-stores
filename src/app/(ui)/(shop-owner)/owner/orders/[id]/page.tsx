@@ -187,7 +187,9 @@ export default async function OwnerOrderDetailPage({
                     />
                   </p>
                   <p className="text-muted-foreground">
-                    {item.quantity} × LKR {item.unitPrice}
+                    {item.quantity}{" "}
+                    <Text value={item.sellingUnit === "KG" ? "kg" : "units"} />{" "}
+                    × LKR {item.unitPrice}
                   </p>
                 </div>
                 <p className="shrink-0 font-medium">LKR {item.lineTotal}</p>

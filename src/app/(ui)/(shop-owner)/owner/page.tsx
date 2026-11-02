@@ -148,10 +148,16 @@ export default async function OwnerDashboardPage() {
                   </div>
                   <p className="text-sm">
                     <span className="font-semibold">
-                      {product.stockQuantity}
+                      {product.stockQuantity}{" "}
+                      <Text
+                        value={product.sellingUnit === "KG" ? "kg" : "units"}
+                      />
                     </span>{" "}
                     <Text value={"in stock · threshold "} />
-                    {product.lowStockThreshold}
+                    {product.lowStockThreshold}{" "}
+                    <Text
+                      value={product.sellingUnit === "KG" ? "kg" : "units"}
+                    />
                   </p>
                 </li>
               ))}
