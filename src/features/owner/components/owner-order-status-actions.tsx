@@ -30,9 +30,11 @@ const actions: Partial<
 export function OwnerOrderStatusActions({
   orderId,
   status,
+  canMarkReady = true,
 }: {
   orderId: string;
   status: OrderStatus;
+  canMarkReady?: boolean;
 }) {
   const t = useText();
   const router = useRouter();
@@ -80,7 +82,10 @@ export function OwnerOrderStatusActions({
               key={action.status}
               variant={action.status === "REJECTED" ? "destructive" : "success"}
               type="button"
-              disabled={pending !== null}
+              disabled={
+                pending !== null ||
+                (action.status === "READY_FOR_DELIVERY" && !canMarkReady)
+              }
               onClick={() => transition(action.status)}
             >
               {pending === action.status ? t("Updating…") : t(action.label)}
@@ -92,6 +97,11 @@ export function OwnerOrderStatusActions({
         <Alert variant="destructive" role="alert" className="mt-3">
           {error}
         </Alert>
+      ) : null}
+      {status === "PREPARING" && !canMarkReady ? (
+        <p className="mt-3 text-sm text-muted-foreground">
+          <Text value="Confirm every KG packed weight before marking the order ready." />
+        </p>
       ) : null}
     </Card>
   );

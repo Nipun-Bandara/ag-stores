@@ -82,7 +82,18 @@ export function translateOrderNotification(
   orderId: string,
 ): string {
   const reference = orderId.slice(0, 8).toUpperCase();
-  return translate(locale, message.replaceAll(reference, "{order}"), {
+  const normalized = message.replaceAll(reference, "{order}");
+  const finalized =
+    /^Your order \{order\} is ready for delivery\. Final cash-on-delivery amount: LKR (\d+\.\d{2})\.$/.exec(
+      normalized,
+    );
+  if (finalized)
+    return translate(
+      locale,
+      "Your order {order} is ready for delivery. Final cash-on-delivery amount: LKR {total}.",
+      { order: reference, total: finalized[1] ?? "" },
+    );
+  return translate(locale, normalized, {
     order: reference,
   });
 }

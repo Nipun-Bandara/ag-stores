@@ -111,9 +111,16 @@ export function orderPricingSnapshot(item: {
   appliedDiscount: { toFixed(places: number): string } | null;
   unitPrice: { toFixed(places: number): string };
   quantity: { toString(): string } | number;
+  packedQuantity?: { toString(): string } | number | null;
 }) {
-  const quantity = Number(item.quantity);
+  const requestedQuantity = Number(item.quantity);
+  const packedQuantity =
+    item.packedQuantity == null ? null : Number(item.packedQuantity);
+  const quantity = packedQuantity ?? requestedQuantity;
   const unitPrice = item.unitPrice.toFixed(2);
+  const estimatedLineTotal = minorUnitsToMoney(
+    multiplyMinorUnits(moneyToMinorUnits(unitPrice), requestedQuantity),
+  );
   const lineTotal = minorUnitsToMoney(
     multiplyMinorUnits(moneyToMinorUnits(unitPrice), quantity),
   );
@@ -122,6 +129,8 @@ export function orderPricingSnapshot(item: {
       regularPrice: null,
       appliedDiscount: null,
       unitPrice,
+      packedQuantity,
+      estimatedLineTotal,
       lineTotal,
       savings: null,
     };
@@ -134,6 +143,8 @@ export function orderPricingSnapshot(item: {
     regularPrice,
     appliedDiscount: item.appliedDiscount.toFixed(2),
     unitPrice,
+    packedQuantity,
+    estimatedLineTotal,
     lineTotal,
     savings: minorUnitsToMoney(
       (BigInt(regularLine) - BigInt(moneyToMinorUnits(lineTotal))).toString(),

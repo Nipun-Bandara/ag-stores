@@ -1,6 +1,6 @@
-# Product pricing and packing — stages 1 and 2
+# Product pricing and packing — stages 1, 2 and 3
 
-Implemented on `refactor/product-pricing-and-packing`. Stage 1 introduced product identifiers and whole-unit / kilogram selling; stage 2 adds quantity discounts. Category management and product UUIDs remain unchanged. A sealed 1 kg packet can be a UNIT product; KG means stock and price are measured by weight.
+Implemented on `refactor/product-pricing-and-packing`. Stage 1 introduced product identifiers and whole-unit / kilogram selling; stage 2 added quantity discounts; stage 3 records actual packed KG weights and finalizes cash-on-delivery amounts. Category management and product UUIDs remain unchanged. A sealed 1 kg packet can be a UNIT product; KG means stock and price are measured by weight.
 
 ## Decisions
 
@@ -39,7 +39,7 @@ Use an open shop with minimum order amount 0, a saved customer address within it
 
 ## Remaining stages and limitations
 
-Stage 1 introduced no tier discounts. Stage 2 adds quantity discounts as documented below. Wholesale pricing, packed-weight fields/editing, packaging conversion, POS billing and camera scanning remain outside these stages. Free-text names/descriptions are not interpreted as pack weight. A physical scanner/device and the full bilingual browser workflow still require manual acceptance. Unit conversion does not convert existing stock: clear/resolve stock explicitly before changing a unit.
+Stage 1 introduced no tier discounts. Stage 2 adds quantity discounts as documented below. Stage 3 adds packed-weight editing. Wholesale pricing, packaging conversion, POS billing and camera scanning remain outside these stages. Free-text names/descriptions are not interpreted as pack weight. A physical scanner/device and the full bilingual browser workflow still require manual acceptance. Unit conversion does not convert existing stock: clear/resolve stock explicitly before changing a unit.
 
 ## Verification performed
 
@@ -94,7 +94,7 @@ Use an open shop, a saved address within its delivery radius, and stock at least
 
 ### Stage 2 scope and remaining work
 
-Packed-weight entry/editing, packaging conversions, wholesale pricing, progressive/bundle pricing, POS billing and camera scanning remain unimplemented. A quote is a current calculation, not a reservation or guaranteed price lock; placement independently uses current authoritative pricing. Physical-scanner and full bilingual browser acceptance remain manual checks. Existing identifiers, category management and the reviewed stage 1 UNIT/KG behavior are unchanged.
+At the end of stage 2, packed-weight entry/editing was not yet implemented; stage 3 adds it below. Packaging conversions, wholesale pricing, progressive/bundle pricing, POS billing and camera scanning remain unimplemented. A quote is a current calculation, not a reservation or guaranteed price lock; placement independently uses current authoritative pricing. Physical-scanner and full bilingual browser acceptance remain manual checks. Existing identifiers, category management and the reviewed stage 1 UNIT/KG behavior are unchanged.
 
 ### Stage 2 verification
 
@@ -102,3 +102,38 @@ Packed-weight entry/editing, packaging conversions, wholesale pricing, progressi
 - 58 database-backed checks passed across 10 affected integration files against an isolated, migrated PostgreSQL 17 container. These include legacy-row migration preservation, authoritative tier selection and tampered-price rejection, fractional KG rounding, atomic stock and minimum-order behavior, ownership, tier edits/removal, and order-price history after catalogue edits. The configured remote database was untouched.
 - Automated UI/unit checks cover tier boundaries, form editing, client preview arithmetic, quoted checkout lines, saved-cart price refresh and out-of-order responses. The full unit run finished with 389 passed and three failures. The three failures are the mobile-menu `#features` expectation and address/profile feedback expectations; each also fails on an unchanged copy of branch HEAD. The affected checkout workflow passes with complete quote-line fixtures.
 - Browser/device testing, including physical barcode scanner input, slow-network timing and full Sinhala review, remains for the manual checks above. PostgreSQL adapter tests emit the existing concurrent-client-query deprecation warning; assertions pass.
+
+## Stage 3 — actual KG packing and final cash amount
+
+### Data and behavior
+
+- `order_items.quantity` remains the permanent requested amount. New nullable `packedQuantity` is an explicit owner confirmation; even an exact match must be saved. UNIT items cannot acquire packed weights. Historical items remain null.
+- New orders with KG items set `packingRequired` and store their original `estimatedSubtotal` and `estimatedTotal`; current `subtotal` and `total` initially match. UNIT-only and pre-migration orders keep their ordinary status flow. Old orders have null estimate snapshots and `packingRequired=false`, so no historical amount or readiness rule is inferred.
+- The owner may save one KG weight only while PREPARING. The submitted `packingVersion` must match the order; every save increments it. Both packing saves and status transitions lock the order row and run in serializable transactions. A stale owner screen, duplicate submission, or READY race cannot overwrite a newer weight. The existing status transition graph is unchanged.
+- Packed weights must be positive with at most three decimals. The customer's product minimum and ordering increment do not apply to actual packing. The line rate remains the snapshotted `unitPrice`, including the original quantity-tier discount. The new line total rounds half up to cents, then rounded lines are summed. The saved delivery fee is added unchanged; shop minimum-order eligibility is not checked again.
+- Checkout already reserves requested weight. Each edit reconciles the difference between the previously deducted weight (`packedQuantity` if present, otherwise requested quantity) and the newly entered weight. Extra weight requires available stock. The weight, conditional stock change, subtotal/total, version and audit event commit together or roll back together. Cancellation/rejection restoration uses the currently deducted weight and the existing one-time status transition.
+- The shop setting `weightDifferenceAllowancePct` defaults to 10.00%, accepts 0–100% with two decimals, and appears in owner shop settings. Outside this allowance in either direction, the owner must explicitly record customer contact/agreement and a nonempty note for the new weight. Contact time, note and exact acknowledged weight are stored with that item. Changing the weight clears/replaces any older acknowledgement; readiness rechecks against the current shop allowance.
+- READY_FOR_DELIVERY requires every KG line of a new packing-required order to have an explicit packed quantity. That transition freezes edits, records finalization time and sends the existing ready notification to the customer with the final cash amount. Owner and customer detail screens show requested and packed weight, checkout rate, original estimate and current/final amount. List, admin, delivery and batch money reads continue to use the single current `orders.total` field; it becomes final before delivery can claim an order. Audit records include actor/time, old/new weights, stock difference, line and order amounts, and contact details.
+
+### Stage 3 migration
+
+1. Back up the intended development database, stop old app processes, and verify `DATABASE_URL`. Do not reset or reseed an existing database.
+2. Run `npm run db:generate`, then `npm run db:migrate:deploy`. Migration `20261103100000_packed_kg_orders` adds the shop allowance, nullable order estimate and packed-item fields, order packing version/finalization fields, constraints and a packing audit action. It does not rewrite existing orders or product stock.
+3. Run `npm run typecheck`, `npm run lint` and `npm run build`, then restart the application. For database tests, use a separate migrated/seeded test database and set both `DATABASE_URL` and `TEST_DATABASE_URL` to it.
+
+### Exact stage 3 manual checks
+
+Use an open shop with a delivery address and a KG product with stock 10 kg, regular price LKR 200/kg and a tier at 2 kg giving LKR 20/kg off. Set delivery fee to LKR 20 and shop allowance to 10%.
+
+1. Customer orders 2 kg. Expected: requested weight 2 kg, rate LKR 180/kg, estimated subtotal 360, estimated total 380, stock 8 kg; packing is not yet confirmed. Owner confirms the order and marks PREPARING. Mark ready before entering weight: blocked.
+2. Owner enters 1.98 kg. Before saving, expect difference −0.020 kg, old/new line 360/356.40 and old/new total 380/376.40. Save. Expected: requested remains 2 kg, packed becomes 1.98 kg, stock becomes 8.02 kg, current total 376.40, estimate remains 380, and rate stays 180 despite crossing the 2 kg tier threshold. Customer tracking shows both weights and amounts.
+3. Revise to 2.00 kg and save, including an explicit confirmation at the requested weight. Expected stock returns to 8 kg and total to 380. Open the same order in two owner tabs; save a different weight in one, then save from the stale tab. Expected stale-tab conflict and no second stock/amount change; refresh to review.
+4. Enter 2.201 kg (>10% above 2 kg) or 1.799 kg (>10% below). Expected: save disabled until the owner records customer agreement and a nonempty contact note. Save 2.201 kg with a note, then try 2.202 kg without a new acknowledgement. Expected: new acknowledgement required. Inspect admin audit: actor, time, previous/new weights, stock and amount changes, and contact record appear.
+5. Reduce available product stock below the extra weight needed and try an increase. Expected: insufficient-stock error; packed weight, stock, total and version remain unchanged. Restore stock through normal owner stock management. Repeat an identical save from a stale tab: conflict, no second deduction.
+6. Confirm every KG line, then mark READY_FOR_DELIVERY. Expected customer ready notification includes the final cash amount. Owner, customer, admin, available-delivery and batch views should show that same amount. Attempt another packing edit: rejected. UNIT lines have no packed-weight control.
+7. Place a UNIT-only order and move it through the existing owner statuses without a packing step. Open a pre-migration order: it remains readable with its historical amounts and is not blocked by packing metadata. Cancel a PLACED KG order and reject a PLACED KG order: stock restores exactly once by the reserved requested amount.
+8. Switch to Sinhala and repeat owner settings, packing preview/errors, customer tracking and notification review. Confirm translations and explicit kg, estimated and final labels.
+
+### Stage 3 verification and limits
+
+Prisma generation, type checking, lint and the production build passed. The stage 3 packing integration suite passed five checks. The affected database run passed 52 checks across ten files on a fresh isolated PostgreSQL 17 database, including checkout, cancellation, customer/owner/delivery orders, shop settings, audit logs and stage 2 discount compatibility. A separate fresh database accepted the final migration SQL. Seven affected unit files passed 59 checks, including exact weight/allowance boundaries and Sinhala final-amount notification text. The new owner packing browser flow passed, as did the related owner-order, customer-order, delivery-order and shop-settings browser checks after updating stale selectors and assertions to the current UI. No configured remote database was migrated or reset. A customer-contact acknowledgement records a phone/contact conversation; no online customer approval or messaging integration was added. The configured allowance is read at each save and again at finalization. Physical browser/device behavior and the complete Sinhala journey remain for manual review.

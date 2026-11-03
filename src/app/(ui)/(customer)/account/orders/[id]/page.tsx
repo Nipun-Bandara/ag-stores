@@ -138,11 +138,28 @@ export default async function CustomerOrderDetailsPage({
                       />
                     </p>
                     <p className="text-muted-foreground">
-                      {item.quantity}{" "}
+                      <Text
+                        value={
+                          item.sellingUnit === "KG"
+                            ? "Requested weight"
+                            : "Quantity"
+                        }
+                      />
+                      : {item.quantity}{" "}
                       <Text
                         value={item.sellingUnit === "KG" ? "kg" : "units"}
                       />{" "}
                     </p>
+                    {item.sellingUnit === "KG" ? (
+                      <p className="text-muted-foreground">
+                        <Text value="Packed weight" />:{" "}
+                        {item.packedQuantity === null ? (
+                          <Text value="Not confirmed" />
+                        ) : (
+                          `${item.packedQuantity} kg`
+                        )}
+                      </p>
+                    ) : null}
                     <PriceSummary
                       pricing={item}
                       sellingUnit={item.sellingUnit}
@@ -185,6 +202,31 @@ export default async function CustomerOrderDetailsPage({
                 <Text value={"Order totals"} />
               </h2>
               <dl className="mt-3 space-y-3 text-sm">
+                {order.packingRequired ? (
+                  <>
+                    <div className="flex justify-between gap-4">
+                      <dt>
+                        <Text value="Estimated subtotal" />
+                      </dt>
+                      <dd>LKR {order.estimatedSubtotal ?? order.subtotal}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt>
+                        <Text value="Estimated total" />
+                      </dt>
+                      <dd>LKR {order.estimatedTotal ?? order.total}</dd>
+                    </div>
+                    <p>
+                      <Text
+                        value={
+                          order.packingFinalizedAt
+                            ? "Final amount to collect"
+                            : "Amount is estimated until packing is finalized"
+                        }
+                      />
+                    </p>
+                  </>
+                ) : null}
                 <div className="flex justify-between gap-4">
                   <dt>
                     <Text value={"Subtotal"} />

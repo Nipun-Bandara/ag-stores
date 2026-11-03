@@ -64,7 +64,13 @@ describe("checkout order creation", () => {
       timeout: 30_000,
     });
     expect(transaction.order.create).toHaveBeenCalledWith({
-      data: { ...data, items: { create: data.items } },
+      data: {
+        ...data,
+        estimatedSubtotal: data.subtotal,
+        estimatedTotal: data.total,
+        packingRequired: false,
+        items: { create: data.items },
+      },
       select: { id: true },
     });
     expect(transaction.order.findUniqueOrThrow).toHaveBeenCalledWith({

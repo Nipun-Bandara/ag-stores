@@ -1,5 +1,6 @@
 import { getLocaleContext as getPriceLocaleContext } from "@/lib/i18n/server";
 import { PriceSummary } from "@/features/pricing/price-display";
+import { OwnerPackingSection } from "@/features/owner/components/owner-packing-section";
 import { ArrowLeft } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { OwnerOrderTimeline } from "@/features/owner/components/owner-order-timeline";
@@ -91,7 +92,17 @@ export default async function OwnerOrderDetailPage({
         </Card>
       ) : null}
 
-      <OwnerOrderStatusActions orderId={order.id} status={order.status} />
+      <OwnerOrderStatusActions
+        orderId={order.id}
+        status={order.status}
+        canMarkReady={
+          !order.packingRequired ||
+          order.items
+            .filter((item) => item.sellingUnit === "KG")
+            .every((item) => item.packedQuantity !== null)
+        }
+      />
+      <OwnerPackingSection order={order} />
 
       <div className="mt-6 grid items-start gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,1fr)]">
         <Card as="section" className="min-w-0 gap-0 p-4 sm:p-5">
@@ -141,6 +152,31 @@ export default async function OwnerOrderDetailPage({
             <Text value={"Payment summary"} />
           </h2>
           <dl className="mt-4 space-y-3 text-sm">
+            {order.packingRequired ? (
+              <>
+                <div className="flex justify-between gap-4">
+                  <dt>
+                    <Text value="Estimated subtotal" />
+                  </dt>
+                  <dd>LKR {order.estimatedSubtotal ?? order.subtotal}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt>
+                    <Text value="Estimated total" />
+                  </dt>
+                  <dd>LKR {order.estimatedTotal ?? order.total}</dd>
+                </div>
+                <div>
+                  <Text
+                    value={
+                      order.packingFinalizedAt
+                        ? "Final amount to collect"
+                        : "Current amount (estimated until packing is finalized)"
+                    }
+                  />
+                </div>
+              </>
+            ) : null}
             <div className="flex justify-between gap-4">
               <dt>
                 <Text value={"Subtotal"} />
@@ -195,6 +231,16 @@ export default async function OwnerOrderDetailPage({
                       value={item.sellingUnit === "KG" ? "kg" : "units"}
                     />{" "}
                   </p>
+                  {item.sellingUnit === "KG" ? (
+                    <p className="text-muted-foreground">
+                      <Text value="Packed weight" />:{" "}
+                      {item.packedQuantity === null ? (
+                        <Text value="Not confirmed" />
+                      ) : (
+                        `${item.packedQuantity} kg`
+                      )}
+                    </p>
+                  ) : null}
                   <PriceSummary
                     pricing={item}
                     sellingUnit={item.sellingUnit}

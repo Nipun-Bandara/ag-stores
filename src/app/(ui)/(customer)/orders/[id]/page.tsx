@@ -100,11 +100,28 @@ export default async function OrderConfirmationPage({
                     <BilingualText english={item.name} sinhala={item.nameSi} />
                   </span>
                   <span className="text-muted-foreground">
-                    {item.quantity}{" "}
+                    <Text
+                      value={
+                        item.sellingUnit === "KG"
+                          ? "Requested weight"
+                          : "Quantity"
+                      }
+                    />
+                    : {item.quantity}{" "}
                     <Text
                       value={item.sellingUnit === "KG" ? "kg" : "units"}
                     />{" "}
                   </span>
+                  {item.sellingUnit === "KG" ? (
+                    <span className="block text-muted-foreground">
+                      <Text value="Packed weight" />:{" "}
+                      {item.packedQuantity === null ? (
+                        <Text value="Not confirmed" />
+                      ) : (
+                        `${item.packedQuantity} kg`
+                      )}
+                    </span>
+                  ) : null}
                   <PriceSummary
                     pricing={item}
                     sellingUnit={item.sellingUnit}
@@ -118,6 +135,31 @@ export default async function OrderConfirmationPage({
         </section>
 
         <dl className="mt-6 space-y-3 border-t pt-6 text-sm">
+          {order.packingRequired ? (
+            <>
+              <div className="flex justify-between">
+                <dt>
+                  <Text value="Estimated subtotal" />
+                </dt>
+                <dd>LKR {order.estimatedSubtotal ?? order.subtotal}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt>
+                  <Text value="Estimated total" />
+                </dt>
+                <dd>LKR {order.estimatedTotal ?? order.total}</dd>
+              </div>
+              <p>
+                <Text
+                  value={
+                    order.packingFinalizedAt
+                      ? "Final amount to collect"
+                      : "Amount is estimated until packing is finalized"
+                  }
+                />
+              </p>
+            </>
+          ) : null}
           <div className="flex justify-between">
             <dt>
               <Text value={"Subtotal"} />

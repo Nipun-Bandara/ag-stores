@@ -32,9 +32,14 @@ let otherShopOrderId = "";
 async function signIn(page: Page, email: string, destination: string) {
   await page.goto("/auth");
   await page.getByLabel("Email or phone").fill(email);
-  await page.getByLabel("Password").fill("ChangeMe123!");
+  await page.locator("#login-password").fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(new RegExp(`${destination}$`));
+  await page
+    .context()
+    .addCookies([
+      { name: "ag_stores_locale", value: "en", url: "http://127.0.0.1:3100" },
+    ]);
 }
 
 test.describe.serial("available delivery orders", () => {

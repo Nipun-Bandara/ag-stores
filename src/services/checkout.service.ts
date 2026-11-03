@@ -71,6 +71,10 @@ function toOrderView(order: OrderConfirmationRecord) {
     subtotal: order.subtotal.toFixed(2),
     deliveryFee: order.deliveryFee.toFixed(2),
     total: order.total.toFixed(2),
+    estimatedSubtotal: order.estimatedSubtotal?.toFixed(2) ?? null,
+    estimatedTotal: order.estimatedTotal?.toFixed(2) ?? null,
+    packingRequired: order.packingRequired,
+    packingFinalizedAt: order.packingFinalizedAt?.toISOString() ?? null,
     deliveryInstructions: order.customerNote,
     createdAt: order.createdAt.toISOString(),
     items: order.items.map((item) => ({
