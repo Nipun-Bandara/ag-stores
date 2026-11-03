@@ -43,6 +43,8 @@ const customerOrderDetailSelect = {
       quantity: true,
       sellingUnit: true,
       unitPrice: true,
+      regularPrice: true,
+      appliedDiscount: true,
       product: { select: { nameEn: true, nameSi: true, imageUrl: true } },
     },
   },

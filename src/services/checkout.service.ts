@@ -1,3 +1,8 @@
+import {
+  orderPricingSnapshot,
+  calculatePricing,
+  tierViews,
+} from "@/lib/pricing";
 import { quantityValid } from "@/lib/quantity";
 import { getDb } from "@/db";
 import { CatalogStatus, NotificationType } from "@/generated/prisma/client";
@@ -5,7 +10,6 @@ import {
   addMinorUnits,
   minorUnitsToMoney,
   moneyToMinorUnits,
-  multiplyMinorUnits,
 } from "@/lib/money";
 import {
   PrismaCheckoutRepository,
@@ -75,13 +79,7 @@ function toOrderView(order: OrderConfirmationRecord) {
       nameSi: item.product.nameSi,
       quantity: Number(item.quantity),
       sellingUnit: item.sellingUnit,
-      unitPrice: item.unitPrice.toFixed(2),
-      lineTotal: minorUnitsToMoney(
-        multiplyMinorUnits(
-          moneyToMinorUnits(item.unitPrice.toFixed(2)),
-          Number(item.quantity),
-        ),
-      ),
+      ...orderPricingSnapshot(item),
     })),
   };
 }
@@ -170,15 +168,21 @@ export async function checkout(
 
     let subtotalMinor = "0";
     const orderItems = reservedProducts.map(({ product, quantity }) => {
-      const unitPrice = product.price.toFixed(2);
+      const pricing = calculatePricing(
+        product.price.toFixed(2),
+        quantity,
+        tierViews(product.discountTiers),
+      );
       subtotalMinor = addMinorUnits(
         subtotalMinor,
-        multiplyMinorUnits(moneyToMinorUnits(unitPrice), quantity),
+        moneyToMinorUnits(pricing.lineTotal),
       );
       return {
         productId: product.id,
         quantity,
-        unitPrice,
+        unitPrice: pricing.unitPrice,
+        regularPrice: pricing.regularPrice,
+        appliedDiscount: pricing.appliedDiscount,
         sellingUnit: product.sellingUnit,
       };
     });

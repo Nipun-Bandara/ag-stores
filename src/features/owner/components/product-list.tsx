@@ -1,4 +1,7 @@
 "use client";
+
+import { ProductPrice } from "@/features/pricing/price-display";
+import { firstOrderQuantity } from "@/lib/quantity";
 import { BilingualText } from "@/features/i18n/components/bilingual-text";
 import { useLocale, useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
@@ -178,6 +181,7 @@ export function ProductList({
   initialProducts: ProductView[];
 }) {
   const t = useText();
+  const locale = useLocale();
   const [products, setProducts] = useState(initialProducts);
   const [pendingId, setPendingId] = useState<string>();
   const [error, setError] = useState<string>();
@@ -303,10 +307,14 @@ export function ProductList({
               </div>
             </dl>
             <div className="flex flex-wrap items-end justify-between gap-2 text-sm">
-              <p className="font-semibold tabular-nums">
-                LKR {product.price} /{" "}
-                <Text value={product.sellingUnit === "KG" ? "kg" : "unit"} />
-              </p>
+              <ProductPrice
+                regularPrice={product.price}
+                quantity={firstOrderQuantity(product)}
+                discountTiers={product.discountTiers}
+                sellingUnit={product.sellingUnit}
+                locale={locale}
+              />
+
               <p className="text-xs text-muted-foreground">
                 <Text value="Minimum order quantity" />:{" "}
                 {product.minimumOrderQuantity}{" "}

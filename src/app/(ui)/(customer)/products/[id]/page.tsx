@@ -1,3 +1,4 @@
+import { CataloguePricing } from "@/features/pricing/catalogue-pricing";
 import { getServerText } from "@/lib/i18n/server";
 import { Badge } from "@/components/ui/badge";
 import type { Metadata } from "next";
@@ -77,14 +78,10 @@ export default async function ProductDetailPage({
           <h1 className="mt-3 break-words text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
             {name}
           </h1>
-          <p className="mt-7 text-3xl font-black text-foreground">
-            LKR {product.price} /{" "}
-            {product.sellingUnit === "KG"
-              ? "kg"
-              : locale === "si"
-                ? "ඒකකය"
-                : "unit"}
-          </p>
+          <CataloguePricing
+            product={{ ...product, name: product.nameEn }}
+            locale={locale}
+          />
           <p className="mt-2 text-sm">
             {locale === "si" ? "අවම ප්‍රමාණය" : "Minimum"}:{" "}
             {product.minimumOrderQuantity}{" "}
@@ -122,6 +119,7 @@ export default async function ProductDetailPage({
                 nameEn: product.nameEn,
                 nameSi: product.nameSi,
                 price: product.price,
+                discountTiers: product.discountTiers,
                 sellingUnit: product.sellingUnit,
                 minimumOrderQuantity: product.minimumOrderQuantity,
                 orderingIncrement: product.orderingIncrement,

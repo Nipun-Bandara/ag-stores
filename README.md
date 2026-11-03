@@ -129,3 +129,5 @@ roll back their temporary stock reservations.
 ### Product selling units and identifiers
 
 Stage 1 supports shop-scoped text item codes/barcodes, UNIT/KG quantities, exact line rounding and snapshotted order units. See [product pricing and packing](docs/product-pricing-and-packing.md) for migration instructions, decisions, test setup and manual acceptance steps. Apply migrations without resetting the database before starting this version.
+
+Stage 2 adds up to four quantity-discount tiers with shared exact pricing, authoritative line quotes and historical price snapshots. See the stage 2 migration and acceptance checks in [product pricing and packing](docs/product-pricing-and-packing.md). Packed-weight editing remains deferred.

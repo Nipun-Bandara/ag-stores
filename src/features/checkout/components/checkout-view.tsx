@@ -1,9 +1,11 @@
 "use client";
-import { useText } from "@/features/i18n/components/locale-provider";
+import { useCartQuote } from "@/features/cart/use-cart-quote";
+import { PriceSummary } from "@/features/pricing/price-display";
+import { useLocale, useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 import { BilingualText } from "@/features/i18n/components/bilingual-text";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
 import Link from "next/link";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -34,11 +36,6 @@ interface CheckoutPayload {
   error?: { message?: string };
 }
 
-interface QuotePayload {
-  error?: { message?: string };
-  data?: { subtotal?: string; deliveryFee?: string | null };
-}
-
 export function CheckoutView({
   addresses,
 }: {
@@ -46,62 +43,26 @@ export function CheckoutView({
 }) {
   const t = useText();
   const router = useRouter();
-  const { items, subtotal, clear } = useCart();
+  const locale = useLocale();
+  const { items, clear } = useCart();
+  const { quote, quoteError, quotePending } = useCartQuote(items);
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
-  const [serverQuote, setServerQuote] = useState<{
-    subtotal: string;
-    deliveryFee: string;
-  }>();
-  const quotedSubtotal = serverQuote?.subtotal ?? subtotal;
-  const deliveryFee = serverQuote?.deliveryFee;
-  const total = deliveryFee
-    ? minorUnitsToMoney(
-        addMinorUnits(
-          moneyToMinorUnits(quotedSubtotal),
-          moneyToMinorUnits(deliveryFee),
-        ),
-      )
-    : null;
+  const deliveryFee = quote?.deliveryFee;
+  const total =
+    quote && deliveryFee !== null && deliveryFee !== undefined
+      ? minorUnitsToMoney(
+          addMinorUnits(
+            moneyToMinorUnits(quote.subtotal),
+            moneyToMinorUnits(deliveryFee),
+          ),
+        )
+      : null;
   const defaultAddress = addresses.find((address) => address.isDefault);
-
-  useEffect(() => {
-    if (items.length === 0) return;
-    const controller = new AbortController();
-    void fetch("/api/checkout/validate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        items: items.map((item) => ({
-          productId: item.id,
-          quantity: item.quantity,
-          sellingUnit: item.sellingUnit ?? "UNIT",
-        })),
-      }),
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        const payload = (await response.json()) as QuotePayload;
-        if (response.ok && payload.data?.subtotal && payload.data.deliveryFee) {
-          setError(undefined);
-          setServerQuote({
-            subtotal: payload.data.subtotal,
-            deliveryFee: payload.data.deliveryFee,
-          });
-        } else {
-          setServerQuote(undefined);
-          setError(payload.error?.message ?? "Unable to validate the cart.");
-        }
-      })
-      .catch(() => {
-        if (!controller.signal.aborted)
-          setError("Unable to validate the cart.");
-      });
-    return () => controller.abort();
-  }, [items]);
 
   async function submitOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!quote || quoteError || quotePending) return;
     setError(undefined);
     setPending(true);
     const form = new FormData(event.currentTarget);
@@ -214,16 +175,25 @@ export function CheckoutView({
             <Text value={"Review products "} />
           </h2>
           <div className="mt-4 divide-y">
-            {items.map((item) => (
+            {!quote ? (
+              <p role="status">
+                {t(
+                  quotePending
+                    ? "Updating prices…"
+                    : "Prices unavailable. Review the cart before checkout.",
+                )}
+              </p>
+            ) : null}
+            {quote?.items.map((item) => (
               <div
-                key={item.id}
+                key={item.productId}
                 data-testid="checkout-item"
                 className="flex justify-between gap-4 py-4"
               >
                 <div className="min-w-0">
                   <p className="break-words font-bold text-foreground">
                     <BilingualText
-                      english={item.nameEn ?? item.name}
+                      english={item.name}
                       sinhala={item.nameSi ?? null}
                     />
                   </p>
@@ -233,12 +203,11 @@ export function CheckoutView({
                     {item.sellingUnit === "KG" ? " kg" : ""}
                   </p>
                 </div>
-                <p className="shrink-0 font-semibold text-foreground">
-                  LKR {item.price}{" "}
-                  <Text
-                    value={item.sellingUnit === "KG" ? "per kg" : "each "}
-                  />
-                </p>
+                <PriceSummary
+                  pricing={item}
+                  sellingUnit={item.sellingUnit}
+                  locale={locale}
+                />
               </div>
             ))}
           </div>
@@ -274,7 +243,9 @@ export function CheckoutView({
             <dt>
               <Text value={t("Subtotal")} />
             </dt>
-            <dd data-testid="checkout-subtotal">LKR {quotedSubtotal}</dd>
+            <dd data-testid="checkout-subtotal">
+              {quote ? `LKR ${quote.subtotal}` : t("Updating prices…")}
+            </dd>
           </div>
           <div className="flex justify-between">
             <dt>
@@ -310,15 +281,15 @@ export function CheckoutView({
             }
           />
         </p>
-        {error ? (
+        {error || quoteError ? (
           <Alert variant="destructive" className="mt-4" role="alert">
-            {t(error)}
+            {t(error ?? quoteError ?? "Unable to validate the cart.")}
           </Alert>
         ) : null}
         <Button
           variant="success"
           type="submit"
-          disabled={pending}
+          disabled={pending || !quote || !!quoteError || quotePending}
           className="mt-6 h-auto min-h-9 w-full whitespace-normal break-words py-2 text-center"
         >
           {pending ? t("Placing order…") : t("Confirm Cash on Delivery order")}

@@ -7,6 +7,11 @@ import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import {
+  DiscountTierEditor,
+  pricingDraft,
+  type TierDraft,
+} from "./discount-tier-editor";
 import { FormField } from "@/features/auth/components/form-fields";
 import type {
   ProductFormOptions,
@@ -27,7 +32,7 @@ import { Button } from "@/components/ui/button";
 
 interface ApiPayload {
   data?: { id: string };
-  error?: { message?: string };
+  error?: { message?: string; details?: Record<string, string[]> };
 }
 
 export function ProductForm({
@@ -51,6 +56,29 @@ export function ProductForm({
   const [sellingUnit, setSellingUnit] = useState<"UNIT" | "KG">(
     product?.sellingUnit ?? "UNIT",
   );
+  const [regularPrice, setRegularPrice] = useState(product?.price ?? "0.00");
+  const [discountTiers, setDiscountTiers] = useState<TierDraft[]>(
+    (product?.discountTiers ?? []).map((tier) => ({
+      minimumQuantity: String(tier.minimumQuantity),
+      discountAmount: tier.discountAmount,
+    })),
+  );
+  const [minimumQuantity, setMinimumQuantity] = useState(
+    String(product?.minimumOrderQuantity ?? 1),
+  );
+  const [increment, setIncrement] = useState(
+    String(product?.orderingIncrement ?? 1),
+  );
+  const pricingSetup = {
+    sellingUnit,
+    minimumOrderQuantity: product
+      ? Number(minimumQuantity)
+      : sellingUnit === "KG"
+        ? 0.002
+        : 1,
+    orderingIncrement:
+      sellingUnit === "KG" ? 0.001 : product ? Number(increment) : 1,
+  };
   const [pending, setPending] = useState(false);
   const categories = useMemo(
     () => options.categories.filter((category) => category.shopId === shopId),
@@ -59,6 +87,15 @@ export function ProductForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    let pricing;
+    try {
+      pricing = pricingDraft(regularPrice, discountTiers, pricingSetup);
+    } catch (error) {
+      toast.error(
+        t(error instanceof Error ? error.message : "Invalid discount tiers."),
+      );
+      return;
+    }
     setPending(true);
     const form = new FormData(event.currentTarget);
     const response = await fetch(
@@ -87,7 +124,8 @@ export function ProductForm({
           nameSi: form.get("nameSi"),
           descriptionEn: form.get("descriptionEn"),
           descriptionSi: form.get("descriptionSi"),
-          price: form.get("price"),
+          price: pricing.price,
+          discountTiers: pricing.tiers,
           stockQuantity: form.get("stockQuantity"),
           lowStockThreshold: form.get("lowStockThreshold"),
           imageUrl: form.get("imageUrl"),
@@ -100,7 +138,13 @@ export function ProductForm({
       ? ((await response.json().catch(() => ({}))) as ApiPayload)
       : {};
     if (!response?.ok || !payload.data?.id) {
-      toast.error(t(payload.error?.message ?? "Unable to save this product."));
+      toast.error(
+        t(
+          payload.error?.details?.discountTiers?.[0] ??
+            payload.error?.message ??
+            "Unable to save this product.",
+        ),
+      );
       setPending(false);
       return;
     }
@@ -265,7 +309,27 @@ export function ProductForm({
             { value: "KG", label: t("Kilograms (kg)") },
           ]}
           onValueChange={(value) => {
-            if (value === "UNIT" || value === "KG") setSellingUnit(value);
+            if (value === "UNIT" || value === "KG") {
+              setSellingUnit(value);
+              setMinimumQuantity(
+                String(
+                  product?.sellingUnit === value
+                    ? product.minimumOrderQuantity
+                    : value === "KG"
+                      ? 0.002
+                      : 1,
+                ),
+              );
+              setIncrement(
+                String(
+                  product?.sellingUnit === value
+                    ? product.orderingIncrement
+                    : value === "KG"
+                      ? 0.001
+                      : 1,
+                ),
+              );
+            }
           }}
         >
           <SelectTrigger
@@ -296,13 +360,10 @@ export function ProductForm({
           type="number"
           min={sellingUnit === "KG" ? "0.002" : "1"}
           step={sellingUnit === "KG" ? "0.001" : "1"}
-          defaultValue={
-            product?.sellingUnit === sellingUnit
-              ? product.minimumOrderQuantity
-              : sellingUnit === "KG"
-                ? 0.002
-                : 1
+          value={
+            !product ? (sellingUnit === "KG" ? "0.002" : "1") : minimumQuantity
           }
+          onChange={(event) => setMinimumQuantity(event.target.value)}
           readOnly={!product}
           required
         />
@@ -326,11 +387,8 @@ export function ProductForm({
             type="number"
             min="1"
             step="1"
-            defaultValue={
-              product?.sellingUnit === sellingUnit
-                ? product.orderingIncrement
-                : 1
-            }
+            value={!product ? "1" : increment}
+            onChange={(event) => setIncrement(event.target.value)}
             readOnly={!product}
             required
           />
@@ -343,12 +401,14 @@ export function ProductForm({
         <FormField
           id="price"
           name="price"
-          label={sellingUnit === "KG" ? "Price per kg" : "Price per unit"}
+          label="Regular price"
+          hint={sellingUnit === "KG" ? "LKR per kg" : "LKR per unit"}
           type="number"
           min="0"
           max="9999999999.99"
           step="0.01"
-          defaultValue={product?.price ?? "0.00"}
+          value={regularPrice}
+          onChange={(event) => setRegularPrice(event.target.value)}
           required
         />
       </div>
@@ -378,6 +438,12 @@ export function ProductForm({
           required
         />
       </div>
+      <DiscountTierEditor
+        regularPrice={regularPrice}
+        drafts={discountTiers}
+        onChange={setDiscountTiers}
+        setup={pricingSetup}
+      />
       <h2 className="text-lg font-semibold sm:col-span-6 lg:col-span-12">
         <Text value="Optional details" />
       </h2>

@@ -15,6 +15,8 @@ function product(
   return {
     id: productId,
     nameEn: "Red Rice",
+    nameSi: null,
+    discountTiers: [],
     price: new Prisma.Decimal("475.25"),
     stockQuantity: new Prisma.Decimal(5),
     sellingUnit: "UNIT",

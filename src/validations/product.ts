@@ -1,3 +1,4 @@
+import { validatePricing, type DiscountTier } from "@/lib/pricing";
 import { z } from "zod";
 
 const nullableText = (maximum: number) =>
@@ -39,6 +40,8 @@ const lowStockThresholdSchema = stockQuantitySchema;
 
 function validateSetup(
   value: {
+    price: string;
+    discountTiers?: DiscountTier[] | undefined;
     sellingUnit: "UNIT" | "KG";
     stockQuantity: number;
     lowStockThreshold?: number | undefined;
@@ -47,6 +50,18 @@ function validateSetup(
   },
   context: z.RefinementCtx,
 ) {
+  if (value.discountTiers !== undefined) {
+    try {
+      validatePricing(value.price, value.discountTiers, value);
+    } catch (error) {
+      context.addIssue({
+        code: "custom",
+        path: ["discountTiers"],
+        message:
+          error instanceof Error ? error.message : "Invalid discount tiers.",
+      });
+    }
+  }
   for (const field of ["minimumOrderQuantity", "orderingIncrement"] as const) {
     if (value[field] <= 0)
       context.addIssue({
@@ -91,6 +106,17 @@ const productFields = {
   descriptionEn: nullableText(5000),
   descriptionSi: nullableText(5000),
   price: priceSchema,
+  discountTiers: z
+    .array(
+      z
+        .object({
+          minimumQuantity: stockQuantitySchema,
+          discountAmount: priceSchema,
+        })
+        .strict(),
+    )
+    .max(4, "A product can have at most four discount tiers.")
+    .optional(),
   stockQuantity: stockQuantitySchema,
   imageUrl: z
     .union([secureImageUrlSchema, z.literal(""), z.null()])
@@ -106,13 +132,16 @@ export const productCreateSchema = z
     lowStockThreshold: lowStockThresholdSchema.optional().default(5),
   })
   .strict()
-  .superRefine(validateSetup)
+  .superRefine((value, context) =>
+    validateSetup({ ...value, discountTiers: undefined }, context),
+  )
   .transform((value) => ({
     ...value,
     minimumOrderQuantity: value.sellingUnit === "KG" ? 0.002 : 1,
     // Database precision for weight, not a customer ordering increment.
     orderingIncrement: value.sellingUnit === "KG" ? 0.001 : 1,
-  }));
+  }))
+  .superRefine(validateSetup);
 
 export const productUpdateSchema = z
   .object({

@@ -1,3 +1,5 @@
+import { getLocaleContext as getPriceLocaleContext } from "@/lib/i18n/server";
+import { PriceSummary } from "@/features/pricing/price-display";
 import { BilingualText } from "@/features/i18n/components/bilingual-text";
 import { getServerText } from "@/lib/i18n/server";
 import { DateText } from "@/features/i18n/components/date-text";
@@ -51,6 +53,7 @@ export default async function CustomerOrderDetailsPage({
     },
   );
 
+  const { locale: priceLocale } = await getPriceLocaleContext();
   return (
     <section className="min-w-0 w-full">
       <Link
@@ -139,8 +142,12 @@ export default async function CustomerOrderDetailsPage({
                       <Text
                         value={item.sellingUnit === "KG" ? "kg" : "units"}
                       />{" "}
-                      × LKR {item.unitPrice}
                     </p>
+                    <PriceSummary
+                      pricing={item}
+                      sellingUnit={item.sellingUnit}
+                      locale={priceLocale}
+                    />
                   </div>
                   <p className="font-medium tabular-nums">
                     LKR {item.lineTotal}

@@ -1,3 +1,5 @@
+import { getLocaleContext as getPriceLocaleContext } from "@/lib/i18n/server";
+import { PriceSummary } from "@/features/pricing/price-display";
 import { ArrowLeft } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { OwnerOrderTimeline } from "@/features/owner/components/owner-order-timeline";
@@ -42,6 +44,7 @@ export default async function OwnerOrderDetailPage({
     throw error;
   });
 
+  const { locale: priceLocale } = await getPriceLocaleContext();
   return (
     <section className="min-w-0 w-full">
       <Link
@@ -188,9 +191,15 @@ export default async function OwnerOrderDetailPage({
                   </p>
                   <p className="text-muted-foreground">
                     {item.quantity}{" "}
-                    <Text value={item.sellingUnit === "KG" ? "kg" : "units"} />{" "}
-                    × LKR {item.unitPrice}
+                    <Text
+                      value={item.sellingUnit === "KG" ? "kg" : "units"}
+                    />{" "}
                   </p>
+                  <PriceSummary
+                    pricing={item}
+                    sellingUnit={item.sellingUnit}
+                    locale={priceLocale}
+                  />
                 </div>
                 <p className="shrink-0 font-medium">LKR {item.lineTotal}</p>
               </div>

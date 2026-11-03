@@ -1,10 +1,7 @@
+import { orderPricingSnapshot } from "@/lib/pricing";
 import { getDb } from "@/db";
 import { OrderStatus, UserRole } from "@/generated/prisma/client";
-import {
-  multiplyMinorUnits,
-  moneyToMinorUnits,
-  minorUnitsToMoney,
-} from "@/lib/money";
+
 import {
   PrismaOwnerOrderRepository,
   type OwnerOrderDetailRecord,
@@ -118,13 +115,7 @@ function toDetailView(order: OwnerOrderDetailRecord) {
       nameSi: item.product.nameSi,
       quantity: Number(item.quantity),
       sellingUnit: item.sellingUnit,
-      unitPrice: item.unitPrice.toFixed(2),
-      lineTotal: minorUnitsToMoney(
-        multiplyMinorUnits(
-          moneyToMinorUnits(item.unitPrice.toFixed(2)),
-          Number(item.quantity),
-        ),
-      ),
+      ...orderPricingSnapshot(item),
     })),
     statusHistory: order.statusHistory.map((history) => ({
       ...history,

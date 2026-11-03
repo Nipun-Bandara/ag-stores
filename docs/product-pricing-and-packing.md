@@ -1,6 +1,6 @@
-# Product pricing and packing — stage 1
+# Product pricing and packing — stages 1 and 2
 
-Implemented on `refactor/product-pricing-and-packing`. This stage introduces product identifiers and whole-unit / kilogram selling. Category management and product UUIDs remain unchanged. A sealed 1 kg packet can be a UNIT product; KG means stock and price are measured by weight.
+Implemented on `refactor/product-pricing-and-packing`. Stage 1 introduced product identifiers and whole-unit / kilogram selling; stage 2 adds quantity discounts. Category management and product UUIDs remain unchanged. A sealed 1 kg packet can be a UNIT product; KG means stock and price are measured by weight.
 
 ## Decisions
 
@@ -39,7 +39,7 @@ Use an open shop with minimum order amount 0, a saved customer address within it
 
 ## Remaining stages and limitations
 
-Stage 1 contains no tier discounts, wholesale pricing, packed-weight fields/editing, packaging conversion, POS billing or camera scanning. Those need separately approved stages; their precise scope and migration design remain to be specified. Free-text names/descriptions are not interpreted as pack weight. A physical scanner/device and the full bilingual browser workflow still require manual acceptance. Unit conversion does not convert existing stock: clear/resolve stock explicitly before changing a unit.
+Stage 1 introduced no tier discounts. Stage 2 adds quantity discounts as documented below. Wholesale pricing, packed-weight fields/editing, packaging conversion, POS billing and camera scanning remain outside these stages. Free-text names/descriptions are not interpreted as pack weight. A physical scanner/device and the full bilingual browser workflow still require manual acceptance. Unit conversion does not convert existing stock: clear/resolve stock explicitly before changing a unit.
 
 ## Verification performed
 
@@ -48,3 +48,57 @@ Stage 1 contains no tier discounts, wholesale pricing, packed-weight fields/edit
 - 60 database-backed checks passed across 12 files on isolated PostgreSQL 17, including a fresh migration, pre-migration data preservation, shop identifier uniqueness/ownership, fractional stock and concurrent reservation, cancellation/rejection, partial-reservation rollback and late checkout failure rollback. The configured remote database was not migrated or reset.
 - A broader unit run reported three failures (340 passed): the mobile menu expects `#features`, and two address/profile workflow tests expect feedback that those components no longer render. All three also fail on an unchanged copy of the branch's HEAD. They were left outside this stage's scope.
 - Physical barcode hardware, full browser end-to-end acceptance and Sinhala language review remain for manual testing. The pg adapter emits its existing concurrent-client-query deprecation warning during transaction tests; transaction assertions pass.
+
+## Stage 2 — quantity discounts
+
+Stage 2 retains the reviewed UNIT/KG ordering and stock rules above. It introduces up to four quantity-discount tiers, without packed-weight editing.
+
+### Pricing decisions
+
+- The existing `products.price` column and owner API `price` field now mean **Regular price**: the shop's reference price per unit or kg. Keeping the column avoids changing existing amounts or breaking the established product API. No competitor-price or MRP claim is made. Existing products start with no tiers; their charged price remains unchanged.
+- `ProductDiscountTier` is a related model with a product UUID, ordered position 1–4, positive decimal minimum quantity, and decimal LKR discount amount per unit/kg. Shop ownership follows its product. Database constraints enforce unique positions/thresholds, nonnegative discounts and at most four positions. Application validation enforces the full configuration, including threshold compatibility, increasing quantities, nondecreasing discounts, and discounts no greater than the regular price. Zero discounts and a discount equal to the regular price are valid.
+- The highest qualifying threshold applies its discount to **the entire product quantity**. This is neither progressive nor bundle pricing. For regular 100 and 1→5, 3→7, 5→10: quantities 1, 3 and 10 charge unit rates 95, 93 and 90, with line totals 95, 279 and 900.
+- UNIT tier thresholds obey the product's saved minimum and increment. KG thresholds obey its minimum (never below 0.002 kg) and three-decimal precision; KG increments remain inapplicable. Thresholds are submitted in increasing order. The editor permits zero to four rows and shows live examples without adding unused rows.
+- `src/lib/pricing.ts` is shared by client previews and server calculations. All monetary operations use integer cents and scaled quantity arithmetic. Charged line totals round half up to cents before summation. Line savings equal rounded regular line total minus rounded charged line total, so displayed savings reconcile exactly. Consequently 10.02/kg less 0.01/kg at 0.5 kg charges 5.01, with a 0.01/kg rate saving but 0.00 rounded line saving; this is intentional.
+- Product/tier creation and replacement and pricing audit writes are atomic. Omitting `discountTiers` on an edit retains existing tiers; supplying `[]` explicitly removes them. Price-only edits still validate retained tiers under the product row lock. Pricing changes use `PRODUCT_PRICE_UPDATED`, with previous/new regular prices, ordered tiers and selling units. Tier-only changes are visible in audit summaries. Changing quantity setup revalidates retained tier thresholds.
+
+### Quotes, cart compatibility and history
+
+- Catalogue cards/details show the price for their first supported or currently selected quantity, labelled with that quantity. Higher-quantity offers always show the threshold, never an unqualified cheapest rate. Regular price, our price and savings are available in English and Sinhala, with explicit per-unit/per-kg labels. Old order items with unknown reference/discount history show their stored charged rate without invented savings.
+- The quote repository reads products and tiers in one repeatable-read transaction. Checkout reloads them under the existing locked serializable reservation transaction. Client-supplied prices, discounts and tiers cannot determine charges. Availability, shop opening, delivery fee/radius, stock reservations/restoration and rollback retain stage 1 behavior. Shop minimum-order amounts compare against the **discounted subtotal**.
+- Cart and checkout quote every selected product. Checkout renders quantity, unit, regular rate, discount, charged rate, savings and line total from the **same server quote**, alongside its subtotal/delivery fee. A quote belongs to the exact product/quantity/unit selection; old success/failure responses and delayed JSON bodies cannot overwrite the latest request, even if abort is ignored. Old quote lines are hidden immediately when selections change. Confirmation is disabled until a current quote is available. Server placement still recalculates independently; quotes do not lock prices.
+- Customer-specific v2 carts remain readable, without changing selected quantities. Missing tier metadata means no preview discount. Successful current quotes refresh saved reference prices, tiers and stock metadata while retaining quantity/unit. A mismatched/stale selection cannot apply its quote to a changed basket. Storefront basket summaries label unquoted local totals as estimates. Returning focus to cart/checkout triggers fresh pricing; invalid/outdated unit or quantity setup produces the existing review error rather than coercion.
+- New order items snapshot nullable `regularPrice` and `appliedDiscount`, existing charged `unitPrice`, requested `quantity` and `sellingUnit`. A database check makes new recorded charged rates equal regular price minus discount. The migration leaves both new fields **NULL on old items**, meaning historical reference/discount is unknown. It never guesses discounts from today's catalogue or overwrites old charged prices, totals, units or quantities. Customer confirmation/history and owner order details use snapshots only.
+
+### Stage 2 migration
+
+1. Stop older application processes, back up the intended development database and confirm `DATABASE_URL`. Do not reset or reseed an existing database.
+2. Run `npm run db:generate` and `npm run db:migrate:deploy`. The new migration is `20261102100000_quantity_discount_tiers`; it adds the related tier table and two nullable order-item snapshot columns. It does not update existing product prices or old order amounts.
+3. Run `npm run typecheck`, `npm run lint`, and `npm run build`, then restart the app. No tier backfill is needed: existing products continue with their current price and no discounts.
+4. For automated database tests, point **both** `DATABASE_URL` and `TEST_DATABASE_URL` at an isolated migrated development/test database; existing suites require the normal seed. Use `--maxWorkers=1` for the affected integration suites. Production/remote data was not used for verification.
+
+### Exact stage 2 manual checks
+
+Use an open shop, a saved address within its delivery radius, and stock at least 100. Initially set the shop minimum order amount to 0 and record delivery fee F. Use fresh names/codes to avoid identifier conflicts.
+
+1. **Migration compatibility:** open an existing product and an old order. Expected: unchanged reference/charged prices, stock, quantity, selling unit and order totals; no discount rows are generated. The product has equal regular/our prices and zero savings until tiers are added. Old orders show their charged rates without fabricated historical reference prices or savings.
+2. **UNIT setup:** create `Stage 2 Tea` as UNIT, code `S2-001`, regular price 100, stock 100. Leave discounts empty and save: expected no-discount pricing. Edit, add rows 1→5, 3→7, 5→10, then save. Expected three rows only; category and other product details remain intact. The catalogue starts at regular 100, our price 95 and saving 5 per unit, with qualified offers at quantities 3 and 5.
+3. **Thresholds:** set cart quantity to 1, 2, 3, 4, 5 and 10 (apply with blur/Enter). Expected charged rate / line total respectively: 95/95, 95/190, 93/279, 93/372, 90/450 and 90/900. The highest tier discounts the whole line. Checkout must show identical quantities, rates, savings and line totals, plus delivery fee F; total is the displayed discounted subtotal plus F.
+4. **KG setup:** create `Stage 2 Rice`, code `S2-002`, KG, regular 100/kg, stock 100 kg, tiers 0.5→5, 1→7, 3→10. Expected 0.499 kg at 100/kg totals 49.90; 0.5 kg at 95/kg totals 47.50; 0.501 kg at 95/kg totals 47.60; 1 kg at 93/kg totals 93; 3 kg at 90/kg totals 270. Typed 0.002 and 0.003 kg remain supported. A fourth decimal, stock excess, or below-minimum weight remains rejected.
+5. **Rounding:** create KG reference 10.02 and tier 0.5→0.01. Select 0.5 kg. Expected our rate 10.01/kg, charged total 5.01 and rounded line savings 0.00. Place an order: confirmation/history must match exactly, and stock falls by 0.5 kg.
+6. **Validation:** try a fifth tier (Add must be disabled), duplicate/descending thresholds, UNIT threshold 1.5, KG threshold 0.001 or 0.5001, negative discount, discount 100.01 against reference 100, or discounts 1→7 then 3→5. Expected validation and no save. With UNIT minimum/increment 2, threshold 3 must fail. With valid tiers retained, lower regular price below the largest discount: expected rejection and no partial price/tier change.
+7. **Edit/removal and history:** place the UNIT quantity-3 order at 93/unit, subtotal 279. Change catalogue regular price to 200 and tiers to 1→20, 3→25, 5→30. Expected new quantity-3 quote 175/unit, subtotal 525. The old customer and owner order views must remain regular 100, discount 7, charged 93, quantity 3, subtotal 279 and original total. Remove all rows and save: new quantity-3 quote becomes 200/unit, subtotal 600, zero savings; old history is unchanged. Audit logs must record tier edits/removal even when regular price did not change.
+8. **Minimum/stock/ownership:** restore regular 100 and original tiers. With shop minimum 280, quantity 3 must fail placement despite its undiscounted value 300, and stock must remain unchanged. Set minimum 279: placement succeeds for subtotal 279. Cancel/reject a PLACED order and confirm exact quantity restoration. A different shop owner must not edit this product's price/tiers or move it to their category.
+9. **Saved cart/stale responses:** save a cart, close/reopen it, and change pricing in another owner window. Return focus to the cart/checkout. Expected quantity/unit unchanged, but all quoted rates, savings, line totals and subtotal refreshed together. With slow network throttling, apply quantities 1→3→10 quickly: older responses must never replace the final 90/unit, 900 line total. While refreshing or after a failed quote, confirmation must be disabled and old quoted lines must not remain presented as current. Return online and refocus to refresh.
+10. **Sinhala:** switch language and repeat the owner tier editor, invalid configurations, live example, product offers, cart, checkout and order history. Expected translated regular/our/savings labels, offers and validation, with explicit units. There must be no competitor/MRP claim or packed-weight control.
+
+### Stage 2 scope and remaining work
+
+Packed-weight entry/editing, packaging conversions, wholesale pricing, progressive/bundle pricing, POS billing and camera scanning remain unimplemented. A quote is a current calculation, not a reservation or guaranteed price lock; placement independently uses current authoritative pricing. Physical-scanner and full bilingual browser acceptance remain manual checks. Existing identifiers, category management and the reviewed stage 1 UNIT/KG behavior are unchanged.
+
+### Stage 2 verification
+
+- Prisma client generation, TypeScript checking, lint, formatting and production build passed.
+- 58 database-backed checks passed across 10 affected integration files against an isolated, migrated PostgreSQL 17 container. These include legacy-row migration preservation, authoritative tier selection and tampered-price rejection, fractional KG rounding, atomic stock and minimum-order behavior, ownership, tier edits/removal, and order-price history after catalogue edits. The configured remote database was untouched.
+- Automated UI/unit checks cover tier boundaries, form editing, client preview arithmetic, quoted checkout lines, saved-cart price refresh and out-of-order responses. The full unit run finished with 389 passed and three failures. The three failures are the mobile-menu `#features` expectation and address/profile feedback expectations; each also fails on an unchanged copy of branch HEAD. The affected checkout workflow passes with complete quote-line fixtures.
+- Browser/device testing, including physical barcode scanner input, slow-network timing and full Sinhala review, remains for the manual checks above. PostgreSQL adapter tests emit the existing concurrent-client-query deprecation warning; assertions pass.

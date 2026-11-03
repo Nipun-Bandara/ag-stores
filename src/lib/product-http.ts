@@ -1,8 +1,14 @@
+import { PricingConfigurationError } from "@/lib/pricing";
 import { SellingSetupError } from "@/lib/quantity";
 import { errorResponse } from "@/lib/api-response";
 import { ProductError } from "@/services/product.service";
 
 export function productErrorResponse(error: unknown) {
+  if (error instanceof PricingConfigurationError)
+    return errorResponse(
+      { code: "INVALID_PRICING", message: error.message },
+      409,
+    );
   if (error instanceof SellingSetupError)
     return errorResponse(
       { code: "INVALID_SELLING_SETUP", message: error.message },

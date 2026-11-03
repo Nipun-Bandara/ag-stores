@@ -42,7 +42,7 @@ function submitProduct() {
   fireEvent.change(screen.getByLabelText("English name"), {
     target: { value: "Tea" },
   });
-  fireEvent.change(screen.getByLabelText("Price per unit"), {
+  fireEvent.change(screen.getByLabelText("Regular price"), {
     target: { value: "100.00" },
   });
   fireEvent.submit(container.querySelector("form")!);

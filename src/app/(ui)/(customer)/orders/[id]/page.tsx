@@ -1,3 +1,5 @@
+import { getLocaleContext as getPriceLocaleContext } from "@/lib/i18n/server";
+import { PriceSummary } from "@/features/pricing/price-display";
 import { getServerText } from "@/lib/i18n/server";
 import { Text } from "@/features/i18n/components/text";
 import { BilingualText } from "@/features/i18n/components/bilingual-text";
@@ -34,6 +36,7 @@ export default async function OrderConfirmationPage({
     throw error;
   });
 
+  const { locale: priceLocale } = await getPriceLocaleContext();
   return (
     <section className="min-w-0 w-full">
       <Card as="section" className="gap-0 p-4 sm:p-6">
@@ -92,16 +95,22 @@ export default async function OrderConfirmationPage({
                 key={item.productId}
                 className="flex justify-between gap-4 py-4 text-sm"
               >
-                <span>
+                <div>
                   <span className="block font-bold text-foreground">
                     <BilingualText english={item.name} sinhala={item.nameSi} />
                   </span>
                   <span className="text-muted-foreground">
                     {item.quantity}{" "}
-                    <Text value={item.sellingUnit === "KG" ? "kg" : "units"} />{" "}
-                    × LKR {item.unitPrice}
+                    <Text
+                      value={item.sellingUnit === "KG" ? "kg" : "units"}
+                    />{" "}
                   </span>
-                </span>
+                  <PriceSummary
+                    pricing={item}
+                    sellingUnit={item.sellingUnit}
+                    locale={priceLocale}
+                  />
+                </div>
                 <span className="font-bold">LKR {item.lineTotal}</span>
               </div>
             ))}
@@ -133,6 +142,7 @@ export default async function OrderConfirmationPage({
             <p className="font-bold text-foreground">
               <Text value={"Delivery instructions"} />
             </p>
+
             <p className="mt-1 text-muted-foreground">
               {order.deliveryInstructions}
             </p>

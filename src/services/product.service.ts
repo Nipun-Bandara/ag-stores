@@ -1,3 +1,4 @@
+import { tierViews, type DiscountTier } from "@/lib/pricing";
 import { firstOrderQuantity } from "@/lib/quantity";
 import { getDb } from "@/db";
 import { isUniqueConstraintError } from "@/repositories/auth.repository";
@@ -38,6 +39,7 @@ export interface ProductView {
   descriptionEn: string | null;
   descriptionSi: string | null;
   price: string;
+  discountTiers: DiscountTier[];
   sellingUnit: "UNIT" | "KG";
   minimumOrderQuantity: number;
   orderingIncrement: number;
@@ -98,6 +100,7 @@ function toProductView(product: ProductRecord): ProductView {
     descriptionEn: product.descriptionEn,
     descriptionSi: product.descriptionSi,
     price: product.price.toFixed(2),
+    discountTiers: tierViews(product.discountTiers),
     sellingUnit: product.sellingUnit,
     minimumOrderQuantity: Number(product.minimumOrderQuantity),
     orderingIncrement: Number(product.orderingIncrement),
@@ -189,11 +192,14 @@ export async function createProduct(
   );
   return toProductView(
     await handleWrite(() =>
-      repository.create({
-        ...input,
-        minimumOrderQuantity: input.sellingUnit === "KG" ? 0.002 : 1,
-        orderingIncrement: input.sellingUnit === "KG" ? 0.001 : 1,
-      }),
+      repository.create(
+        {
+          ...input,
+          minimumOrderQuantity: input.sellingUnit === "KG" ? 0.002 : 1,
+          orderingIncrement: input.sellingUnit === "KG" ? 0.001 : 1,
+        },
+        user.id,
+      ),
     ),
   );
 }

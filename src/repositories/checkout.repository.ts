@@ -17,6 +17,10 @@ const reservedProductSelect = {
   shopId: true,
   nameEn: true,
   price: true,
+  discountTiers: {
+    orderBy: { position: "asc" as const },
+    select: { minimumQuantity: true, discountAmount: true },
+  },
   sellingUnit: true,
   minimumOrderQuantity: true,
   orderingIncrement: true,
@@ -47,6 +51,8 @@ const orderConfirmationSelect = {
       quantity: true,
       sellingUnit: true,
       unitPrice: true,
+      regularPrice: true,
+      appliedDiscount: true,
       product: { select: { nameEn: true, nameSi: true } },
     },
   },
@@ -90,6 +96,8 @@ export interface CheckoutOrderData {
     productId: string;
     quantity: number;
     unitPrice: string;
+    regularPrice: string;
+    appliedDiscount: string;
     sellingUnit: SellingUnit;
   }>;
 }

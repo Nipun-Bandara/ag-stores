@@ -1,4 +1,6 @@
 "use client";
+import { useCartQuote } from "@/features/cart/use-cart-quote";
+import { ProductPrice } from "@/features/pricing/price-display";
 import { useLocale, useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 import { BilingualText } from "@/features/i18n/components/bilingual-text";
@@ -25,7 +27,8 @@ import { localizeBilingual } from "@/lib/i18n/config";
 export function CartView() {
   const t = useText();
   const locale = useLocale();
-  const { items, subtotal, updateQuantity, remove, clear } = useCart();
+  const { items, updateQuantity, remove, clear } = useCart();
+  const { quote, quoteError, quotePending } = useCartQuote(items);
   if (items.length === 0) {
     return (
       <Empty>
@@ -75,15 +78,32 @@ export function CartView() {
                   sinhala={item.nameSi ?? null}
                 />
               </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                LKR {item.price}{" "}
-                <Text
-                  value={item.sellingUnit === "KG" ? "per kg ·" : "each · "}
+              {quote?.items.find((line) => line.productId === item.id) ? (
+                <ProductPrice
+                  regularPrice={
+                    quote.items.find((line) => line.productId === item.id)!
+                      .regularPrice
+                  }
+                  quantity={item.quantity}
+                  discountTiers={
+                    quote.items.find((line) => line.productId === item.id)!
+                      .discountTiers
+                  }
+                  sellingUnit={item.sellingUnit ?? "UNIT"}
+                  locale={locale}
+                  showLine
                 />
-                {item.stockQuantity}
-                {item.sellingUnit === "KG" ? " kg" : ""}{" "}
-                <Text value={"available "} />
-              </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  <Text
+                    value={
+                      quotePending
+                        ? "Updating prices…"
+                        : "Prices unavailable. Review the cart before checkout."
+                    }
+                  />
+                </p>
+              )}
             </div>
             <div className="col-span-2 flex items-end justify-between gap-3 sm:col-span-1 sm:justify-end">
               <Label className="text-xs font-medium text-muted-foreground">
@@ -124,6 +144,11 @@ export function CartView() {
         ))}
       </section>
       <Card as="aside" className="h-fit min-w-0 gap-0 p-4 sm:p-5">
+        {quoteError ? (
+          <p role="alert" className="text-destructive">
+            {t(quoteError)}
+          </p>
+        ) : null}
         <h2 className="text-lg font-semibold text-foreground">
           <Text value={t("Summary")} />
         </h2>
@@ -131,7 +156,9 @@ export function CartView() {
           <span>
             <Text value={t("Subtotal")} />
           </span>
-          <span data-testid="cart-subtotal">LKR {subtotal}</span>
+          <span data-testid="cart-subtotal">
+            {quote ? `LKR ${quote.subtotal}` : t("Updating prices…")}
+          </span>
         </div>
         <p className="mt-3 text-xs leading-5 text-muted-foreground">
           <Text value={"Delivery fees are calculated at checkout."} />

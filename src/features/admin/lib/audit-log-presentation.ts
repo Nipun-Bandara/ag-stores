@@ -82,6 +82,13 @@ export function presentAuditLog(log: AuditLogView, t: Translate) {
         ? `LKR ${Number(value).toFixed(2)}`
         : t("Not recorded");
     summary = `${t("Price")}: ${amount(metadata.previousPrice)} → ${amount(metadata.newPrice)}`;
+    if (
+      Array.isArray(metadata.previousTiers) &&
+      Array.isArray(metadata.newTiers) &&
+      JSON.stringify(metadata.previousTiers) !==
+        JSON.stringify(metadata.newTiers)
+    )
+      summary += ` · ${t("Quantity discounts updated")}`;
   } else if (log.action === "PRODUCT_STOCK_UPDATED") {
     const quantity = (value: unknown) =>
       (typeof value === "number" && Number.isFinite(value)) ||

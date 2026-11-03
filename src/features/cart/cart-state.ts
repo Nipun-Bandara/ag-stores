@@ -1,4 +1,9 @@
 import {
+  calculatePricing,
+  validatePricing,
+  type DiscountTier,
+} from "@/lib/pricing";
+import {
   firstOrderQuantity,
   quantityValid,
   stepQuantity,
@@ -8,7 +13,6 @@ import {
   addMinorUnits,
   minorUnitsToMoney,
   moneyToMinorUnits,
-  multiplyMinorUnits,
 } from "@/lib/money";
 
 export interface CartProduct {
@@ -17,6 +21,7 @@ export interface CartProduct {
   nameEn?: string;
   nameSi?: string | null;
   price: string;
+  discountTiers?: DiscountTier[];
   sellingUnit?: SellingUnit;
   minimumOrderQuantity?: number;
   orderingIncrement?: number;
@@ -59,7 +64,16 @@ export function isValidCartItem(item: CartItem): boolean {
 export function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case "hydrate":
-      return { items: action.items.filter(isValidCartItem) };
+      return {
+        items: action.items.filter(isValidCartItem).map((item) => {
+          try {
+            validatePricing(item.price, item.discountTiers ?? [], item);
+            return item;
+          } catch {
+            return { ...item, discountTiers: [] };
+          }
+        }),
+      };
     case "add": {
       if (action.product.stockQuantity < firstOrderQuantity(action.product))
         return state;
@@ -143,7 +157,10 @@ export function getCartSubtotal(state: CartState): string {
     (total, item) =>
       addMinorUnits(
         total,
-        multiplyMinorUnits(moneyToMinorUnits(item.price), item.quantity),
+        moneyToMinorUnits(
+          calculatePricing(item.price, item.quantity, item.discountTiers ?? [])
+            .lineTotal,
+        ),
       ),
     "0",
   );

@@ -1,3 +1,4 @@
+import { validatePricing, tierViews } from "@/lib/pricing";
 import { SellingSetupError, firstOrderQuantity } from "@/lib/quantity";
 import {
   AuditAction,
@@ -26,6 +27,10 @@ const productSelect = {
   descriptionEn: true,
   descriptionSi: true,
   price: true,
+  discountTiers: {
+    orderBy: { position: "asc" as const },
+    select: { minimumQuantity: true, discountAmount: true },
+  },
   sellingUnit: true,
   minimumOrderQuantity: true,
   orderingIncrement: true,
@@ -78,7 +83,7 @@ export interface ProductRepository {
     ownerId: string,
     productId: string,
   ): Promise<ProductRecord | null>;
-  create(input: ProductCreateInput): Promise<ProductRecord>;
+  create(input: ProductCreateInput, actorId: string): Promise<ProductRecord>;
   update(
     actorId: string,
     productId: string,
@@ -181,10 +186,36 @@ export class PrismaProductRepository implements ProductRepository {
     });
   }
 
-  create(input: ProductCreateInput): Promise<ProductRecord> {
-    return this.prisma.product.create({
-      data: input,
-      select: productSelect,
+  create(input: ProductCreateInput, actorId: string): Promise<ProductRecord> {
+    const { discountTiers = [], ...fields } = input;
+    validatePricing(input.price, discountTiers, input);
+    return this.prisma.$transaction(async (transaction) => {
+      const product = await transaction.product.create({
+        data: {
+          ...fields,
+          discountTiers: {
+            create: discountTiers.map((tier, index) => ({
+              ...tier,
+              position: index + 1,
+            })),
+          },
+        },
+        select: productSelect,
+      });
+      await writeAuditLog(transaction, {
+        actorId,
+        action: AuditAction.PRODUCT_PRICE_UPDATED,
+        entityType: AuditEntityType.PRODUCT,
+        entityId: product.id,
+        metadata: {
+          previousPrice: null,
+          newPrice: product.price.toFixed(2),
+          previousTiers: [],
+          newTiers: discountTiers,
+          sellingUnit: product.sellingUnit,
+        },
+      });
+      return product;
     });
   }
 
@@ -209,6 +240,10 @@ export class PrismaProductRepository implements ProductRepository {
               stockQuantity: true,
               sellingUnit: true,
               lowStockThreshold: true,
+              discountTiers: {
+                orderBy: { position: "asc" },
+                select: { minimumQuantity: true, discountAmount: true },
+              },
             },
           });
           if (
@@ -246,6 +281,9 @@ export class PrismaProductRepository implements ProductRepository {
               );
             }
           }
+          const previousTiers = tierViews(previous.discountTiers);
+          const nextTiers = input.discountTiers ?? previousTiers;
+          validatePricing(input.price, nextTiers, input);
           const product = await transaction.product.update({
             where: { id: productId },
             data: {
@@ -260,6 +298,17 @@ export class PrismaProductRepository implements ProductRepository {
               descriptionEn: input.descriptionEn,
               descriptionSi: input.descriptionSi,
               price: input.price,
+              ...(input.discountTiers === undefined
+                ? {}
+                : {
+                    discountTiers: {
+                      deleteMany: {},
+                      create: nextTiers.map((tier, index) => ({
+                        ...tier,
+                        position: index + 1,
+                      })),
+                    },
+                  }),
               stockQuantity: input.stockQuantity,
               imageUrl: input.imageUrl,
               isAvailable: input.isAvailable,
@@ -269,7 +318,11 @@ export class PrismaProductRepository implements ProductRepository {
             },
             select: productSelect,
           });
-          if (!previous.price.equals(product.price)) {
+          if (
+            !previous.price.equals(product.price) ||
+            JSON.stringify(previousTiers) !== JSON.stringify(nextTiers) ||
+            previous.sellingUnit !== product.sellingUnit
+          ) {
             await writeAuditLog(transaction, {
               actorId,
               action: AuditAction.PRODUCT_PRICE_UPDATED,
@@ -278,6 +331,10 @@ export class PrismaProductRepository implements ProductRepository {
               metadata: {
                 previousPrice: previous.price.toFixed(2),
                 newPrice: product.price.toFixed(2),
+                previousTiers,
+                newTiers: nextTiers,
+                previousSellingUnit: previous.sellingUnit,
+                sellingUnit: product.sellingUnit,
               },
             });
           }

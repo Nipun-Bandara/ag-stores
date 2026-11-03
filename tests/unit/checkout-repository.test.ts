@@ -22,6 +22,8 @@ const data: CheckoutOrderData = {
       quantity: 1,
       sellingUnit: "UNIT",
       unitPrice: "100.00",
+      regularPrice: "100.00",
+      appliedDiscount: "0.00",
     },
   ],
 };

@@ -1,3 +1,4 @@
+import { calculatePricing, tierViews } from "@/lib/pricing";
 import { quantityValid } from "@/lib/quantity";
 import { getDb } from "@/db";
 import { CatalogStatus } from "@/generated/prisma/client";
@@ -5,7 +6,6 @@ import {
   addMinorUnits,
   minorUnitsToMoney,
   moneyToMinorUnits,
-  multiplyMinorUnits,
 } from "@/lib/money";
 import {
   PrismaCartRepository,
@@ -69,18 +69,22 @@ export async function validateCartForCheckout(
         "Product selling setup changed. Review your cart quantity and unit.",
       );
     }
-    const unitPrice = product.price.toFixed(2);
-    const lineTotal = multiplyMinorUnits(
-      moneyToMinorUnits(unitPrice),
+    const discountTiers = tierViews(product.discountTiers);
+    const pricing = calculatePricing(
+      product.price.toFixed(2),
       item.quantity,
+      discountTiers,
     );
-    subtotal = addMinorUnits(subtotal, lineTotal);
+    subtotal = addMinorUnits(subtotal, moneyToMinorUnits(pricing.lineTotal));
     return {
       productId: product.id,
       name: product.nameEn,
+      nameSi: product.nameSi,
       quantity: item.quantity,
-      unitPrice,
-      lineTotal: minorUnitsToMoney(lineTotal),
+      ...pricing,
+      discountTiers,
+      minimumOrderQuantity: Number(product.minimumOrderQuantity),
+      orderingIncrement: Number(product.orderingIncrement),
       stockQuantity: Number(product.stockQuantity),
       sellingUnit: product.sellingUnit,
     };
@@ -94,3 +98,5 @@ export async function validateCartForCheckout(
 
   return { items, subtotal: minorUnitsToMoney(subtotal), deliveryFee };
 }
+
+export type CartQuote = Awaited<ReturnType<typeof validateCartForCheckout>>;

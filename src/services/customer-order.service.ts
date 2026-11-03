@@ -1,10 +1,7 @@
+import { orderPricingSnapshot } from "@/lib/pricing";
 import { getDb } from "@/db";
 import { OrderStatus, UserRole } from "@/generated/prisma/client";
-import {
-  minorUnitsToMoney,
-  moneyToMinorUnits,
-  multiplyMinorUnits,
-} from "@/lib/money";
+
 import {
   PrismaCustomerOrderRepository,
   type CustomerOrderDetailRecord,
@@ -107,13 +104,7 @@ function toDetailView(order: CustomerOrderDetailRecord) {
       imageUrl: item.product.imageUrl,
       quantity: Number(item.quantity),
       sellingUnit: item.sellingUnit,
-      unitPrice: item.unitPrice.toFixed(2),
-      lineTotal: minorUnitsToMoney(
-        multiplyMinorUnits(
-          moneyToMinorUnits(item.unitPrice.toFixed(2)),
-          Number(item.quantity),
-        ),
-      ),
+      ...orderPricingSnapshot(item),
     })),
     timeline,
   };

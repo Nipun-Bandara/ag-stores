@@ -1,3 +1,4 @@
+import { tierViews, type DiscountTier } from "@/lib/pricing";
 import { firstOrderQuantity } from "@/lib/quantity";
 import { getDb } from "@/db";
 import {
@@ -29,6 +30,7 @@ export interface StorefrontProductView {
   descriptionEn: string | null;
   descriptionSi: string | null;
   price: string;
+  discountTiers: DiscountTier[];
   sellingUnit: "UNIT" | "KG";
   minimumOrderQuantity: number;
   orderingIncrement: number;
@@ -69,6 +71,7 @@ function toProductView(
     descriptionEn: product.descriptionEn,
     descriptionSi: product.descriptionSi,
     price: product.price.toFixed(2),
+    discountTiers: tierViews(product.discountTiers),
     sellingUnit: product.sellingUnit,
     minimumOrderQuantity: Number(product.minimumOrderQuantity),
     orderingIncrement: Number(product.orderingIncrement),
