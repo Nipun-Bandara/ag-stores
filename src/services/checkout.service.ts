@@ -1,10 +1,15 @@
+import {
+  orderPricingSnapshot,
+  calculatePricing,
+  tierViews,
+} from "@/lib/pricing";
+import { quantityValid } from "@/lib/quantity";
 import { getDb } from "@/db";
 import { CatalogStatus, NotificationType } from "@/generated/prisma/client";
 import {
   addMinorUnits,
   minorUnitsToMoney,
   moneyToMinorUnits,
-  multiplyMinorUnits,
 } from "@/lib/money";
 import {
   PrismaCheckoutRepository,
@@ -19,6 +24,7 @@ import type { CheckoutInput } from "@/validations/checkout";
 
 type CheckoutErrorCode =
   | "CUSTOMER_ONLY"
+  | "INVALID_QUANTITY"
   | "EMPTY_CART"
   | "ADDRESS_NOT_FOUND"
   | "PRODUCT_UNAVAILABLE"
@@ -65,20 +71,19 @@ function toOrderView(order: OrderConfirmationRecord) {
     subtotal: order.subtotal.toFixed(2),
     deliveryFee: order.deliveryFee.toFixed(2),
     total: order.total.toFixed(2),
+    estimatedSubtotal: order.estimatedSubtotal?.toFixed(2) ?? null,
+    estimatedTotal: order.estimatedTotal?.toFixed(2) ?? null,
+    packingRequired: order.packingRequired,
+    packingFinalizedAt: order.packingFinalizedAt?.toISOString() ?? null,
     deliveryInstructions: order.customerNote,
     createdAt: order.createdAt.toISOString(),
     items: order.items.map((item) => ({
       productId: item.productId,
       name: item.product.nameEn,
       nameSi: item.product.nameSi,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice.toFixed(2),
-      lineTotal: minorUnitsToMoney(
-        multiplyMinorUnits(
-          moneyToMinorUnits(item.unitPrice.toFixed(2)),
-          item.quantity,
-        ),
-      ),
+      quantity: Number(item.quantity),
+      sellingUnit: item.sellingUnit,
+      ...orderPricingSnapshot(item),
     })),
   };
 }
@@ -125,7 +130,7 @@ export async function checkout(
         if (
           !current ||
           !current.isAvailable ||
-          current.stockQuantity === 0 ||
+          Number(current.stockQuantity) === 0 ||
           !current.shop.isActive ||
           current.category.status !== CatalogStatus.ACTIVE
         ) {
@@ -138,6 +143,16 @@ export async function checkout(
         throw new CheckoutError(
           "INSUFFICIENT_STOCK",
           `${current.nameEn} only has ${current.stockQuantity} available.`,
+          409,
+        );
+      }
+      if (
+        !quantityValid(item.quantity, product) ||
+        (item.sellingUnit ?? "UNIT") !== product.sellingUnit
+      ) {
+        throw new CheckoutError(
+          "INVALID_QUANTITY",
+          "Product selling setup changed. Review your cart quantity and unit.",
           409,
         );
       }
@@ -157,12 +172,23 @@ export async function checkout(
 
     let subtotalMinor = "0";
     const orderItems = reservedProducts.map(({ product, quantity }) => {
-      const unitPrice = product.price.toFixed(2);
+      const pricing = calculatePricing(
+        product.price.toFixed(2),
+        quantity,
+        tierViews(product.discountTiers),
+      );
       subtotalMinor = addMinorUnits(
         subtotalMinor,
-        multiplyMinorUnits(moneyToMinorUnits(unitPrice), quantity),
+        moneyToMinorUnits(pricing.lineTotal),
       );
-      return { productId: product.id, quantity, unitPrice };
+      return {
+        productId: product.id,
+        quantity,
+        unitPrice: pricing.unitPrice,
+        regularPrice: pricing.regularPrice,
+        appliedDiscount: pricing.appliedDiscount,
+        sellingUnit: product.sellingUnit,
+      };
     });
     const subtotal = minorUnitsToMoney(subtotalMinor);
     const shopId = reservedProducts[0]?.product.shopId ?? "";

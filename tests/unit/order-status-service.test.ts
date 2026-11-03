@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  Prisma,
   OrderStatus,
   PreferredLanguage,
   UserRole,
@@ -42,9 +43,24 @@ function order(
     customerId,
     shopId,
     status,
-    shop: { ownerId },
+    packingRequired: false,
+    total: new Prisma.Decimal("200.00"),
+    shop: {
+      ownerId,
+      weightDifferenceAllowancePct: new Prisma.Decimal("10.00"),
+    },
     batchAssignment: null,
-    items: [{ productId: "4d4fd014-a88d-4b6a-a557-f5822d64299d", quantity: 2 }],
+    items: [
+      {
+        productId: "4d4fd014-a88d-4b6a-a557-f5822d64299d",
+        quantity: new Prisma.Decimal(2),
+        packedQuantity: null,
+        contactWeight: null,
+        contactAgreedAt: null,
+        contactNote: null,
+        sellingUnit: "UNIT",
+      },
+    ],
   };
 }
 
@@ -83,6 +99,7 @@ describe("order status service", () => {
       OrderStatus.PLACED,
       OrderStatus.CONFIRMED,
       null,
+      false,
     );
     expect(transaction.createHistory).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -123,6 +140,7 @@ describe("order status service", () => {
         at: expect.any(Date),
         reason: "Ordered by mistake",
       },
+      false,
     );
     expect(transaction.restoreStock).toHaveBeenCalledWith(record.items);
     expect(transaction.createHistory).toHaveBeenCalledWith(

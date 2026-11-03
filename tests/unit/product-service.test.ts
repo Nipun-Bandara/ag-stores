@@ -40,6 +40,11 @@ const customer: AuthenticatedUser = {
 const owner = { ...customer, role: UserRole.SHOP_OWNER };
 
 const productInput = {
+  itemCode: "001",
+  barcode: null,
+  sellingUnit: "UNIT" as const,
+  minimumOrderQuantity: 1,
+  orderingIncrement: 1,
   shopId: "00000000-0000-4000-8000-000000000002",
   categoryId: "00000000-0000-4000-8000-000000000003",
   nameEn: "Product",

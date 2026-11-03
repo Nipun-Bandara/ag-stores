@@ -57,6 +57,17 @@ export function OwnerOrderList({ orders }: { orders: Dashboard["orders"] }) {
                 <Text value={orderStatusLabels[order.status]} />
               </Badge>
               <p className="mt-2 font-semibold">LKR {order.total}</p>
+              {order.packingRequired ? (
+                <p className="text-xs text-muted-foreground">
+                  <Text
+                    value={
+                      order.packingFinalizedAt
+                        ? "Final amount to collect"
+                        : "Amount is estimated until packing is finalized"
+                    }
+                  />
+                </p>
+              ) : null}
             </div>
           </div>
           <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">

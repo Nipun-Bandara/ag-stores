@@ -47,6 +47,7 @@ function toView(shop: ShopSettingsRecord) {
     minimumOrderAmount: shop.minimumOrderAmount.toFixed(2),
     deliveryFee: shop.deliveryFee.toFixed(2),
     maximumDeliveryRadiusKm: shop.maximumDeliveryRadiusKm.toFixed(2),
+    weightDifferenceAllowancePct: shop.weightDifferenceAllowancePct.toFixed(2),
     updatedAt: shop.updatedAt.toISOString(),
   };
 }

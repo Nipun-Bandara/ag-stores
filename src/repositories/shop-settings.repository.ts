@@ -13,6 +13,7 @@ const shopSettingsSelect = {
   minimumOrderAmount: true,
   deliveryFee: true,
   maximumDeliveryRadiusKm: true,
+  weightDifferenceAllowancePct: true,
   updatedAt: true,
 } satisfies Prisma.ShopSelect;
 
@@ -62,6 +63,12 @@ export class PrismaShopSettingsRepository implements ShopSettingsRepository {
           minimumOrderAmount: input.minimumOrderAmount,
           deliveryFee: input.deliveryFee,
           maximumDeliveryRadiusKm: input.maximumDeliveryRadiusKm,
+          ...(input.weightDifferenceAllowancePct === undefined
+            ? {}
+            : {
+                weightDifferenceAllowancePct:
+                  input.weightDifferenceAllowancePct,
+              }),
         },
         select: shopSettingsSelect,
       });

@@ -24,6 +24,13 @@ const storefrontProductSelect = {
   descriptionEn: true,
   descriptionSi: true,
   price: true,
+  discountTiers: {
+    orderBy: { position: "asc" as const },
+    select: { minimumQuantity: true, discountAmount: true },
+  },
+  sellingUnit: true,
+  minimumOrderQuantity: true,
+  orderingIncrement: true,
   stockQuantity: true,
   imageUrl: true,
   shop: { select: { name: true } },

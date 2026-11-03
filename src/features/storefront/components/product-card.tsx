@@ -1,3 +1,4 @@
+import { CataloguePricing } from "@/features/pricing/catalogue-pricing";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
@@ -71,7 +72,10 @@ export function ProductCard({
           </p>
         </div>
         <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
-          <p className="font-bold text-foreground">LKR {product.price}</p>
+          <CataloguePricing
+            product={{ ...product, name: product.nameEn }}
+            locale={locale}
+          />
           <AddToCartButton
             compact
             locale={locale}
@@ -81,6 +85,10 @@ export function ProductCard({
               nameEn: product.nameEn,
               nameSi: product.nameSi,
               price: product.price,
+              discountTiers: product.discountTiers,
+              sellingUnit: product.sellingUnit,
+              minimumOrderQuantity: product.minimumOrderQuantity,
+              orderingIncrement: product.orderingIncrement,
               stockQuantity: product.stockQuantity,
               imageUrl: product.imageUrl,
             }}

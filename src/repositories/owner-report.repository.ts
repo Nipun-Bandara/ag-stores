@@ -30,6 +30,7 @@ export interface BestSellingProductMetric {
   nameEn: string;
   nameSi: string | null;
   shopName: string;
+  sellingUnit?: "UNIT" | "KG";
   quantitySold: number;
 }
 
@@ -38,6 +39,7 @@ export interface ReportLowStockProduct {
   nameEn: string;
   nameSi: string | null;
   shopName: string;
+  sellingUnit?: "UNIT" | "KG";
   stockQuantity: number;
   lowStockThreshold: number;
 }
@@ -74,6 +76,7 @@ interface BestSellingProductRow {
   nameEn: string;
   nameSi: string | null;
   shopName: string;
+  sellingUnit?: "UNIT" | "KG";
   quantitySold: number;
 }
 
@@ -145,7 +148,8 @@ export class PrismaOwnerReportRepository implements OwnerReportRepository {
           p."nameEn" AS "nameEn",
           p."nameSi" AS "nameSi",
           s."name" AS "shopName",
-          SUM(oi."quantity")::int AS "quantitySold"
+          oi."sellingUnit" AS "sellingUnit",
+          SUM(oi."quantity")::float8 AS "quantitySold"
         FROM "order_items" oi
         INNER JOIN "orders" o ON o."id" = oi."orderId"
         INNER JOIN "products" p ON p."id" = oi."productId"
@@ -159,7 +163,7 @@ export class PrismaOwnerReportRepository implements OwnerReportRepository {
             'FAILED_DELIVERY'::"OrderStatus"
           )
           ${filteredStatus}
-        GROUP BY p."id", p."nameEn", p."nameSi", s."name"
+        GROUP BY p."id", p."nameEn", p."nameSi", s."name", oi."sellingUnit"
         ORDER BY "quantitySold" DESC, p."nameEn" ASC, p."id" ASC
         LIMIT 10
       `,
@@ -180,6 +184,7 @@ export class PrismaOwnerReportRepository implements OwnerReportRepository {
           id: true,
           nameEn: true,
           nameSi: true,
+          sellingUnit: true,
           stockQuantity: true,
           lowStockThreshold: true,
           shop: { select: { name: true } },
@@ -203,7 +208,7 @@ export class PrismaOwnerReportRepository implements OwnerReportRepository {
       dailyOrders,
       dailyRevenue: dailyRevenue.map((metric) => ({
         ...metric,
-        revenue: Number(metric.revenue).toFixed(2),
+        revenue: new Prisma.Decimal(metric.revenue).toFixed(2),
       })),
       ordersByStatus: statusGroups.map(({ status, _count }) => ({
         status,
@@ -214,6 +219,8 @@ export class PrismaOwnerReportRepository implements OwnerReportRepository {
         productId: id,
         shopName: shop.name,
         ...product,
+        stockQuantity: Number(product.stockQuantity),
+        lowStockThreshold: Number(product.lowStockThreshold),
       })),
       completedDeliveries,
       failedDeliveries,

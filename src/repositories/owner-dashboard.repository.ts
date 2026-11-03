@@ -9,6 +9,7 @@ export interface OwnerDashboardLowStockProduct {
   id: string;
   nameEn: string;
   nameSi: string | null;
+  sellingUnit?: "UNIT" | "KG";
   stockQuantity: number;
   lowStockThreshold: number;
   shopName: string;
@@ -80,6 +81,7 @@ export class PrismaOwnerDashboardRepository implements OwnerDashboardRepository 
             id: true,
             nameEn: true,
             nameSi: true,
+            sellingUnit: true,
             stockQuantity: true,
             lowStockThreshold: true,
             shop: { select: { name: true } },
@@ -97,6 +99,8 @@ export class PrismaOwnerDashboardRepository implements OwnerDashboardRepository 
       revenueToday: delivered._sum.total?.toFixed(2) ?? "0.00",
       lowStockProducts: lowStockProducts.map(({ shop, ...product }) => ({
         ...product,
+        stockQuantity: Number(product.stockQuantity),
+        lowStockThreshold: Number(product.lowStockThreshold),
         shopName: shop.name,
       })),
     };

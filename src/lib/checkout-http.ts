@@ -1,7 +1,14 @@
+import { SellingSetupError } from "@/lib/quantity";
 import { errorResponse } from "@/lib/api-response";
 import { CheckoutError } from "@/services/checkout.service";
 
 export function checkoutErrorResponse(error: unknown) {
+  if (error instanceof SellingSetupError)
+    return errorResponse(
+      { code: "INVALID_SELLING_SETUP", message: error.message },
+      409,
+    );
+
   if (error instanceof CheckoutError) {
     return errorResponse(
       { code: error.code, message: error.message },
