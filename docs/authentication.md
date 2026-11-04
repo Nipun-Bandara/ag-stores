@@ -4,16 +4,21 @@
 
 Only customer accounts can be created through the public registration endpoint.
 The service fixes every self-registered user's role to `CUSTOMER`; it does not
-accept a role from the request. Staff and administrator provisioning requires a
-future privileged administrative workflow.
+accept a role from the request. Owners/administrators may create delivery
+personnel within their existing shop-management permissions. Administrator and
+shop-owner development fixtures are provisioned by the explicitly enabled seed;
+there is no public staff-role registration.
 
-Customers may register with an email address, an international phone number, or
-both. Email addresses are normalized to lowercase, and the database has a
-case-insensitive unique index. PostgreSQL also enforces that every user has at
-least one identifier.
+Every account requires first name, last name and a unique Sri Lankan mobile.
+Local and international mobile formats normalize to canonical `+94` text before
+lookup or persistence. Login uses mobile and password only. Email is optional,
+normalizes to lowercase/null, and retains the database's case-insensitive unique
+index. Names are not unique. The immutable UUID remains the primary key and all
+relationships continue to reference it. See [mobile accounts](mobile-accounts.md)
+for safe migration/backfill, development credentials and manual checks.
 
-Passwords must be 12–128 characters and contain uppercase, lowercase, numeric,
-and special characters. They are hashed with scrypt using a random 128-bit salt,
+Passwords must be 8–128 characters and contain uppercase, lowercase, and numeric
+characters. Symbols are optional. They are hashed with scrypt using a random 128-bit salt,
 a 64-byte derived key, and explicit cost parameters. Password hashes are only
 selected by the login repository and are mapped out before any service result is
 returned.
@@ -60,16 +65,20 @@ with `requireAnyRole` at the relevant boundary.
 Authenticated-user queries use an explicit safe-field projection. They never
 return `passwordHash` or the stored session digest.
 
-## Customer profile management
+## Shared profile management
 
-Profile APIs derive the customer ID only from the verified session and reject
-unknown request fields. Customers may update their name, phone number, and
-preferred language; email and role are immutable through these endpoints.
+Profile APIs derive the user UUID only from the authenticated session and reject
+unknown/protected fields. All roles share `/profile` and may edit first/last
+names, mobile, optional email and language. The existing customer profile route
+uses the same components. Mobile changes require the current password and save
+atomically; UUID relationships and sessions remain intact. Role, status and shop
+assignment cannot be changed through self-profile. No phone verification is
+performed or implied.
 
 Password changes require the existing password, apply the same strength rules
 as registration, and revoke every other session in the same database
 transaction. The current session remains active so a successful password change
-does not interrupt the initiating customer.
+does not interrupt the initiating user.
 
 ## Operational follow-ups
 

@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { getDb } from "@/db";
 
 import { randomUUID } from "node:crypto";
 
@@ -46,7 +47,11 @@ async function login(email: string, password = "ChangeMe123!") {
     new NextRequest("http://localhost/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier: email, password }),
+      body: JSON.stringify({
+        identifier: (await getDb().user.findUniqueOrThrow({ where: { email } }))
+          .phone,
+        password,
+      }),
     }),
   );
   return response.cookies.get(SESSION_COOKIE_NAME)?.value ?? "";
@@ -101,6 +106,9 @@ describeWithDatabase("admin shop management API", () => {
     const [ownerOne, ownerTwo, customer] = await Promise.all([
       prisma.user.create({
         data: {
+          firstName: "First Managed",
+          lastName: "Owner",
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           name: "First Managed Owner",
           email: `first-shop-owner-${suffix}@example.test`,
           passwordHash,
@@ -109,6 +117,9 @@ describeWithDatabase("admin shop management API", () => {
       }),
       prisma.user.create({
         data: {
+          firstName: "Second Managed",
+          lastName: "Owner",
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           name: "Second Managed Owner",
           email: `second-shop-owner-${suffix}@example.test`,
           passwordHash,
@@ -117,6 +128,9 @@ describeWithDatabase("admin shop management API", () => {
       }),
       prisma.user.create({
         data: {
+          firstName: "Managed Shop",
+          lastName: "Customer",
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           name: "Managed Shop Customer",
           email: `shop-customer-${suffix}@example.test`,
           passwordHash,

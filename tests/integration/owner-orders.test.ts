@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { getDb } from "@/db";
 
 import { randomUUID } from "node:crypto";
 
@@ -35,7 +36,8 @@ function context(orderId: string) {
 async function login(email: string): Promise<string> {
   const response = await loginRoute(
     request("/api/auth/login", "POST", undefined, {
-      identifier: email,
+      identifier: (await getDb().user.findUniqueOrThrow({ where: { email } }))
+        .phone,
       password: "ChangeMe123!",
     }),
   );
@@ -95,6 +97,9 @@ describeWithDatabase("owner order management API", () => {
 
     const otherOwner = await prisma.user.create({
       data: {
+        firstName: "Other Order",
+        lastName: "Owner",
+        phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
         name: "Other Order Owner",
         email: `other-order-owner-${suffix}@example.test`,
         passwordHash: "integration-test-only",

@@ -6,10 +6,13 @@ import {
   UserStatus,
 } from "@/generated/prisma/client";
 import type { AuthenticatedUser, SessionCredentials } from "@/types/auth";
+import { normalizeMobile } from "@/lib/account-identity";
 
 const authenticatedUserSelect = {
   id: true,
   name: true,
+  firstName: true,
+  lastName: true,
   email: true,
   phone: true,
   role: true,
@@ -18,9 +21,10 @@ const authenticatedUserSelect = {
 } satisfies Prisma.UserSelect;
 
 export interface CustomerRegistrationRecord {
-  name: string;
-  email?: string;
-  phone?: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string;
   passwordHash: string;
   preferredLanguage: "EN" | "SI";
 }
@@ -30,7 +34,7 @@ export interface LoginUser extends AuthenticatedUser {
 }
 
 export interface AuthRepository {
-  findDuplicate(email?: string, phone?: string): Promise<boolean>;
+  findDuplicate(email: string | null, phone: string): Promise<boolean>;
   createCustomerWithSession(
     input: CustomerRegistrationRecord,
     session: SessionCredentials,
@@ -47,10 +51,10 @@ export interface AuthRepository {
 export class PrismaAuthRepository implements AuthRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async findDuplicate(email?: string, phone?: string): Promise<boolean> {
+  async findDuplicate(email: string | null, phone: string): Promise<boolean> {
     const duplicate = await this.prisma.user.findFirst({
       where: {
-        OR: [...(email ? [{ email }] : []), ...(phone ? [{ phone }] : [])],
+        OR: [...(email ? [{ email }] : []), { phone }],
       },
       select: { id: true },
     });
@@ -65,9 +69,10 @@ export class PrismaAuthRepository implements AuthRepository {
     return this.prisma.$transaction(async (transaction) => {
       const user = await transaction.user.create({
         data: {
-          name: input.name,
-          ...(input.email ? { email: input.email } : {}),
-          ...(input.phone ? { phone: input.phone } : {}),
+          firstName: input.firstName,
+          lastName: input.lastName,
+          email: input.email,
+          phone: input.phone,
           passwordHash: input.passwordHash,
           role: UserRole.CUSTOMER,
           preferredLanguage:
@@ -92,14 +97,10 @@ export class PrismaAuthRepository implements AuthRepository {
   }
 
   async findLoginUser(identifier: string): Promise<LoginUser | null> {
-    const normalizedIdentifier = identifier.includes("@")
-      ? identifier.toLowerCase()
-      : identifier;
-
+    const phone = normalizeMobile(identifier);
+    if (!phone) return null;
     return this.prisma.user.findFirst({
-      where: {
-        OR: [{ email: normalizedIdentifier }, { phone: normalizedIdentifier }],
-      },
+      where: { phone },
       select: {
         ...authenticatedUserSelect,
         passwordHash: true,

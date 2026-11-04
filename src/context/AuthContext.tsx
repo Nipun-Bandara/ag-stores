@@ -22,6 +22,7 @@ interface LoginRequest {
 }
 interface AuthContextType {
   user: AuthenticatedUser | null;
+  updateUser: (user: AuthenticatedUser) => void;
   login: (credentials: LoginRequest, returnTo?: string) => Promise<void>;
   register: (payload: RegistrationInput, returnTo?: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -131,7 +132,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        updateUser: (updated) =>
+          setUser((current) =>
+            current?.id === updated.id ? updated : current,
+          ),
+        login,
+        register,
+        logout,
+        isLoading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

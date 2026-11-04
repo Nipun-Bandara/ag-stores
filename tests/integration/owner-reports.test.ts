@@ -36,6 +36,9 @@ describeWithDatabase("owner reports", () => {
       await Promise.all([
         prisma.user.create({
           data: {
+            firstName: "Reporting",
+            lastName: "Owner",
+            phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
             name: "Reporting Owner",
             email: `report-owner-${suffix}@example.test`,
             passwordHash: "test-only",
@@ -44,6 +47,9 @@ describeWithDatabase("owner reports", () => {
         }),
         prisma.user.create({
           data: {
+            firstName: "Other Reporting",
+            lastName: "Owner",
+            phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
             name: "Other Reporting Owner",
             email: `other-report-owner-${suffix}@example.test`,
             passwordHash: "test-only",
@@ -52,6 +58,9 @@ describeWithDatabase("owner reports", () => {
         }),
         prisma.user.create({
           data: {
+            firstName: "Empty Reporting",
+            lastName: "Owner",
+            phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
             name: "Empty Reporting Owner",
             email: `empty-report-owner-${suffix}@example.test`,
             passwordHash: "test-only",
@@ -60,6 +69,9 @@ describeWithDatabase("owner reports", () => {
         }),
         prisma.user.create({
           data: {
+            firstName: "Reporting",
+            lastName: "Customer",
+            phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
             name: "Reporting Customer",
             email: `report-customer-${suffix}@example.test`,
             passwordHash: "test-only",

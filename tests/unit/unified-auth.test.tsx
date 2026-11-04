@@ -12,9 +12,10 @@ import { safeAuthReturnTo } from "@/features/auth/return-to";
 import { proxy } from "@/proxy";
 import { NextRequest } from "next/server";
 
-const { login, register } = vi.hoisted(() => ({
+const { login, register, toastError } = vi.hoisted(() => ({
   login: vi.fn(),
   register: vi.fn(),
+  toastError: vi.fn(),
 }));
 vi.mock("@/context/AuthContext", () => ({
   useAuth: () => ({ login, register }),
@@ -30,7 +31,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/i18n/server", () => ({
   getLocaleContext: async () => ({ locale: "si", localizedRoute: true }),
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: toastError } }));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -71,8 +72,14 @@ describe("unified authentication page", () => {
     fireEvent.change(document.getElementById("register-email")!, {
       target: { value: "customer@example.test" },
     });
-    fireEvent.change(document.getElementById("register-name")!, {
-      target: { value: "Sample Customer" },
+    fireEvent.change(document.getElementById("register-firstName")!, {
+      target: { value: "Sample" },
+    });
+    fireEvent.change(document.getElementById("register-lastName")!, {
+      target: { value: "Customer" },
+    });
+    fireEvent.change(document.getElementById("register-phone")!, {
+      target: { value: "0771234567" },
     });
     fireEvent.change(document.getElementById("register-password")!, {
       target: { value: "SecurePassword123!" },
@@ -83,9 +90,10 @@ describe("unified authentication page", () => {
     await waitFor(() =>
       expect(register).toHaveBeenCalledWith(
         {
-          name: "Sample Customer",
+          firstName: "Sample",
+          lastName: "Customer",
           email: "customer@example.test",
-          phone: undefined,
+          phone: "+94771234567",
           password: "SecurePassword123!",
           preferredLanguage: "EN",
         },
@@ -102,7 +110,7 @@ describe("unified authentication page", () => {
       }),
     );
     fireEvent.change(document.getElementById("login-identifier")!, {
-      target: { value: "farmer@example.test" },
+      target: { value: "0771234567" },
     });
     fireEvent.change(document.getElementById("login-password")!, {
       target: { value: "test-password" },
@@ -110,7 +118,7 @@ describe("unified authentication page", () => {
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     await waitFor(() =>
       expect(login).toHaveBeenCalledWith(
-        { identifier: "farmer@example.test", password: "test-password" },
+        { identifier: "0771234567", password: "test-password" },
         "/si/account",
       ),
     );
@@ -120,15 +128,16 @@ describe("unified authentication page", () => {
     login.mockRejectedValue(new Error("Invalid credentials"));
     render(await AuthPage({ searchParams: Promise.resolve({}) }));
     fireEvent.change(document.getElementById("login-identifier")!, {
-      target: { value: "farmer@example.test" },
+      target: { value: "0771234567" },
     });
     fireEvent.change(document.getElementById("login-password")!, {
       target: { value: "test-password" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Invalid credentials",
+    await waitFor(() =>
+      expect(toastError).toHaveBeenCalledWith("Invalid credentials"),
     );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(login).toHaveBeenCalledWith(expect.anything(), "/si/dashboard");
   });
 

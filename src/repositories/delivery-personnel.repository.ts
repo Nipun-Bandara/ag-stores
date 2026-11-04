@@ -12,6 +12,8 @@ import type {
 const deliveryPersonnelSelect = {
   id: true,
   name: true,
+  firstName: true,
+  lastName: true,
   email: true,
   phone: true,
   role: true,
@@ -111,7 +113,8 @@ export class PrismaDeliveryPersonnelRepository implements DeliveryPersonnelRepos
     return this.prisma.user.create({
       data: {
         assignedShopId: input.assignedShopId,
-        name: input.name,
+        firstName: input.firstName,
+        lastName: input.lastName,
         email: input.email,
         phone: input.phone,
         passwordHash,
@@ -137,7 +140,8 @@ export class PrismaDeliveryPersonnelRepository implements DeliveryPersonnelRepos
       return transaction.user.update({
         where: { id: personId },
         data: {
-          name: input.name,
+          firstName: input.firstName,
+          lastName: input.lastName,
           email: input.email,
           phone: input.phone,
           assignedShopId: input.assignedShopId,

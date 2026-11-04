@@ -1,16 +1,51 @@
+import { mobileForTestAccount } from "./helpers/accounts";
 import { expect, test, type Page } from "@playwright/test";
 
 const password = "ChangeMe123!";
 
 async function signIn(page: Page, email: string, expectedPath: string) {
-  await page.goto("/auth");
-  await page.getByLabel("Email or phone").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.goto("/en/auth");
+  await page
+    .locator("#login-identifier")
+    .fill(await mobileForTestAccount(email));
+  await page
+    .locator("form:visible")
+    .getByLabel("Password", { exact: true })
+    .fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(new RegExp(`${expectedPath}$`));
 }
 
 test.describe.serial("role-based page authorization", () => {
+  test("every role has the shared My profile page", async ({ page }) => {
+    for (const [email, path] of [
+      ["customer@agstores.local", "/account"],
+      ["owner@agstores.local", "/owner"],
+      ["delivery@agstores.local", "/delivery"],
+      ["admin@agstores.local", "/admin"],
+    ]) {
+      await page.context().clearCookies();
+      await signIn(page, email!, path!);
+      await expect(
+        page
+          .locator('[data-slot="sidebar-content"]')
+          .getByRole("link", { name: "My profile", exact: true }),
+      ).toBeVisible();
+      await page.goto("/en/profile");
+      await expect(
+        page.getByRole("heading", { name: "My profile", exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByLabel("First name", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByLabel("Mobile number", { exact: true }),
+      ).toHaveValue(await mobileForTestAccount(email!));
+      await expect(
+        page.locator('input[name="role"],select[name="role"]'),
+      ).toHaveCount(0);
+    }
+  });
   test("anonymous users are redirected from every protected dashboard", async ({
     page,
   }) => {

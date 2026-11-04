@@ -1,3 +1,4 @@
+import { mobileForTestAccount } from "./helpers/accounts";
 import { expect, test } from "@playwright/test";
 
 test("shop owner creates, views, edits, stocks, and disables a product", async ({
@@ -8,8 +9,13 @@ test("shop owner creates, views, edits, stocks, and disables a product", async (
   const updatedName = `Updated E2E Product ${suffix}`;
 
   await page.goto("/auth");
-  await page.getByLabel("Email or phone").fill("owner@agstores.local");
-  await page.getByLabel("Password").fill("ChangeMe123!");
+  await page
+    .locator("#login-identifier")
+    .fill(await mobileForTestAccount("owner@agstores.local"));
+  await page
+    .locator("form:visible")
+    .getByLabel("Password", { exact: true })
+    .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/owner$/);
 

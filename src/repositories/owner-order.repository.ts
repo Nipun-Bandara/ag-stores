@@ -134,7 +134,12 @@ export class PrismaOwnerOrderRepository implements OwnerOrderRepository {
                 OR: [
                   { name: { contains: customer, mode: "insensitive" } },
                   { email: { contains: customer, mode: "insensitive" } },
-                  { phone: { contains: customer, mode: "insensitive" } },
+                  {
+                    phone: {
+                      contains: normalizeMobile(customer) ?? customer,
+                      mode: "insensitive",
+                    },
+                  },
                 ],
               },
             }
@@ -167,3 +172,4 @@ export class PrismaOwnerOrderRepository implements OwnerOrderRepository {
     });
   }
 }
+import { normalizeMobile } from "@/lib/account-identity";

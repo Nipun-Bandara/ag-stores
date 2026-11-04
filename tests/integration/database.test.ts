@@ -172,9 +172,11 @@ describeWithDatabase("PostgreSQL schema", () => {
     await expect(
       prisma.user.create({
         data: {
+          firstName: "Duplicate",
+          lastName: "Admin",
           name: "Duplicate Admin",
           email: "admin@agstores.local",
-          phone: `+94${Date.now()}`,
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           passwordHash: "not-a-real-hash",
           role: UserRole.ADMIN,
         },

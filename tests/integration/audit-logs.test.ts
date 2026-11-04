@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { getDb } from "@/db";
 
 import { randomUUID } from "node:crypto";
 
@@ -38,7 +39,11 @@ async function login(email: string) {
     new NextRequest("http://localhost/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier: email, password: "ChangeMe123!" }),
+      body: JSON.stringify({
+        identifier: (await getDb().user.findUniqueOrThrow({ where: { email } }))
+          .phone,
+        password: "ChangeMe123!",
+      }),
     }),
   );
   return response.cookies.get(SESSION_COOKIE_NAME)?.value ?? "";
@@ -47,8 +52,10 @@ async function login(email: string) {
 function authenticated(user: {
   id: string;
   name: string;
+  firstName: string;
+  lastName: string;
   email: string | null;
-  phone: string | null;
+  phone: string;
   role: UserRole;
   preferredLanguage: "EN" | "SI";
   status: UserStatus;
@@ -90,6 +97,9 @@ describeWithDatabase("sensitive action audit logging", () => {
     const [ownerRecord, customer, target] = await Promise.all([
       prisma.user.create({
         data: {
+          firstName: "Audit",
+          lastName: "Owner",
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           name: "Audit Owner",
           email: `audit-owner-${suffix}@example.test`,
           passwordHash: "not-used-for-authentication",
@@ -98,6 +108,9 @@ describeWithDatabase("sensitive action audit logging", () => {
       }),
       prisma.user.create({
         data: {
+          firstName: "Audit",
+          lastName: "Customer",
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           name: "Audit Customer",
           email: `audit-customer-${suffix}@example.test`,
           passwordHash: "not-used-for-authentication",
@@ -106,6 +119,9 @@ describeWithDatabase("sensitive action audit logging", () => {
       }),
       prisma.user.create({
         data: {
+          firstName: "Audit Managed",
+          lastName: "User",
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           name: "Audit Managed User",
           email: `audit-target-${suffix}@example.test`,
           passwordHash: "SensitivePasswordHashThatMustNeverBeLogged",

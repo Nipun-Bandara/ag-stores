@@ -34,6 +34,9 @@ describeWithDatabase("owner dashboard metrics", () => {
     const [owner, otherOwner, customer] = await Promise.all([
       prisma.user.create({
         data: {
+          firstName: "Dashboard",
+          lastName: "Owner",
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           name: "Dashboard Owner",
           email: `dashboard-owner-${suffix}@example.test`,
           passwordHash: "integration-test-only",
@@ -42,6 +45,9 @@ describeWithDatabase("owner dashboard metrics", () => {
       }),
       prisma.user.create({
         data: {
+          firstName: "Other Dashboard",
+          lastName: "Owner",
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           name: "Other Dashboard Owner",
           email: `other-dashboard-owner-${suffix}@example.test`,
           passwordHash: "integration-test-only",
@@ -50,6 +56,9 @@ describeWithDatabase("owner dashboard metrics", () => {
       }),
       prisma.user.create({
         data: {
+          firstName: "Dashboard",
+          lastName: "Customer",
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           name: "Dashboard Customer",
           email: `dashboard-customer-${suffix}@example.test`,
           passwordHash: "integration-test-only",

@@ -1,9 +1,15 @@
+import { mobileForTestAccount } from "./helpers/accounts";
 import { expect, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/auth");
-  await page.getByLabel("Email or phone").fill("customer@agstores.local");
-  await page.getByLabel("Password").fill("ChangeMe123!");
+  await page
+    .locator("#login-identifier")
+    .fill(await mobileForTestAccount("customer@agstores.local"));
+  await page
+    .locator("form:visible")
+    .getByLabel("Password", { exact: true })
+    .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/account$/);
 });
@@ -82,11 +88,7 @@ test("catalog and detail pages fit a mobile viewport", async ({ page }) => {
     ),
   ).toBe(true);
 
-  await page
-    .getByTestId("product-card")
-    .first()
-    .getByRole("link")
-    .click();
+  await page.getByTestId("product-card").first().getByRole("link").click();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   expect(
     await page.evaluate(

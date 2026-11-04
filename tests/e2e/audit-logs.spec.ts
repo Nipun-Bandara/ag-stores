@@ -1,3 +1,4 @@
+import { mobileForTestAccount } from "./helpers/accounts";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { expect, test, type Page } from "@playwright/test";
 
@@ -19,8 +20,13 @@ let administratorName = "";
 
 async function signIn(page: Page, email: string, destination: string) {
   await page.goto("/auth");
-  await page.getByLabel("Email or phone").fill(email);
-  await page.getByLabel("Password").fill("ChangeMe123!");
+  await page
+    .locator("#login-identifier")
+    .fill(await mobileForTestAccount(email));
+  await page
+    .locator("form:visible")
+    .getByLabel("Password", { exact: true })
+    .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(new RegExp(`${destination}$`));
 }

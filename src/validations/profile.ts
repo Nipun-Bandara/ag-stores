@@ -1,26 +1,19 @@
 import { z } from "zod";
-
+import {
+  mobileSchema,
+  optionalAccountEmailSchema,
+  personNameSchema,
+} from "@/lib/account-identity";
 import { passwordSchema } from "@/validations/auth";
-
-const editablePhoneSchema = z
-  .union([
-    z
-      .string()
-      .trim()
-      .regex(
-        /^\+[1-9]\d{7,14}$/,
-        "Use an international number such as +94771234567.",
-      ),
-    z.literal(""),
-    z.null(),
-  ])
-  .transform((value) => value || null);
 
 export const profileUpdateSchema = z
   .object({
-    name: z.string().trim().min(2).max(150),
-    phone: editablePhoneSchema,
+    firstName: personNameSchema,
+    lastName: personNameSchema,
+    phone: mobileSchema,
+    email: optionalAccountEmailSchema,
     preferredLanguage: z.enum(["EN", "SI"]),
+    currentPassword: z.string().max(128).optional(),
   })
   .strict();
 

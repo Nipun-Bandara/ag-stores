@@ -20,63 +20,94 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
+  if (
+    process.env.ALLOW_DEV_SEED !== "1" ||
+    process.env.NODE_ENV === "production"
+  ) {
+    throw new Error(
+      "Development fixtures require ALLOW_DEV_SEED=1 outside production.",
+    );
+  }
   const passwordHash = await hashPassword("ChangeMe123!");
-
-  await prisma.user.upsert({
-    where: { email: "admin@agstores.local" },
-    update: { passwordHash },
-    create: {
-      name: "AG Stores Administrator",
-      email: "admin@agstores.local",
-      phone: "+94700000001",
-      passwordHash,
-      role: UserRole.ADMIN,
-      preferredLanguage: PreferredLanguage.EN,
-      status: UserStatus.ACTIVE,
-    },
-  });
-
-  const owner = await prisma.user.upsert({
-    where: { email: "owner@agstores.local" },
-    update: { passwordHash },
-    create: {
-      name: "Sample Shop Owner",
-      email: "owner@agstores.local",
-      phone: "+94700000002",
-      passwordHash,
-      role: UserRole.SHOP_OWNER,
-      preferredLanguage: PreferredLanguage.EN,
-      status: UserStatus.ACTIVE,
-    },
-  });
-
-  const deliveryPerson = await prisma.user.upsert({
-    where: { email: "delivery@agstores.local" },
-    update: { passwordHash },
-    create: {
-      name: "Sample Delivery Person",
-      email: "delivery@agstores.local",
-      phone: "+94700000003",
-      passwordHash,
-      role: UserRole.DELIVERY_PERSON,
-      preferredLanguage: PreferredLanguage.SI,
-      status: UserStatus.ACTIVE,
-    },
-  });
-
-  await prisma.user.upsert({
-    where: { email: "customer@agstores.local" },
-    update: { passwordHash },
-    create: {
-      name: "Sample Customer",
-      email: "customer@agstores.local",
-      phone: "+94700000004",
-      passwordHash,
-      role: UserRole.CUSTOMER,
-      preferredLanguage: PreferredLanguage.EN,
-      status: UserStatus.ACTIVE,
-    },
-  });
+  async function fixture(
+    key: string,
+    email: string,
+    phone: string,
+    firstName: string,
+    lastName: string,
+    role: UserRole,
+    preferredLanguage: PreferredLanguage,
+  ) {
+    const keyed = await prisma.user.findUnique({
+      where: { developmentFixtureKey: key },
+    });
+    const matches = keyed
+      ? [keyed]
+      : await prisma.user.findMany({ where: { OR: [{ email }, { phone }] } });
+    if (matches.length > 1)
+      throw new Error(
+        `Conflicting development fixture contacts for ${key}; resolve manually.`,
+      );
+    const existing = matches[0];
+    if (existing) {
+      if (existing.role !== role)
+        throw new Error(`Unexpected role for development fixture ${key}.`);
+      if (existing.developmentFixtureKey === key) return existing;
+      return prisma.user.update({
+        where: { id: existing.id },
+        data: { developmentFixtureKey: key },
+      });
+    }
+    return prisma.user.create({
+      data: {
+        developmentFixtureKey: key,
+        firstName,
+        lastName,
+        email,
+        phone,
+        passwordHash,
+        role,
+        preferredLanguage,
+        status: UserStatus.ACTIVE,
+      },
+    });
+  }
+  await fixture(
+    "admin",
+    "admin@agstores.local",
+    "+94700000001",
+    "AG Stores",
+    "Administrator",
+    UserRole.ADMIN,
+    PreferredLanguage.EN,
+  );
+  const owner = await fixture(
+    "owner",
+    "owner@agstores.local",
+    "+94700000002",
+    "Sample Shop",
+    "Owner",
+    UserRole.SHOP_OWNER,
+    PreferredLanguage.EN,
+  );
+  const deliveryPerson = await fixture(
+    "delivery",
+    "delivery@agstores.local",
+    "+94700000003",
+    "Sample Delivery",
+    "Person",
+    UserRole.DELIVERY_PERSON,
+    PreferredLanguage.SI,
+  );
+  await fixture(
+    "customer",
+    "customer@agstores.local",
+    "+94700000004",
+    "Sample",
+    "Customer",
+    UserRole.CUSTOMER,
+    PreferredLanguage.EN,
+  );
 
   let shop = await prisma.shop.findFirst({
     where: { ownerId: owner.id, name: "Colombo Fresh Market" },
@@ -97,16 +128,18 @@ async function main() {
     },
   });
 
-  await prisma.user.update({
-    where: { id: deliveryPerson.id },
-    data: { assignedShopId: shop.id },
-  });
+  if (!deliveryPerson.assignedShopId) {
+    await prisma.user.update({
+      where: { id: deliveryPerson.id },
+      data: { assignedShopId: shop.id },
+    });
+  }
 
   const groceries = await prisma.category.upsert({
     where: {
       shopId_nameEn: { shopId: shop.id, nameEn: "Groceries" },
     },
-    update: { nameSi: "සිල්ලර බඩු", status: CatalogStatus.ACTIVE },
+    update: {},
     create: {
       shopId: shop.id,
       nameEn: "Groceries",
@@ -119,7 +152,7 @@ async function main() {
     where: {
       shopId_nameEn: { shopId: shop.id, nameEn: "Beverages" },
     },
-    update: { nameSi: "පාන වර්ග", status: CatalogStatus.ACTIVE },
+    update: {},
     create: {
       shopId: shop.id,
       nameEn: "Beverages",
@@ -132,7 +165,7 @@ async function main() {
     where: {
       shopId_nameEn: { shopId: shop.id, nameEn: "Seasonal" },
     },
-    update: { nameSi: "සෘතුමය", status: CatalogStatus.INACTIVE },
+    update: {},
     create: {
       shopId: shop.id,
       nameEn: "Seasonal",
@@ -143,13 +176,7 @@ async function main() {
 
   await prisma.product.upsert({
     where: { shopId_nameEn: { shopId: shop.id, nameEn: "Red Rice 1kg" } },
-    update: {
-      categoryId: groceries.id,
-      price: "420.00",
-      stockQuantity: 50,
-      lowStockThreshold: 10,
-      isAvailable: true,
-    },
+    update: {},
     create: {
       shopId: shop.id,
       categoryId: groceries.id,
@@ -165,13 +192,7 @@ async function main() {
 
   await prisma.product.upsert({
     where: { shopId_nameEn: { shopId: shop.id, nameEn: "Ceylon Tea" } },
-    update: {
-      categoryId: beverages.id,
-      price: "680.00",
-      stockQuantity: 30,
-      lowStockThreshold: 5,
-      isAvailable: true,
-    },
+    update: {},
     create: {
       shopId: shop.id,
       categoryId: beverages.id,
@@ -187,7 +208,7 @@ async function main() {
 
   await prisma.product.upsert({
     where: { shopId_nameEn: { shopId: shop.id, nameEn: "Coconut Milk" } },
-    update: { stockQuantity: 0, isAvailable: true },
+    update: {},
     create: {
       shopId: shop.id,
       categoryId: groceries.id,
@@ -204,7 +225,7 @@ async function main() {
     where: {
       shopId_nameEn: { shopId: shop.id, nameEn: "Unavailable Sample" },
     },
-    update: { isAvailable: false },
+    update: {},
     create: {
       shopId: shop.id,
       categoryId: groceries.id,
@@ -219,7 +240,7 @@ async function main() {
     where: {
       shopId_nameEn: { shopId: shop.id, nameEn: "Inactive Category Sample" },
     },
-    update: { categoryId: seasonal.id, isAvailable: true },
+    update: {},
     create: {
       shopId: shop.id,
       categoryId: seasonal.id,

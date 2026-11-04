@@ -111,7 +111,12 @@ previous status, new status, actor, timestamp, and optional note.
 
 ## Uniqueness and indexing
 
-Emails and user phone numbers are globally unique. Address labels are unique
+User UUIDs remain immutable primary keys. Canonical Sri Lankan mobile numbers
+are required and globally unique; optional emails retain case-insensitive
+uniqueness. First/last names are required and nonunique. A trigger derives the
+read-compatible full-name column, and `legacyName` preserves original migrated
+names. See [mobile account migration](mobile-accounts.md) before applying the
+required identity constraints. Address labels are unique
 per customer, category and product English names are unique per shop, an order
 can appear in only one delivery batch, and batch sequence numbers cannot repeat.
 Indexes cover common role/status, shop catalog, customer order history, shop

@@ -1,11 +1,7 @@
 // @vitest-environment node
-
-import { randomUUID } from "node:crypto";
-
 import { PrismaPg } from "@prisma/adapter-pg";
 import { NextRequest } from "next/server";
 import { afterAll, describe, expect, it } from "vitest";
-
 import {
   GET as getProfileRoute,
   PATCH as updateProfileRoute,
@@ -15,11 +11,10 @@ import { POST as loginRoute } from "@/app/api/auth/login/route";
 import { POST as registerRoute } from "@/app/api/auth/register/route";
 import { PrismaClient } from "@/generated/prisma/client";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
-
+import { hashSessionToken } from "@/lib/auth/session-token";
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const describeWithDatabase = databaseUrl ? describe : describe.skip;
-
-function jsonRequest(path: string, body: unknown, token?: string) {
+function request(path: string, body: unknown, token?: string) {
   return new NextRequest(`http://localhost${path}`, {
     method: "POST",
     headers: {
@@ -30,166 +25,199 @@ function jsonRequest(path: string, body: unknown, token?: string) {
   });
 }
 
-describeWithDatabase("customer profile API", () => {
+describeWithDatabase("shared self-profile API", () => {
   const prisma = new PrismaClient({
     adapter: new PrismaPg({
       connectionString:
         databaseUrl ?? "postgresql://unused:unused@127.0.0.1:1/unused",
     }),
   });
-  const suffix = randomUUID();
-  const email = `profile-${suffix}@example.test`;
-  const otherEmail = `other-${suffix}@example.test`;
-  const currentPassword = "CurrentPassword123!";
-  const newPassword = "NewSecurePassword123!";
-  let userId: string;
-  let otherUserId: string;
-  let token: string;
-
+  const currentPassword = "CurrentPassword123!",
+    newPassword = "NewSecurePassword123!";
+  const phone = `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`;
+  const otherPhone = `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`;
+  const changedPhone = `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`;
+  const profileEmail = `profile-${phone.slice(3)}@example.test`;
+  let addressId = "";
+  let userId = "",
+    otherId = "",
+    token = "";
   afterAll(async () => {
-    const userIds = [userId, otherUserId].filter(Boolean);
-    if (userIds.length) {
-      await prisma.authSession.deleteMany({
-        where: { userId: { in: userIds } },
+    const ids = [userId, otherId].filter(Boolean);
+    if (ids.length) {
+      await prisma.customerAddress.deleteMany({
+        where: { customerId: { in: ids } },
       });
-      await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+      await prisma.authSession.deleteMany({ where: { userId: { in: ids } } });
+      await prisma.user.deleteMany({ where: { id: { in: ids } } });
     }
     await prisma.$disconnect();
   });
-
-  it("creates two isolated customer accounts", async () => {
-    const registration = await registerRoute(
-      jsonRequest("/api/auth/register", {
-        name: "Profile Customer",
-        email,
-        phone: "",
-        password: currentPassword,
-        preferredLanguage: "EN",
-      }),
-    );
-    const otherRegistration = await registerRoute(
-      jsonRequest("/api/auth/register", {
-        name: "Other Customer",
-        email: otherEmail,
-        phone: "",
-        password: currentPassword,
-        preferredLanguage: "EN",
-      }),
-    );
-
-    userId = (await registration.json()).data.id;
-    otherUserId = (await otherRegistration.json()).data.id;
-    token = registration.cookies.get(SESSION_COOKIE_NAME)?.value ?? "";
-
-    expect(registration.status).toBe(201);
-    expect(otherRegistration.status).toBe(201);
+  const details = (mobile: string, email = "") => ({
+    firstName: "Same",
+    lastName: "Name",
+    phone: mobile,
+    email,
+    preferredLanguage: "EN",
   });
-
-  it("allows the customer to view a safe profile", async () => {
+  it("creates two accounts with the same names and optional email", async () => {
+    const a = await registerRoute(
+      request("/api/auth/register", {
+        ...details(phone, profileEmail),
+        password: currentPassword,
+      }),
+    );
+    const b = await registerRoute(
+      request("/api/auth/register", {
+        ...details(otherPhone),
+        password: currentPassword,
+      }),
+    );
+    expect(a.status).toBe(201);
+    expect(b.status).toBe(201);
+    userId = (await a.json()).data.id;
+    otherId = (await b.json()).data.id;
+    token = a.cookies.get(SESSION_COOKIE_NAME)?.value ?? "";
+    addressId = (
+      await prisma.customerAddress.create({
+        data: {
+          customerId: userId,
+          label: "Profile home",
+          address: "1 Test Road",
+          latitude: "6.9",
+          longitude: "79.8",
+        },
+      })
+    ).id;
+  });
+  it("returns only the signed-in user's safe profile", async () => {
     const response = await getProfileRoute(
       new NextRequest("http://localhost/api/account/profile", {
         headers: { Cookie: `${SESSION_COOKIE_NAME}=${token}` },
       }),
     );
-    const body = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(body.data).toMatchObject({ id: userId, email });
-    expect(body.data).not.toHaveProperty("passwordHash");
+    const data = (await response.json()).data;
+    expect(data).toMatchObject({
+      id: userId,
+      firstName: "Same",
+      lastName: "Name",
+      phone,
+      email: profileEmail,
+    });
+    expect(data).not.toHaveProperty("passwordHash");
   });
-
-  it("updates valid profile data without changing role", async () => {
+  it("edits names and language and clears optional email without changing UUID", async () => {
     const response = await updateProfileRoute(
-      jsonRequest(
+      request(
         "/api/account/profile",
-        {
-          name: "Updated Profile Customer",
-          phone: "+94771234567",
-          preferredLanguage: "SI",
-        },
+        { ...details(phone, ""), firstName: "தமிழ்", preferredLanguage: "SI" },
         token,
       ),
     );
-    const body = await response.json();
-
     expect(response.status).toBe(200);
-    expect(body.data).toMatchObject({
+    expect((await response.json()).data).toMatchObject({
       id: userId,
-      name: "Updated Profile Customer",
-      phone: "+94771234567",
-      preferredLanguage: "SI",
+      name: "தமிழ் Name",
+      email: null,
       role: "CUSTOMER",
     });
-    expect(body.data).not.toHaveProperty("passwordHash");
+    expect(
+      (await prisma.user.findUniqueOrThrow({ where: { id: userId } }))
+        .legacyName,
+    ).toBeNull();
   });
-
-  it("rejects invalid phone and email input", async () => {
-    const invalidPhone = await updateProfileRoute(
-      jsonRequest(
+  it("rejects protected fields and another account's mobile", async () => {
+    const protectedEdit = await updateProfileRoute(
+      request(
         "/api/account/profile",
-        {
-          name: "Updated Profile Customer",
-          phone: "0771234567",
-          preferredLanguage: "SI",
-        },
+        { ...details(phone), role: "ADMIN", userId: otherId },
         token,
       ),
     );
-    const emailAttempt = await updateProfileRoute(
-      jsonRequest(
+    expect(protectedEdit.status).toBe(400);
+    const duplicate = await updateProfileRoute(
+      request(
         "/api/account/profile",
-        {
-          name: "Updated Profile Customer",
-          phone: "+94771234567",
-          preferredLanguage: "SI",
-          email: "invalid-email",
-        },
+        { ...details(otherPhone), currentPassword },
         token,
       ),
     );
-
-    expect(invalidPhone.status).toBe(400);
-    expect(emailAttempt.status).toBe(400);
+    expect(duplicate.status).toBe(409);
+    expect(
+      (await prisma.user.findUniqueOrThrow({ where: { id: userId } })).phone,
+    ).toBe(phone);
+    expect(
+      await prisma.user.findUniqueOrThrow({ where: { id: userId } }),
+    ).toMatchObject({ firstName: "தமிழ்", email: null });
   });
-
-  it("rejects unauthenticated updates", async () => {
+  it("requires the current password for a changed mobile and rolls back wrong passwords", async () => {
+    const missing = await updateProfileRoute(
+      request("/api/account/profile", { ...details(changedPhone) }, token),
+    );
+    expect((await missing.json()).error.code).toBe("CURRENT_PASSWORD_REQUIRED");
+    const wrong = await updateProfileRoute(
+      request(
+        "/api/account/profile",
+        { ...details(changedPhone), currentPassword: "WrongPassword123!" },
+        token,
+      ),
+    );
+    expect((await wrong.json()).error.code).toBe("INVALID_CURRENT_PASSWORD");
+    expect(
+      (await prisma.user.findUniqueOrThrow({ where: { id: userId } })).phone,
+    ).toBe(phone);
+  });
+  it("normalizes a changed mobile and keeps the same UUID and session", async () => {
+    const local = `0${changedPhone.slice(3)}`;
     const response = await updateProfileRoute(
-      jsonRequest("/api/account/profile", {
-        name: "Unauthorized",
-        phone: "+94770000000",
-        preferredLanguage: "EN",
+      request(
+        "/api/account/profile",
+        { ...details(local), currentPassword },
+        token,
+      ),
+    );
+    expect(response.status).toBe(200);
+    expect((await response.json()).data).toMatchObject({
+      id: userId,
+      phone: changedPhone,
+    });
+    const profile = await getProfileRoute(
+      new NextRequest("http://localhost/api/account/profile", {
+        headers: { Cookie: `${SESSION_COOKIE_NAME}=${token}` },
       }),
     );
-
-    expect(response.status).toBe(401);
+    expect((await profile.json()).data.id).toBe(userId);
+    expect(
+      (
+        await prisma.customerAddress.findUniqueOrThrow({
+          where: { id: addressId },
+        })
+      ).customerId,
+    ).toBe(userId);
+    expect(
+      (
+        await loginRoute(
+          request("/api/auth/login", {
+            identifier: phone,
+            password: currentPassword,
+          }),
+        )
+      ).status,
+    ).toBe(401);
+    expect(
+      (
+        await loginRoute(
+          request("/api/auth/login", {
+            identifier: changedPhone,
+            password: currentPassword,
+          }),
+        )
+      ).status,
+    ).toBe(200);
   });
-
-  it("cannot update another customer's profile or role", async () => {
-    const response = await updateProfileRoute(
-      jsonRequest(
-        "/api/account/profile",
-        {
-          userId: otherUserId,
-          role: "ADMIN",
-          name: "Compromised Customer",
-          phone: "+94770000001",
-          preferredLanguage: "EN",
-        },
-        token,
-      ),
-    );
-    const otherCustomer = await prisma.user.findUniqueOrThrow({
-      where: { id: otherUserId },
-    });
-
-    expect(response.status).toBe(400);
-    expect(otherCustomer.name).toBe("Other Customer");
-    expect(otherCustomer.role).toBe("CUSTOMER");
-  });
-
-  it("rejects a wrong current password", async () => {
-    const response = await changePasswordRoute(
-      jsonRequest(
+  it("reuses the password-change flow", async () => {
+    const wrong = await changePasswordRoute(
+      request(
         "/api/account/security/password",
         {
           currentPassword: "WrongPassword123!",
@@ -199,42 +227,72 @@ describeWithDatabase("customer profile API", () => {
         token,
       ),
     );
-
-    expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe("INVALID_CURRENT_PASSWORD");
-  });
-
-  it("changes the password with the correct current password", async () => {
-    const response = await changePasswordRoute(
-      jsonRequest(
+    expect(wrong.status).toBe(400);
+    const changed = await changePasswordRoute(
+      request(
         "/api/account/security/password",
-        {
-          currentPassword,
-          newPassword,
-          confirmPassword: newPassword,
-        },
+        { currentPassword, newPassword, confirmPassword: newPassword },
         token,
       ),
     );
-
-    expect(response.status).toBe(200);
+    expect(changed.status).toBe(200);
+    expect(
+      (
+        await loginRoute(
+          request("/api/auth/login", {
+            identifier: changedPhone,
+            password: newPassword,
+          }),
+        )
+      ).status,
+    ).toBe(200);
   });
-
-  it("logs in with the new password and rejects the old password", async () => {
-    const oldLogin = await loginRoute(
-      jsonRequest("/api/auth/login", {
-        identifier: email,
-        password: currentPassword,
-      }),
-    );
-    const newLogin = await loginRoute(
-      jsonRequest("/api/auth/login", {
-        identifier: email,
-        password: newPassword,
-      }),
-    );
-
-    expect(oldLogin.status).toBe(401);
-    expect(newLogin.status).toBe(200);
-  });
+  it.each([
+    "admin@agstores.local",
+    "owner@agstores.local",
+    "delivery@agstores.local",
+    "customer@agstores.local",
+  ])(
+    "supports self-profile management for %s without changing assignments",
+    async (email) => {
+      const before = await prisma.user.findUniqueOrThrow({ where: { email } });
+      const login = await loginRoute(
+        request("/api/auth/login", {
+          identifier: before.phone,
+          password: "ChangeMe123!",
+        }),
+      );
+      expect(login.status).toBe(200);
+      const sessionToken = login.cookies.get(SESSION_COOKIE_NAME)?.value ?? "";
+      try {
+        const response = await updateProfileRoute(
+          request(
+            "/api/account/profile",
+            {
+              firstName: before.firstName,
+              lastName: before.lastName,
+              phone: before.phone,
+              email: before.email ?? "",
+              preferredLanguage: before.preferredLanguage,
+            },
+            sessionToken,
+          ),
+        );
+        expect(response.status).toBe(200);
+        const after = await prisma.user.findUniqueOrThrow({
+          where: { id: before.id },
+        });
+        expect(after).toMatchObject({
+          id: before.id,
+          role: before.role,
+          status: before.status,
+          assignedShopId: before.assignedShopId,
+        });
+      } finally {
+        await prisma.authSession.deleteMany({
+          where: { tokenHash: hashSessionToken(sessionToken) },
+        });
+      }
+    },
+  );
 });

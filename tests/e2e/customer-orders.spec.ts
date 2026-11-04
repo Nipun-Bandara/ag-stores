@@ -1,3 +1,4 @@
+import { mobileForTestAccount } from "./helpers/accounts";
 import { randomUUID } from "node:crypto";
 
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -26,8 +27,13 @@ let otherOrderId: string;
 
 async function signIn(page: Page) {
   await page.goto("/auth");
-  await page.getByLabel("Email or phone").fill("customer@agstores.local");
-  await page.locator("#login-password").fill("ChangeMe123!");
+  await page
+    .locator("#login-identifier")
+    .fill(await mobileForTestAccount("customer@agstores.local"));
+  await page
+    .locator("form:visible")
+    .getByLabel("Password", { exact: true })
+    .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/account$/);
 }
@@ -59,6 +65,9 @@ test.describe.serial("customer order history and tracking", () => {
 
     const otherCustomer = await prisma.user.create({
       data: {
+        firstName: "Private Order",
+        lastName: "Customer",
+        phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
         name: "Private Order Customer",
         email: `private-order-${suffix}@example.test`,
         passwordHash: "e2e-only-not-used",

@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { getDb } from "@/db";
 
 import { randomUUID } from "node:crypto";
 
@@ -27,7 +28,8 @@ async function login(email: string) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        identifier: email,
+        identifier: (await getDb().user.findUniqueOrThrow({ where: { email } }))
+          .phone,
         password: "ChangeMe123!",
       }),
     }),
@@ -85,11 +87,17 @@ describeWithDatabase("available delivery orders API", () => {
     expect(products).toHaveLength(2);
 
     const digits = suffix.replace(/\D/g, "").padEnd(8, "1").slice(0, 8);
+    const mobileDigits = digits.slice(0, 7);
     const customer = await prisma.user.create({
       data: {
+        firstName: `Sensitive Customer ${suffix}`
+          .split(/\s+/)
+          .slice(0, -1)
+          .join(" "),
+        lastName: `Sensitive Customer ${suffix}`.split(/\s+/).at(-1)!,
         name: `Sensitive Customer ${suffix}`,
         email: `sensitive-${suffix}@example.test`,
-        phone: `+9478${digits}`,
+        phone: `+9478${mobileDigits}`,
         passwordHash: "test-only-not-used",
         role: UserRole.CUSTOMER,
       },
@@ -97,9 +105,11 @@ describeWithDatabase("available delivery orders API", () => {
     customerId = customer.id;
     const otherOwner = await prisma.user.create({
       data: {
+        firstName: "Other Available Orders",
+        lastName: "Owner",
         name: "Other Available Orders Owner",
         email: `other-orders-owner-${suffix}@example.test`,
-        phone: `+9479${digits}`,
+        phone: `+9479${mobileDigits}`,
         passwordHash: "test-only-not-used",
         role: UserRole.SHOP_OWNER,
       },

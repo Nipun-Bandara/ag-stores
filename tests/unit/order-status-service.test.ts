@@ -29,7 +29,9 @@ function user(id: string, role: UserRole): AuthenticatedUser {
     role,
     name: "Test actor",
     email: "actor@example.test",
-    phone: null,
+    firstName: "Test",
+    lastName: "User",
+    phone: "+94770000000",
     preferredLanguage: PreferredLanguage.EN,
     status: UserStatus.ACTIVE,
   };

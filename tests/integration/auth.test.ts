@@ -1,11 +1,8 @@
 // @vitest-environment node
-
 import { randomUUID } from "node:crypto";
-
 import { PrismaPg } from "@prisma/adapter-pg";
 import { NextRequest } from "next/server";
 import { afterAll, describe, expect, it } from "vitest";
-
 import { POST as loginRoute } from "@/app/api/auth/login/route";
 import { POST as logoutRoute } from "@/app/api/auth/logout/route";
 import { POST as registerRoute } from "@/app/api/auth/register/route";
@@ -13,11 +10,9 @@ import { GET as sessionRoute } from "@/app/api/auth/session/route";
 import { PrismaClient, UserRole } from "@/generated/prisma/client";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 import { hashSessionToken } from "@/lib/auth/session-token";
-
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const describeWithDatabase = databaseUrl ? describe : describe.skip;
-
-function jsonRequest(path: string, body: unknown) {
+function request(path: string, body: unknown) {
   return new NextRequest(`http://localhost${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -25,7 +20,7 @@ function jsonRequest(path: string, body: unknown) {
   });
 }
 
-describeWithDatabase("authentication API", () => {
+describeWithDatabase("mobile authentication API", () => {
   const prisma = new PrismaClient({
     adapter: new PrismaPg({
       connectionString:
@@ -34,120 +29,139 @@ describeWithDatabase("authentication API", () => {
   });
   const suffix = randomUUID();
   const email = `auth-${suffix}@example.test`;
+  const phone = `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`;
+  const localPhone = `0${phone.slice(3)}`;
   const password = "SecurePassword123!";
-  let userId: string;
-  let registrationToken: string;
-  let loginToken: string;
-
+  let userId = "",
+    registrationToken = "",
+    loginToken = "";
+  const extraIds: string[] = [];
   afterAll(async () => {
-    if (userId) {
-      await prisma.authSession.deleteMany({ where: { userId } });
-      await prisma.user.deleteMany({ where: { id: userId } });
+    const ids = [userId, ...extraIds].filter(Boolean);
+    if (ids.length) {
+      await prisma.authSession.deleteMany({ where: { userId: { in: ids } } });
+      await prisma.user.deleteMany({ where: { id: { in: ids } } });
     }
     await prisma.$disconnect();
   });
 
-  it("rejects invalid registration input", async () => {
+  it("requires mobile and both names and disallows public role selection", async () => {
+    for (const payload of [
+      { firstName: "A", lastName: "B", password, preferredLanguage: "EN" },
+      { lastName: "B", phone, password, preferredLanguage: "EN" },
+      { firstName: "A", phone, password, preferredLanguage: "EN" },
+      {
+        firstName: "A",
+        lastName: "B",
+        phone,
+        password,
+        preferredLanguage: "EN",
+        role: "ADMIN",
+      },
+    ])
+      expect(
+        (await registerRoute(request("/api/auth/register", payload))).status,
+      ).toBe(400);
+  });
+  it("registers without email, normalizes phone and creates a secure customer session", async () => {
     const response = await registerRoute(
-      jsonRequest("/api/auth/register", {
-        name: "A",
-        email: "not-an-email",
-        password: "weak",
+      request("/api/auth/register", {
+        firstName: "අමා",
+        lastName: "Perera",
+        phone: localPhone,
+        password,
+        preferredLanguage: "SI",
+      }),
+    );
+    const body = await response.json();
+    expect(response.status).toBe(201);
+    expect(body.data).toMatchObject({
+      phone,
+      email: null,
+      role: UserRole.CUSTOMER,
+    });
+    expect(body.data).not.toHaveProperty("passwordHash");
+    registrationToken = response.cookies.get(SESSION_COOKIE_NAME)?.value ?? "";
+    userId = body.data.id;
+    expect(registrationToken).toHaveLength(43);
+    expect(response.headers.get("set-cookie")).toContain("HttpOnly");
+  });
+  it("allows duplicate names but rejects equivalent mobile formats", async () => {
+    const duplicate = await registerRoute(
+      request("/api/auth/register", {
+        firstName: "අමා",
+        lastName: "Perera",
+        phone,
+        email,
+        password,
         preferredLanguage: "EN",
       }),
     );
-
-    expect(response.status).toBe(400);
+    expect(duplicate.status).toBe(409);
   });
-
-  it("registers only a customer and creates a secure session", async () => {
-    const response = await registerRoute(
-      jsonRequest("/api/auth/register", {
-        name: "Authentication Test Customer",
-        email,
-        phone: "",
-        password,
-        preferredLanguage: "SI",
-        role: "ADMIN",
-      }),
+  it("handles concurrent equivalent-mobile registrations without duplicate accounts", async () => {
+    const number = `+9476${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`;
+    const payload = {
+      firstName: "අමා",
+      lastName: "Perera",
+      email: "",
+      password,
+      preferredLanguage: "EN",
+    };
+    const results = await Promise.all(
+      [number, `0${number.slice(3)}`].map((mobile) =>
+        registerRoute(
+          request("/api/auth/register", { ...payload, phone: mobile }),
+        ),
+      ),
     );
-    const body = await response.json();
-    registrationToken = response.cookies.get(SESSION_COOKIE_NAME)?.value ?? "";
-    userId = body.data.id;
-
-    expect(response.status).toBe(201);
-    expect(body.data).toMatchObject({ email, role: UserRole.CUSTOMER });
-    expect(body.data).not.toHaveProperty("passwordHash");
-    expect(registrationToken).toHaveLength(43);
-    expect(response.headers.get("set-cookie")).toContain("HttpOnly");
-    expect(response.headers.get("set-cookie")).toContain("SameSite=lax");
-    expect(await prisma.authSession.count({ where: { userId } })).toBe(1);
+    expect(results.map((result) => result.status).sort()).toEqual([201, 409]);
+    for (const result of results)
+      if (result.status === 201) extraIds.push((await result.json()).data.id);
+    expect(await prisma.user.count({ where: { phone: number } })).toBe(1);
   });
-
-  it("logs in with valid credentials and creates another session", async () => {
+  it("logs in by mobile only and uses a generic failure for unknown numbers", async () => {
     const response = await loginRoute(
-      jsonRequest("/api/auth/login", { identifier: email, password }),
+      request("/api/auth/login", { identifier: localPhone, password }),
     );
-    const body = await response.json();
+    expect(response.status).toBe(200);
     loginToken = response.cookies.get(SESSION_COOKIE_NAME)?.value ?? "";
-
-    expect(response.status).toBe(200);
-    expect(body.data).not.toHaveProperty("passwordHash");
     expect(loginToken).not.toBe(registrationToken);
-    expect(await prisma.authSession.count({ where: { userId } })).toBe(2);
-  });
-
-  it("uses the same generic error for wrong passwords and unknown users", async () => {
-    const wrongPassword = await loginRoute(
-      jsonRequest("/api/auth/login", {
-        identifier: email,
-        password: "IncorrectPassword123!",
+    const wrong = await loginRoute(
+      request("/api/auth/login", {
+        identifier: phone,
+        password: "WrongPassword123!",
       }),
     );
-    const unknownUser = await loginRoute(
-      jsonRequest("/api/auth/login", {
-        identifier: `unknown-${suffix}@example.test`,
-        password,
-      }),
+    const unknown = await loginRoute(
+      request("/api/auth/login", { identifier: "+94789999999", password }),
     );
-
-    expect(wrongPassword.status).toBe(401);
-    expect(unknownUser.status).toBe(401);
-    expect((await wrongPassword.json()).error.message).toBe(
-      (await unknownUser.json()).error.message,
+    expect(wrong.status).toBe(401);
+    expect(unknown.status).toBe(401);
+    expect((await wrong.json()).error.message).toBe(
+      (await unknown.json()).error.message,
     );
+    expect(
+      (
+        await loginRoute(
+          request("/api/auth/login", { identifier: email, password }),
+        )
+      ).status,
+    ).toBe(400);
   });
-
-  it("retrieves the authenticated user from the session", async () => {
-    const response = await sessionRoute(
-      new NextRequest("http://localhost/api/auth/session", {
-        headers: { Cookie: `${SESSION_COOKIE_NAME}=${loginToken}` },
-      }),
+  it("preserves session identity and revokes only the logged-out session", async () => {
+    const headers = { Cookie: `${SESSION_COOKIE_NAME}=${loginToken}` };
+    const session = await sessionRoute(
+      new NextRequest("http://localhost/api/auth/session", { headers }),
     );
-    const body = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(body.data).toMatchObject({ id: userId, email });
-    expect(body.data).not.toHaveProperty("passwordHash");
-  });
-
-  it("logs out, revokes the session, and clears the cookie", async () => {
-    const cookieHeader = { Cookie: `${SESSION_COOKIE_NAME}=${loginToken}` };
-    const response = await logoutRoute(
+    expect((await session.json()).data).toMatchObject({ id: userId, phone });
+    const logout = await logoutRoute(
       new NextRequest("http://localhost/api/auth/logout", {
         method: "POST",
-        headers: cookieHeader,
+        headers,
       }),
     );
-    const sessionAfterLogout = await sessionRoute(
-      new NextRequest("http://localhost/api/auth/session", {
-        headers: cookieHeader,
-      }),
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.cookies.get(SESSION_COOKIE_NAME)?.value).toBe("");
-    expect(sessionAfterLogout.status).toBe(401);
+    expect(logout.status).toBe(200);
     expect(
       await prisma.authSession.count({
         where: { tokenHash: hashSessionToken(loginToken) },

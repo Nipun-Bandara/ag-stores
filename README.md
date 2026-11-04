@@ -35,16 +35,16 @@ shadcn/ui conventions, PostgreSQL, Prisma, and Zod.
    npm run db:generate
    ```
 
-4. Apply migrations once models have been added:
+4. Apply migrations. Existing databases must first follow the staged identity check/backfill in [mobile accounts](docs/mobile-accounts.md):
 
    ```bash
-   npm run db:migrate
+   npm run db:migrate:deploy
    ```
 
 5. Load the idempotent development seed:
 
    ```bash
-   npm run db:seed
+   ALLOW_DEV_SEED=1 npm run db:seed
    ```
 
 6. Start the development server:
@@ -70,7 +70,7 @@ Database integration tests require a migrated and seeded PostgreSQL database:
 
 ```bash
 DATABASE_URL="<test-database-url>" npm run db:migrate:deploy
-DATABASE_URL="<test-database-url>" npm run db:seed
+DATABASE_URL="<test-database-url>" ALLOW_DEV_SEED=1 npm run db:seed
 TEST_DATABASE_URL="<test-database-url>" npm run test:db
 ```
 

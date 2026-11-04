@@ -1,9 +1,15 @@
+import { mobileForTestAccount } from "./helpers/accounts";
 import { expect, test } from "@playwright/test";
 
 test("owner dashboard displays useful shop summary cards", async ({ page }) => {
   await page.goto("/auth");
-  await page.getByLabel("Email or phone").fill("owner@agstores.local");
-  await page.getByLabel("Password").fill("ChangeMe123!");
+  await page
+    .locator("#login-identifier")
+    .fill(await mobileForTestAccount("owner@agstores.local"));
+  await page
+    .locator("form:visible")
+    .getByLabel("Password", { exact: true })
+    .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/owner$/);
 
