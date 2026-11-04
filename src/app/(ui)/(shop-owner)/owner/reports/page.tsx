@@ -203,7 +203,7 @@ export default async function OwnerReportsPage({
             <ol className="mt-4 divide-y">
               {reports.bestSellingProducts.map((product) => (
                 <li
-                  key={product.productId}
+                  key={`${product.productId}:${product.sellingUnit ?? "UNIT"}`}
                   className="flex justify-between gap-4 py-3 text-sm"
                 >
                   <span>
@@ -218,7 +218,11 @@ export default async function OwnerReportsPage({
                     </span>
                   </span>
                   <span className="font-semibold">
-                    {product.quantitySold} <Text value={"sold "} />
+                    {product.quantitySold}{" "}
+                    <Text
+                      value={product.sellingUnit === "KG" ? "kg" : "units"}
+                    />{" "}
+                    <Text value={"sold "} />
                   </span>
                 </li>
               ))}
@@ -259,7 +263,14 @@ export default async function OwnerReportsPage({
                     </span>
                   </span>
                   <span>
-                    {product.stockQuantity} / {product.lowStockThreshold}
+                    {product.stockQuantity}{" "}
+                    <Text
+                      value={product.sellingUnit === "KG" ? "kg" : "units"}
+                    />{" "}
+                    / {product.lowStockThreshold}{" "}
+                    <Text
+                      value={product.sellingUnit === "KG" ? "kg" : "units"}
+                    />
                   </span>
                 </li>
               ))}

@@ -1,3 +1,4 @@
+import { mobileForTestAccount } from "./helpers/accounts";
 import { randomUUID } from "node:crypto";
 
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -30,8 +31,13 @@ let secondOrderId = "";
 
 async function signIn(page: Page, email: string) {
   await page.goto("/auth");
-  await page.getByLabel("Email or phone").fill(email);
-  await page.getByLabel("Password").fill("ChangeMe123!");
+  await page
+    .locator("#login-identifier")
+    .fill(await mobileForTestAccount(email));
+  await page
+    .locator("form:visible")
+    .getByLabel("Password", { exact: true })
+    .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/delivery$/);
 }
@@ -47,19 +53,23 @@ test.describe.serial("active delivery batch", () => {
     const [customer, otherRider] = await Promise.all([
       prisma.user.create({
         data: {
+          firstName: "Batch E2E",
+          lastName: "Customer",
           name: "Batch E2E Customer",
           email: `batch-e2e-customer-${suffix}@example.test`,
-          phone: `+9450${digits}`,
+          phone: `+9470${digits.slice(0, 7)}`,
           passwordHash: "e2e-only-not-used",
           role: UserRole.CUSTOMER,
         },
       }),
       prisma.user.create({
         data: {
+          firstName: "Other Batch E2E",
+          lastName: "Rider",
           assignedShopId: shopId,
           name: "Other Batch E2E Rider",
           email: `batch-e2e-rider-${suffix}@example.test`,
-          phone: `+9451${digits}`,
+          phone: `+9471${digits.slice(0, 7)}`,
           passwordHash: await hashPassword("ChangeMe123!"),
           role: UserRole.DELIVERY_PERSON,
         },

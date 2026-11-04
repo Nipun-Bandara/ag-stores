@@ -76,7 +76,7 @@ describe("application", () => {
     const menu = await screen.findByRole("dialog");
     expect(
       within(menu).getByRole("link", { name: copy.features }),
-    ).toHaveAttribute("href", "#features");
+    ).toHaveAttribute("href", "#workspaces");
     fireEvent.click(within(menu).getByRole("link", { name: copy.features }));
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),

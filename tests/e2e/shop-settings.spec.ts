@@ -1,3 +1,4 @@
+import { mobileForTestAccount } from "./helpers/accounts";
 import { randomUUID } from "node:crypto";
 
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -21,6 +22,9 @@ test.describe("owner shop settings", () => {
   test.beforeAll(async () => {
     const owner = await prisma.user.create({
       data: {
+        firstName: "Shop Settings",
+        lastName: "Owner",
+        phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
         name: "Shop Settings Owner",
         email,
         passwordHash: await hashPassword("ChangeMe123!"),
@@ -54,8 +58,13 @@ test.describe("owner shop settings", () => {
 
   test("owner updates checkout and location settings", async ({ page }) => {
     await page.goto("/auth");
-    await page.getByLabel("Email or phone").fill(email);
-    await page.getByLabel("Password").fill("ChangeMe123!");
+    await page
+      .locator("#login-identifier")
+      .fill(await mobileForTestAccount(email));
+    await page
+      .locator("form:visible")
+      .getByLabel("Password", { exact: true })
+      .fill("ChangeMe123!");
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page).toHaveURL(/\/owner$/);
 
@@ -66,12 +75,18 @@ test.describe("owner shop settings", () => {
     await page.getByLabel("Shop name").fill("Updated E2E Settings Shop");
     await page.getByLabel("Address").fill("25 Updated Road, Colombo");
     await page.getByLabel("Phone").fill("+94112345672");
-    await page.getByLabel("Latitude").fill("6.930000");
-    await page.getByLabel("Longitude").fill("79.870000");
-    await page.getByLabel("Open for customer orders").uncheck();
+    await page.context().grantPermissions(["geolocation"]);
+    await page.context().setGeolocation({ latitude: 6.93, longitude: 79.87 });
+    await page.getByRole("button", { name: "Use my current location" }).click();
+    await page
+      .getByRole("checkbox", { name: "Open for customer orders" })
+      .uncheck();
     await page.getByLabel("Minimum order amount (LKR)").fill("600.00");
     await page.getByLabel("Delivery fee (LKR)").fill("80.50");
     await page.getByLabel("Maximum delivery radius (km)").fill("15.25");
+    await page
+      .getByLabel("Packed-weight difference allowance (%)")
+      .fill("7.50");
     await page.getByRole("button", { name: "Save settings" }).click();
     await expect(
       page.getByText("Shop settings saved.", { exact: true }),
@@ -83,5 +98,6 @@ test.describe("owner shop settings", () => {
     expect(shop.minimumOrderAmount.toFixed(2)).toBe("600.00");
     expect(shop.deliveryFee.toFixed(2)).toBe("80.50");
     expect(shop.maximumDeliveryRadiusKm.toFixed(2)).toBe("15.25");
+    expect(shop.weightDifferenceAllowancePct.toFixed(2)).toBe("7.50");
   });
 });

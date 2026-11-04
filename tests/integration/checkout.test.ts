@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { POST as checkoutRoute } from "@/app/api/checkout/route";
 import { POST as registerRoute } from "@/app/api/auth/register/route";
-import { PaymentMethod, PrismaClient } from "@/generated/prisma/client";
+import { Prisma, PaymentMethod, PrismaClient } from "@/generated/prisma/client";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
@@ -52,9 +52,10 @@ describeWithDatabase("cash on delivery checkout", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: "Checkout Customer",
+          firstName: "Checkout",
+          lastName: "Customer",
           email,
-          phone: "",
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           password: "SecurePassword123!",
           preferredLanguage: "EN",
         }),
@@ -204,7 +205,7 @@ describeWithDatabase("cash on delivery checkout", () => {
         await prisma.product.findUniqueOrThrow({
           where: { id: unavailableProductId },
         })
-      ).stockQuantity,
+      ).stockQuantity.toNumber(),
     ).toBe(5);
   });
 
@@ -218,7 +219,7 @@ describeWithDatabase("cash on delivery checkout", () => {
         await prisma.product.findUniqueOrThrow({
           where: { id: lowStockProductId },
         })
-      ).stockQuantity,
+      ).stockQuantity.toNumber(),
     ).toBe(1);
   });
 
@@ -258,10 +259,10 @@ describeWithDatabase("cash on delivery checkout", () => {
     expect(order.items).toHaveLength(1);
     expect(order.items[0]).toMatchObject({
       productId: availableProductId,
-      quantity: 2,
+      quantity: new Prisma.Decimal(2),
     });
     expect(order.items[0]?.unitPrice.toFixed(2)).toBe("125.50");
-    expect(product.stockQuantity).toBe(8);
+    expect(product.stockQuantity.toNumber()).toBe(8);
   });
 
   it("allows only one simultaneous checkout to claim the final stock unit", async () => {
@@ -288,7 +289,7 @@ describeWithDatabase("cash on delivery checkout", () => {
     });
 
     expect(statuses).toEqual([201, 409]);
-    expect(storedProduct.stockQuantity).toBe(0);
+    expect(storedProduct.stockQuantity.toNumber()).toBe(0);
     expect(orderItemCount).toBe(1);
   });
 });

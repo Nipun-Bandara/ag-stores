@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { getDb } from "@/db";
 
 import { randomUUID } from "node:crypto";
 
@@ -37,7 +38,11 @@ async function login(email: string, password: string) {
     new NextRequest("http://localhost/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier: email, password }),
+      body: JSON.stringify({
+        identifier: (await getDb().user.findUniqueOrThrow({ where: { email } }))
+          .phone,
+        password,
+      }),
     }),
   );
   return response.cookies.get(SESSION_COOKIE_NAME)?.value ?? "";
@@ -76,20 +81,25 @@ describeWithDatabase("delivery batch creation API", () => {
   beforeAll(async () => {
     const passwordHash = await hashPassword(password);
     const digits = suffix.replace(/\D/g, "").padEnd(8, "7").slice(0, 8);
+    const mobileDigits = digits.slice(0, 7);
     const owner = await prisma.user.create({
       data: {
+        firstName: "Batch Test",
+        lastName: "Owner",
         name: "Batch Test Owner",
         email: `batch-owner-${suffix}@example.test`,
-        phone: `+9470${digits}`,
+        phone: `+9470${mobileDigits}`,
         passwordHash,
         role: UserRole.SHOP_OWNER,
       },
     });
     const foreignOwner = await prisma.user.create({
       data: {
+        firstName: "Foreign Batch",
+        lastName: "Owner",
         name: "Foreign Batch Owner",
         email: `batch-foreign-owner-${suffix}@example.test`,
-        phone: `+9471${digits}`,
+        phone: `+9471${mobileDigits}`,
         passwordHash,
         role: UserRole.SHOP_OWNER,
       },
@@ -121,29 +131,35 @@ describeWithDatabase("delivery batch creation API", () => {
     const [firstDelivery, secondDelivery, customer] = await Promise.all([
       prisma.user.create({
         data: {
+          firstName: "First Batch",
+          lastName: "Driver",
           assignedShopId: shop.id,
           name: "First Batch Driver",
           email: `batch-driver-one-${suffix}@example.test`,
-          phone: `+9472${digits}`,
+          phone: `+9472${mobileDigits}`,
           passwordHash,
           role: UserRole.DELIVERY_PERSON,
         },
       }),
       prisma.user.create({
         data: {
+          firstName: "Second Batch",
+          lastName: "Driver",
           assignedShopId: shop.id,
           name: "Second Batch Driver",
           email: `batch-driver-two-${suffix}@example.test`,
-          phone: `+9473${digits}`,
+          phone: `+9473${mobileDigits}`,
           passwordHash,
           role: UserRole.DELIVERY_PERSON,
         },
       }),
       prisma.user.create({
         data: {
+          firstName: "Batch Test",
+          lastName: "Customer",
           name: "Batch Test Customer",
           email: `batch-customer-${suffix}@example.test`,
-          phone: `+9474${digits}`,
+          phone: `+9474${mobileDigits}`,
           passwordHash,
           role: UserRole.CUSTOMER,
         },

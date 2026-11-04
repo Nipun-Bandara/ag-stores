@@ -19,6 +19,8 @@ vi.mock("sonner", () => ({ toast: mocks }));
 const person: DeliveryPersonnelView = {
   id: "person-id",
   name: "Test Courier",
+  firstName: "Test",
+  lastName: "Courier",
   email: "courier@example.com",
   phone: "+94771234567",
   role: "DELIVERY_PERSON",
@@ -63,13 +65,16 @@ it("shows readable initial selections and reports account creation", async () =>
   expect(screen.getByRole("combobox", { name: "Status" })).toHaveTextContent(
     "Active",
   );
-  fireEvent.change(screen.getByLabelText("Name"), {
-    target: { value: person.name },
+  fireEvent.change(screen.getByLabelText("First name"), {
+    target: { value: person.firstName },
   });
-  fireEvent.change(screen.getByLabelText("Email"), {
+  fireEvent.change(screen.getByLabelText("Last name"), {
+    target: { value: person.lastName },
+  });
+  fireEvent.change(screen.getByLabelText("Email (optional)"), {
     target: { value: person.email },
   });
-  fireEvent.change(screen.getByLabelText("Phone"), {
+  fireEvent.change(screen.getByLabelText("Mobile number"), {
     target: { value: person.phone },
   });
   fireEvent.submit(container.querySelector("form")!);
@@ -92,8 +97,8 @@ it("reports saved edits and updates the personnel card", async () => {
   });
   const { container } = renderManager();
   fireEvent.click(screen.getByRole("button", { name: "Edit Test Courier" }));
-  fireEvent.change(screen.getByLabelText("Name"), {
-    target: { value: "Updated Courier" },
+  fireEvent.change(screen.getByLabelText("First name"), {
+    target: { value: "Updated" },
   });
   fireEvent.submit(container.querySelector("form")!);
   await waitFor(() =>

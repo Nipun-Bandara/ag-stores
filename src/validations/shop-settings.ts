@@ -63,6 +63,18 @@ export const shopSettingsFieldsSchema = z
     minimumOrderAmount: moneySchema,
     deliveryFee: moneySchema,
     maximumDeliveryRadiusKm: radiusSchema,
+    weightDifferenceAllowancePct: z
+      .string()
+      .trim()
+      .regex(
+        /^\d{1,3}(?:\.\d{1,2})?$/,
+        "Weight allowance must have at most two decimal places.",
+      )
+      .refine(
+        (value) => Number(value) <= 100,
+        "Weight allowance cannot exceed 100%.",
+      )
+      .optional(),
   })
   .strict();
 

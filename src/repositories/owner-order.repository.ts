@@ -16,9 +16,14 @@ const ownerOrderListSelect = {
   id: true,
   status: true,
   total: true,
+  estimatedSubtotal: true,
+  estimatedTotal: true,
+  packingRequired: true,
+  packingVersion: true,
+  packingFinalizedAt: true,
   createdAt: true,
   customer: { select: { name: true, email: true, phone: true } },
-  shop: { select: { name: true } },
+  shop: { select: { name: true, weightDifferenceAllowancePct: true } },
   _count: { select: { items: true } },
 } satisfies Prisma.OrderSelect;
 
@@ -29,13 +34,18 @@ const ownerOrderDetailSelect = {
   subtotal: true,
   deliveryFee: true,
   total: true,
+  estimatedSubtotal: true,
+  estimatedTotal: true,
+  packingRequired: true,
+  packingVersion: true,
+  packingFinalizedAt: true,
   customerNote: true,
   cancelledAt: true,
   cancellationReason: true,
   createdAt: true,
   updatedAt: true,
   customer: { select: { name: true, email: true, phone: true } },
-  shop: { select: { name: true } },
+  shop: { select: { name: true, weightDifferenceAllowancePct: true } },
   deliveryAddress: {
     select: {
       label: true,
@@ -49,7 +59,13 @@ const ownerOrderDetailSelect = {
     select: {
       id: true,
       quantity: true,
+      sellingUnit: true,
       unitPrice: true,
+      regularPrice: true,
+      appliedDiscount: true,
+      packedQuantity: true,
+      contactAgreedAt: true,
+      contactNote: true,
       product: { select: { nameEn: true, nameSi: true } },
     },
   },
@@ -118,7 +134,12 @@ export class PrismaOwnerOrderRepository implements OwnerOrderRepository {
                 OR: [
                   { name: { contains: customer, mode: "insensitive" } },
                   { email: { contains: customer, mode: "insensitive" } },
-                  { phone: { contains: customer, mode: "insensitive" } },
+                  {
+                    phone: {
+                      contains: normalizeMobile(customer) ?? customer,
+                      mode: "insensitive",
+                    },
+                  },
                 ],
               },
             }
@@ -151,3 +172,4 @@ export class PrismaOwnerOrderRepository implements OwnerOrderRepository {
     });
   }
 }
+import { normalizeMobile } from "@/lib/account-identity";

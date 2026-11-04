@@ -1,3 +1,4 @@
+import { fillAccountNames, randomTestMobile } from "./helpers/accounts";
 import { expect, test } from "@playwright/test";
 
 test("customer creates, edits, defaults, and deletes delivery addresses", async ({
@@ -6,9 +7,13 @@ test("customer creates, edits, defaults, and deletes delivery addresses", async 
   const email = `address-e2e-${Date.now()}@example.test`;
 
   await page.goto("/auth?mode=register");
-  await page.getByLabel("Name").fill("Address E2E Customer");
+  await fillAccountNames(page, "Address Browser Customer");
+  await page.locator("#register-phone").fill(randomTestMobile());
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill("SecurePassword123!");
+  await page
+    .locator("form:visible")
+    .getByLabel("Password", { exact: true })
+    .fill("SecurePassword123!");
   await page
     .locator("form:visible")
     .getByRole("button", { name: "Register", exact: true })

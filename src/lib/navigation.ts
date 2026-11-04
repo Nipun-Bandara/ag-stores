@@ -206,10 +206,10 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: "profile",
-    label: "Profile",
-    href: "/account/profile",
+    label: "My profile",
+    href: "/profile",
     group: "account",
-    roles: ["CUSTOMER"],
+    roles: ALL_ROLES,
   },
   {
     id: "addresses",

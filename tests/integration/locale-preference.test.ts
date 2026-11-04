@@ -39,9 +39,10 @@ describeWithDatabase("customer locale preference", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: "Localized Customer",
+          firstName: "Localized",
+          lastName: "Customer",
           email,
-          phone: "",
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           password: "SecurePassword123!",
           preferredLanguage: "EN",
         }),

@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { getDb } from "@/db";
 
 import { randomUUID } from "node:crypto";
 
@@ -48,7 +49,8 @@ function orderContext(batchId: string, orderId: string) {
 async function login(email: string, password: string) {
   const response = await loginRoute(
     request("/api/auth/login", "", "POST", {
-      identifier: email,
+      identifier: (await getDb().user.findUniqueOrThrow({ where: { email } }))
+        .phone,
       password,
     }),
   );
@@ -80,11 +82,14 @@ describeWithDatabase("delivery batch lifecycle API", () => {
   beforeAll(async () => {
     const passwordHash = await hashPassword(password);
     const digits = suffix.replace(/\D/g, "").padEnd(8, "6").slice(0, 8);
+    const mobileDigits = digits.slice(0, 7);
     const owner = await prisma.user.create({
       data: {
+        firstName: "Lifecycle",
+        lastName: "Owner",
         name: "Lifecycle Owner",
         email: `lifecycle-owner-${suffix}@example.test`,
-        phone: `+9460${digits}`,
+        phone: `+9470${mobileDigits}`,
         passwordHash,
         role: UserRole.SHOP_OWNER,
       },
@@ -104,29 +109,35 @@ describeWithDatabase("delivery batch lifecycle API", () => {
     const [rider, otherRider, customer] = await Promise.all([
       prisma.user.create({
         data: {
+          firstName: "Lifecycle",
+          lastName: "Rider",
           assignedShopId: shop.id,
           name: "Lifecycle Rider",
           email: `lifecycle-rider-${suffix}@example.test`,
-          phone: `+9461${digits}`,
+          phone: `+9471${mobileDigits}`,
           passwordHash,
           role: UserRole.DELIVERY_PERSON,
         },
       }),
       prisma.user.create({
         data: {
+          firstName: "Other Lifecycle",
+          lastName: "Rider",
           assignedShopId: shop.id,
           name: "Other Lifecycle Rider",
           email: `lifecycle-other-rider-${suffix}@example.test`,
-          phone: `+9462${digits}`,
+          phone: `+9472${mobileDigits}`,
           passwordHash,
           role: UserRole.DELIVERY_PERSON,
         },
       }),
       prisma.user.create({
         data: {
+          firstName: "Lifecycle",
+          lastName: "Customer",
           name: "Lifecycle Customer",
           email: `lifecycle-customer-${suffix}@example.test`,
-          phone: `+9463${digits}`,
+          phone: `+9473${mobileDigits}`,
           passwordHash,
           role: UserRole.CUSTOMER,
         },

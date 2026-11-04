@@ -4,6 +4,7 @@ import type { AuditLogView } from "@/services/audit-log.service";
 const actions: Record<AuditAction, string> = {
   PRODUCT_PRICE_UPDATED: "Product price updated",
   PRODUCT_STOCK_UPDATED: "Product stock updated",
+  ORDER_PACKING_UPDATED: "Order packed weight updated",
   ORDER_STATUS_CHANGED: "Order status changed",
   USER_STATUS_UPDATED: "User status changed",
   SHOP_CREATED: "Shop created",
@@ -27,6 +28,7 @@ const fields: Record<string, string> = {
   minimumOrderAmount: "Minimum order amount (LKR)",
   deliveryFee: "Delivery fee (LKR)",
   maximumDeliveryRadiusKm: "Maximum delivery radius (km)",
+  weightDifferenceAllowancePct: "Packed-weight difference allowance (%)",
 };
 const statuses: Record<string, string> = {
   ACTIVE: "Active",
@@ -82,12 +84,24 @@ export function presentAuditLog(log: AuditLogView, t: Translate) {
         ? `LKR ${Number(value).toFixed(2)}`
         : t("Not recorded");
     summary = `${t("Price")}: ${amount(metadata.previousPrice)} → ${amount(metadata.newPrice)}`;
+    if (
+      Array.isArray(metadata.previousTiers) &&
+      Array.isArray(metadata.newTiers) &&
+      JSON.stringify(metadata.previousTiers) !==
+        JSON.stringify(metadata.newTiers)
+    )
+      summary += ` · ${t("Quantity discounts updated")}`;
   } else if (log.action === "PRODUCT_STOCK_UPDATED") {
     const quantity = (value: unknown) =>
-      typeof value === "number" && Number.isFinite(value)
+      (typeof value === "number" && Number.isFinite(value)) ||
+      (typeof value === "string" && /^\d+(?:\.\d{1,3})?$/.test(value))
         ? String(value)
         : t("Not recorded");
-    summary = `${t("Stock quantity")}: ${quantity(metadata.previousQuantity)} → ${quantity(metadata.newQuantity)}`;
+    summary = `${t("Stock quantity")}: ${quantity(metadata.previousQuantity)} → ${quantity(metadata.newQuantity)}${metadata.sellingUnit === "KG" ? ` ${t("kg")}` : metadata.sellingUnit === "UNIT" ? ` ${t("units")}` : ""}`;
+  } else if (log.action === "ORDER_PACKING_UPDATED") {
+    summary = `${t("Packed weight")}: ${String(metadata.previousPackedWeight ?? metadata.requestedWeight ?? "—")} → ${String(metadata.newPackedWeight ?? "—")} ${t("kg")} · ${t("Total")}: LKR ${String(metadata.previousTotal ?? "—")} → LKR ${String(metadata.newTotal ?? "—")}`;
+    if (metadata.customerContactAgreed === true)
+      summary += ` · ${t("Customer contacted and agreed to this weight")}`;
   } else if (log.action === "SHOP_CREATED") {
     summary = t("Shop account created.");
   }

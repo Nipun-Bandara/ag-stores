@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { getDb } from "@/db";
 
 import { randomUUID } from "node:crypto";
 
@@ -38,7 +39,11 @@ async function login(email: string) {
     new NextRequest("http://localhost/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier: email, password: "ChangeMe123!" }),
+      body: JSON.stringify({
+        identifier: (await getDb().user.findUniqueOrThrow({ where: { email } }))
+          .phone,
+        password: "ChangeMe123!",
+      }),
     }),
   );
   return response.cookies.get(SESSION_COOKIE_NAME)?.value ?? "";
@@ -76,15 +81,26 @@ describeWithDatabase("admin user management API", () => {
     const [managedUser, extraAdmin, seededAdmin] = await Promise.all([
       prisma.user.create({
         data: {
+          firstName: `Searchable Customer ${suffix}`
+            .split(/\s+/)
+            .slice(0, -1)
+            .join(" "),
+          lastName: `Searchable Customer ${suffix}`.split(/\s+/).at(-1)!,
           name: `Searchable Customer ${suffix}`,
           email: managedEmail,
-          phone: `+9478${suffix.replace(/\D/g, "").padEnd(8, "4").slice(0, 8)}`,
+          phone: `+9478${suffix.replace(/\D/g, "").padEnd(7, "4").slice(0, 7)}`,
           passwordHash,
           role: UserRole.CUSTOMER,
         },
       }),
       prisma.user.create({
         data: {
+          firstName: `Backup Administrator ${suffix}`
+            .split(/\s+/)
+            .slice(0, -1)
+            .join(" "),
+          lastName: `Backup Administrator ${suffix}`.split(/\s+/).at(-1)!,
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           name: `Backup Administrator ${suffix}`,
           email: extraAdminEmail,
           passwordHash,

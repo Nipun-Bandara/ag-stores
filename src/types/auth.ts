@@ -7,8 +7,10 @@ import type {
 export interface AuthenticatedUser {
   id: string;
   name: string;
+  firstName: string;
+  lastName: string;
   email: string | null;
-  phone: string | null;
+  phone: string;
   role: UserRole;
   preferredLanguage: PreferredLanguage;
   status: UserStatus;

@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { getDb } from "@/db";
 
 import { randomUUID } from "node:crypto";
 
@@ -71,7 +72,12 @@ describeWithDatabase("shop settings and checkout rules", () => {
       new NextRequest("http://localhost/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier: email, password }),
+        body: JSON.stringify({
+          identifier: (
+            await getDb().user.findUniqueOrThrow({ where: { email } })
+          ).phone,
+          password,
+        }),
       }),
     );
     return response.cookies.get(SESSION_COOKIE_NAME)?.value ?? "";
@@ -79,10 +85,12 @@ describeWithDatabase("shop settings and checkout rules", () => {
 
   beforeAll(async () => {
     const passwordHash = await hashPassword(password);
-    const phoneDigits = suffix.replace(/\D/g, "").padEnd(8, "7").slice(0, 8);
+    const phoneDigits = suffix.replace(/\D/g, "").padEnd(7, "7").slice(0, 7);
     const [owner, customer] = await Promise.all([
       prisma.user.create({
         data: {
+          firstName: "Settings",
+          lastName: "Owner",
           name: "Settings Owner",
           email: `settings-owner-${suffix}@example.test`,
           phone: `+9471${phoneDigits}`,
@@ -94,6 +102,9 @@ describeWithDatabase("shop settings and checkout rules", () => {
       }),
       prisma.user.create({
         data: {
+          firstName: "Settings",
+          lastName: "Customer",
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           name: "Settings Customer",
           email: `settings-customer-${suffix}@example.test`,
           passwordHash,
@@ -261,9 +272,10 @@ describeWithDatabase("shop settings and checkout rules", () => {
     expect(response.status).toBe(409);
     expect((await response.json()).error.code).toBe("SHOP_CLOSED");
     expect(
-      (await prisma.product.findUniqueOrThrow({ where: { id: productId } }))
-        .stockQuantity,
-    ).toBe(20);
+      (
+        await prisma.product.findUniqueOrThrow({ where: { id: productId } })
+      ).stockQuantity.toString(),
+    ).toBe("20");
   });
 
   it("enforces the minimum order amount", async () => {

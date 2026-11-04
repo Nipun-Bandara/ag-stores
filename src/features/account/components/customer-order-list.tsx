@@ -44,7 +44,20 @@ function OrderCard({ order }: { order: CustomerOrderSummary }) {
           {order.itemCount}{" "}
           <CountNoun count={order.itemCount} singular="item" plural="items" />
         </p>
-        <p className="font-semibold tabular-nums">LKR {order.total}</p>
+        <div className="text-right">
+          <p className="font-semibold tabular-nums">LKR {order.total}</p>
+          {order.packingRequired ? (
+            <p className="text-xs text-muted-foreground">
+              <Text
+                value={
+                  order.packingFinalizedAt
+                    ? "Final amount to collect"
+                    : "Amount is estimated until packing is finalized"
+                }
+              />
+            </p>
+          ) : null}
+        </div>
       </div>
       <div className="mt-auto flex items-end justify-between gap-3 pt-3">
         <div className="min-w-0 text-xs text-muted-foreground">

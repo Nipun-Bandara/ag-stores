@@ -1,4 +1,5 @@
 import { getDb } from "@/db";
+import { exceedsWeightAllowance } from "@/lib/packing";
 import {
   AuditAction,
   AuditEntityType,
@@ -25,7 +26,9 @@ type OrderStatusServiceErrorCode =
   | "ORDER_ACCESS_DENIED"
   | "ORDER_CHANGED"
   | "INVALID_ORDER_TRANSITION"
-  | "UNAUTHORIZED_ORDER_TRANSITION";
+  | "UNAUTHORIZED_ORDER_TRANSITION"
+  | "PACKING_INCOMPLETE"
+  | "CUSTOMER_CONTACT_REQUIRED";
 
 export class OrderStatusServiceError extends Error {
   constructor(
@@ -95,6 +98,42 @@ export async function transitionOrderStatus(
       throw error;
     }
 
+    if (
+      nextStatus === OrderStatus.READY_FOR_DELIVERY &&
+      order.packingRequired &&
+      order.items.some(
+        (item) => item.sellingUnit === "KG" && item.packedQuantity === null,
+      )
+    ) {
+      throw new OrderStatusServiceError(
+        "PACKING_INCOMPLETE",
+        "Confirm the packed weight of every KG item before marking the order ready.",
+        409,
+      );
+    }
+    if (
+      nextStatus === OrderStatus.READY_FOR_DELIVERY &&
+      order.packingRequired &&
+      order.items.some(
+        (item) =>
+          item.sellingUnit === "KG" &&
+          item.packedQuantity !== null &&
+          exceedsWeightAllowance(
+            item.quantity.toString(),
+            item.packedQuantity.toString(),
+            order.shop.weightDifferenceAllowancePct.toFixed(2),
+          ) &&
+          (item.contactWeight?.toString() !== item.packedQuantity.toString() ||
+            !item.contactAgreedAt ||
+            !item.contactNote?.trim()),
+      )
+    )
+      throw new OrderStatusServiceError(
+        "CUSTOMER_CONTACT_REQUIRED",
+        "Record customer agreement for each weight outside the shop allowance.",
+        409,
+      );
+
     const transitionAt = new Date();
     const normalizedNote = note?.trim() || null;
     const cancellation =
@@ -107,6 +146,7 @@ export async function transitionOrderStatus(
       order.status,
       nextStatus,
       cancellation,
+      nextStatus === OrderStatus.READY_FOR_DELIVERY && order.packingRequired,
     );
     if (!updated) {
       throw new OrderStatusServiceError(
@@ -139,6 +179,9 @@ export async function transitionOrderStatus(
       metadata: {
         previousStatus: order.status,
         newStatus: nextStatus,
+        ...(nextStatus === OrderStatus.READY_FOR_DELIVERY
+          ? { finalTotal: order.total.toFixed(2) }
+          : {}),
       },
     });
 
@@ -154,6 +197,10 @@ export async function transitionOrderStatus(
           customerId: order.customerId,
           shopOwnerId: order.shop.ownerId,
           availableDeliveryPersonIds,
+          ...(nextStatus === OrderStatus.READY_FOR_DELIVERY &&
+          order.packingRequired
+            ? { finalTotal: order.total.toFixed(2) }
+            : {}),
           ...(order.batchAssignment
             ? {
                 deliveryPersonId: order.batchAssignment.batch.deliveryPersonId,

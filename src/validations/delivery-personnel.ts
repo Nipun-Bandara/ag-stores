@@ -1,20 +1,20 @@
 import { z } from "zod";
 
 import { UserStatus } from "@/generated/prisma/client";
+import {
+  mobileSchema,
+  optionalAccountEmailSchema,
+  personNameSchema,
+} from "@/lib/account-identity";
 
 const deliveryStatusSchema = z.enum([UserStatus.ACTIVE, UserStatus.INACTIVE]);
 
 const deliveryPersonnelDetailsSchema = z
   .object({
-    name: z.string().trim().min(2).max(150),
-    email: z.string().trim().toLowerCase().pipe(z.email().max(320)),
-    phone: z
-      .string()
-      .trim()
-      .regex(
-        /^\+[1-9]\d{7,14}$/,
-        "Use an international number such as +94771234567.",
-      ),
+    firstName: personNameSchema,
+    lastName: personNameSchema,
+    email: optionalAccountEmailSchema,
+    phone: mobileSchema,
     assignedShopId: z.uuid(),
   })
   .strict();

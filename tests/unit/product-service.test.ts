@@ -31,7 +31,9 @@ const customer: AuthenticatedUser = {
   id: "00000000-0000-4000-8000-000000000001",
   name: "Customer",
   email: "customer@example.test",
-  phone: null,
+  firstName: "Test",
+  lastName: "User",
+  phone: "+94770000000",
   role: UserRole.CUSTOMER,
   preferredLanguage: PreferredLanguage.EN,
   status: UserStatus.ACTIVE,
@@ -40,6 +42,11 @@ const customer: AuthenticatedUser = {
 const owner = { ...customer, role: UserRole.SHOP_OWNER };
 
 const productInput = {
+  itemCode: "001",
+  barcode: null,
+  sellingUnit: "UNIT" as const,
+  minimumOrderQuantity: 1,
+  orderingIncrement: 1,
   shopId: "00000000-0000-4000-8000-000000000002",
   categoryId: "00000000-0000-4000-8000-000000000003",
   nameEn: "Product",

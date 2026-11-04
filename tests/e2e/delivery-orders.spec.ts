@@ -1,3 +1,4 @@
+import { mobileForTestAccount } from "./helpers/accounts";
 import { randomUUID } from "node:crypto";
 
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -31,10 +32,20 @@ let otherShopOrderId = "";
 
 async function signIn(page: Page, email: string, destination: string) {
   await page.goto("/auth");
-  await page.getByLabel("Email or phone").fill(email);
-  await page.getByLabel("Password").fill("ChangeMe123!");
+  await page
+    .locator("#login-identifier")
+    .fill(await mobileForTestAccount(email));
+  await page
+    .locator("form:visible")
+    .getByLabel("Password", { exact: true })
+    .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(new RegExp(`${destination}$`));
+  await page
+    .context()
+    .addCookies([
+      { name: "ag_stores_locale", value: "en", url: "http://127.0.0.1:3100" },
+    ]);
 }
 
 test.describe.serial("available delivery orders", () => {
@@ -58,9 +69,14 @@ test.describe.serial("available delivery orders", () => {
     const digits = suffix.replace(/\D/g, "").padEnd(8, "8").slice(0, 8);
     const customer = await prisma.user.create({
       data: {
+        firstName: `Private E2E Customer ${suffix}`
+          .split(/\s+/)
+          .slice(0, -1)
+          .join(" "),
+        lastName: `Private E2E Customer ${suffix}`.split(/\s+/).at(-1)!,
         name: `Private E2E Customer ${suffix}`,
         email: `private-delivery-orders-${suffix}@example.test`,
-        phone: `+9468${digits}`,
+        phone: `+9478${digits.slice(0, 7)}`,
         passwordHash: "e2e-only-not-used",
         role: UserRole.CUSTOMER,
       },
@@ -68,9 +84,11 @@ test.describe.serial("available delivery orders", () => {
     customerId = customer.id;
     const otherOwner = await prisma.user.create({
       data: {
+        firstName: "Other E2E Shop",
+        lastName: "Owner",
         name: "Other E2E Shop Owner",
         email: `other-delivery-orders-${suffix}@example.test`,
-        phone: `+9469${digits}`,
+        phone: `+9479${digits.slice(0, 7)}`,
         passwordHash: "e2e-only-not-used",
         role: UserRole.SHOP_OWNER,
       },

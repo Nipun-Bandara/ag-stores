@@ -1,3 +1,8 @@
+import {
+  mobileForTestAccount,
+  fillAccountNames,
+  randomTestMobile,
+} from "./helpers/accounts";
 import { expect, test, type Page } from "@playwright/test";
 
 const password = "ChangeMe123!";
@@ -8,8 +13,13 @@ let rejectedOrderId: string;
 
 async function signIn(page: Page, email: string, expectedPath: string) {
   await page.goto("/auth");
-  await page.getByLabel("Email or phone").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page
+    .locator("#login-identifier")
+    .fill(await mobileForTestAccount(email));
+  await page
+    .locator("form:visible")
+    .getByLabel("Password", { exact: true })
+    .fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(new RegExp(`${expectedPath}$`));
 }
@@ -35,12 +45,16 @@ test.describe.serial("owner order management", () => {
   test("creates customer orders for owner management", async ({ page }) => {
     const suffix = Date.now().toString();
     customerEmail = `owner-orders-e2e-${suffix}@example.test`;
-    customerName = `Owner Orders Customer ${suffix}`;
+    customerName = `Owner Orders Customer ${suffix.replace(/\d/g, (digit) => String.fromCharCode(97 + Number(digit)))}`;
 
     await page.goto("/auth?mode=register");
-    await page.getByLabel("Name").fill(customerName);
+    await fillAccountNames(page, customerName);
+    await page.locator("#register-phone").fill(randomTestMobile());
     await page.getByLabel("Email").fill(customerEmail);
-    await page.getByLabel("Password").fill("SecurePassword123!");
+    await page
+      .locator("form:visible")
+      .getByLabel("Password", { exact: true })
+      .fill("SecurePassword123!");
     await page
       .locator("form:visible")
       .getByRole("button", { name: "Register", exact: true })
@@ -52,8 +66,11 @@ test.describe.serial("owner order management", () => {
     await page
       .getByLabel("Address", { exact: true })
       .fill("70 Owner Order Lane");
-    await page.getByLabel("Latitude").fill("6.927079");
-    await page.getByLabel("Longitude").fill("79.861244");
+    await page.context().grantPermissions(["geolocation"]);
+    await page
+      .context()
+      .setGeolocation({ latitude: 6.927079, longitude: 79.861244 });
+    await page.getByRole("button", { name: "Use my current location" }).click();
     await page.getByRole("button", { name: "Add address" }).click();
 
     workflowOrderId = await placeOrder(page);
@@ -109,8 +126,13 @@ test.describe.serial("owner order management", () => {
   test("customer cannot access owner pages or APIs", async ({ page }) => {
     await page.context().clearCookies();
     await page.goto("/auth");
-    await page.getByLabel("Email or phone").fill(customerEmail);
-    await page.getByLabel("Password").fill("SecurePassword123!");
+    await page
+      .locator("#login-identifier")
+      .fill(await mobileForTestAccount(customerEmail));
+    await page
+      .locator("form:visible")
+      .getByLabel("Password", { exact: true })
+      .fill("SecurePassword123!");
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page).toHaveURL(/\/account$/);
 

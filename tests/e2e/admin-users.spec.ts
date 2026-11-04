@@ -1,3 +1,4 @@
+import { mobileForTestAccount } from "./helpers/accounts";
 import { randomUUID } from "node:crypto";
 
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -19,8 +20,13 @@ let userId = "";
 
 async function signIn(page: Page, emailAddress: string, destination: string) {
   await page.goto("/auth");
-  await page.getByLabel("Email or phone").fill(emailAddress);
-  await page.getByLabel("Password").fill("ChangeMe123!");
+  await page
+    .locator("#login-identifier")
+    .fill(await mobileForTestAccount(emailAddress));
+  await page
+    .locator("form:visible")
+    .getByLabel("Password", { exact: true })
+    .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(new RegExp(`${destination}$`));
 }
@@ -29,9 +35,11 @@ test.describe.serial("admin user management", () => {
   test.beforeAll(async () => {
     const user = await prisma.user.create({
       data: {
+        firstName: "Test",
+        lastName: "Fixture",
         name,
         email,
-        phone: `+9479${suffix.replace(/\D/g, "").padEnd(8, "5").slice(0, 8)}`,
+        phone: `+9479${suffix.replace(/\D/g, "").padEnd(7, "5").slice(0, 7)}`,
         passwordHash: await hashPassword("ChangeMe123!"),
         role: UserRole.CUSTOMER,
       },

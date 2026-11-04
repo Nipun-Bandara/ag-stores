@@ -22,9 +22,10 @@ describe("registration service", () => {
     await expect(
       registerCustomer(
         {
-          name: "Duplicate Customer",
+          firstName: "Duplicate",
+          lastName: "Customer",
           email: "customer@example.com",
-          phone: undefined,
+          phone: "+94771234567",
           password: "SecurePassword123!",
           preferredLanguage: "EN",
         },

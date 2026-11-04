@@ -1,3 +1,5 @@
+import { validatePricing, tierViews } from "@/lib/pricing";
+import { SellingSetupError, firstOrderQuantity } from "@/lib/quantity";
 import {
   AuditAction,
   AuditEntityType,
@@ -15,6 +17,8 @@ import type {
 } from "@/validations/product";
 
 const productSelect = {
+  itemCode: true,
+  barcode: true,
   id: true,
   shopId: true,
   categoryId: true,
@@ -23,6 +27,13 @@ const productSelect = {
   descriptionEn: true,
   descriptionSi: true,
   price: true,
+  discountTiers: {
+    orderBy: { position: "asc" as const },
+    select: { minimumQuantity: true, discountAmount: true },
+  },
+  sellingUnit: true,
+  minimumOrderQuantity: true,
+  orderingIncrement: true,
   stockQuantity: true,
   lowStockThreshold: true,
   imageUrl: true,
@@ -72,7 +83,7 @@ export interface ProductRepository {
     ownerId: string,
     productId: string,
   ): Promise<ProductRecord | null>;
-  create(input: ProductCreateInput): Promise<ProductRecord>;
+  create(input: ProductCreateInput, actorId: string): Promise<ProductRecord>;
   update(
     actorId: string,
     productId: string,
@@ -128,40 +139,20 @@ export class PrismaProductRepository implements ProductRepository {
     );
   }
 
-  findManyOwned(
+  async findManyOwned(
     ownerId: string,
     filters: ProductFilters,
   ): Promise<ProductRecord[]> {
     const search = filters.search;
-    const inventoryFilter = (() => {
-      switch (filters.inventoryStatus) {
-        case "OUT_OF_STOCK":
-          return { stockQuantity: 0 };
-        case "LOW_STOCK":
-          return {
-            stockQuantity: {
-              gt: 0,
-              lte: this.prisma.product.fields.lowStockThreshold,
-            },
-          };
-        case "AVAILABLE":
-          return {
-            stockQuantity: {
-              gt: this.prisma.product.fields.lowStockThreshold,
-            },
-          };
-        default:
-          return {};
-      }
-    })();
-    return this.prisma.product.findMany({
+    const products = await this.prisma.product.findMany({
       where: {
         shop: { ownerId },
-        ...inventoryFilter,
         ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
         ...(search
           ? {
               OR: [
+                { itemCode: { contains: search, mode: "insensitive" } },
+                { barcode: { contains: search, mode: "insensitive" } },
                 { nameEn: { contains: search, mode: "insensitive" } },
                 { nameSi: { contains: search, mode: "insensitive" } },
                 { descriptionEn: { contains: search, mode: "insensitive" } },
@@ -172,6 +163,16 @@ export class PrismaProductRepository implements ProductRepository {
       },
       orderBy: [{ shop: { name: "asc" } }, { nameEn: "asc" }],
       select: productSelect,
+    });
+    // The first purchasable quantity may be above an unaligned minimum.
+    return products.filter((product) => {
+      const status =
+        Number(product.stockQuantity) < firstOrderQuantity(product)
+          ? "OUT_OF_STOCK"
+          : product.stockQuantity.lte(product.lowStockThreshold)
+            ? "LOW_STOCK"
+            : "AVAILABLE";
+      return !filters.inventoryStatus || status === filters.inventoryStatus;
     });
   }
 
@@ -185,10 +186,36 @@ export class PrismaProductRepository implements ProductRepository {
     });
   }
 
-  create(input: ProductCreateInput): Promise<ProductRecord> {
-    return this.prisma.product.create({
-      data: input,
-      select: productSelect,
+  create(input: ProductCreateInput, actorId: string): Promise<ProductRecord> {
+    const { discountTiers = [], ...fields } = input;
+    validatePricing(input.price, discountTiers, input);
+    return this.prisma.$transaction(async (transaction) => {
+      const product = await transaction.product.create({
+        data: {
+          ...fields,
+          discountTiers: {
+            create: discountTiers.map((tier, index) => ({
+              ...tier,
+              position: index + 1,
+            })),
+          },
+        },
+        select: productSelect,
+      });
+      await writeAuditLog(transaction, {
+        actorId,
+        action: AuditAction.PRODUCT_PRICE_UPDATED,
+        entityType: AuditEntityType.PRODUCT,
+        entityId: product.id,
+        metadata: {
+          previousPrice: null,
+          newPrice: product.price.toFixed(2),
+          previousTiers: [],
+          newTiers: discountTiers,
+          sellingUnit: product.sellingUnit,
+        },
+      });
+      return product;
     });
   }
 
@@ -207,18 +234,81 @@ export class PrismaProductRepository implements ProductRepository {
             FOR UPDATE
           `;
           const previous = await transaction.product.findUniqueOrThrow({
-            where: { id: productId },
-            select: { price: true, stockQuantity: true },
+            where: { id: productId, shop: { ownerId: actorId } },
+            select: {
+              price: true,
+              stockQuantity: true,
+              sellingUnit: true,
+              lowStockThreshold: true,
+              discountTiers: {
+                orderBy: { position: "asc" },
+                select: { minimumQuantity: true, discountAmount: true },
+              },
+            },
           });
+          if (
+            input.sellingUnit === "UNIT" &&
+            !Number.isInteger(
+              input.lowStockThreshold ?? Number(previous.lowStockThreshold),
+            )
+          )
+            throw new SellingSetupError(
+              "UNIT quantities must be whole numbers.",
+            );
+          if (previous.sellingUnit !== input.sellingUnit) {
+            const active = await transaction.orderItem.count({
+              where: {
+                productId,
+                order: {
+                  status: {
+                    notIn: [
+                      "DELIVERED",
+                      "CANCELLED",
+                      "REJECTED",
+                      "FAILED_DELIVERY",
+                    ],
+                  },
+                },
+              },
+            });
+            if (
+              !previous.stockQuantity.isZero() ||
+              input.stockQuantity !== 0 ||
+              active > 0
+            ) {
+              throw new SellingSetupError(
+                "Selling unit can only change with zero stock and no active orders.",
+              );
+            }
+          }
+          const previousTiers = tierViews(previous.discountTiers);
+          const nextTiers = input.discountTiers ?? previousTiers;
+          validatePricing(input.price, nextTiers, input);
           const product = await transaction.product.update({
             where: { id: productId },
             data: {
+              itemCode: input.itemCode,
+              barcode: input.barcode,
+              sellingUnit: input.sellingUnit,
+              minimumOrderQuantity: input.minimumOrderQuantity,
+              orderingIncrement: input.orderingIncrement,
               categoryId: input.categoryId,
               nameEn: input.nameEn,
               nameSi: input.nameSi,
               descriptionEn: input.descriptionEn,
               descriptionSi: input.descriptionSi,
               price: input.price,
+              ...(input.discountTiers === undefined
+                ? {}
+                : {
+                    discountTiers: {
+                      deleteMany: {},
+                      create: nextTiers.map((tier, index) => ({
+                        ...tier,
+                        position: index + 1,
+                      })),
+                    },
+                  }),
               stockQuantity: input.stockQuantity,
               imageUrl: input.imageUrl,
               isAvailable: input.isAvailable,
@@ -228,7 +318,11 @@ export class PrismaProductRepository implements ProductRepository {
             },
             select: productSelect,
           });
-          if (!previous.price.equals(product.price)) {
+          if (
+            !previous.price.equals(product.price) ||
+            JSON.stringify(previousTiers) !== JSON.stringify(nextTiers) ||
+            previous.sellingUnit !== product.sellingUnit
+          ) {
             await writeAuditLog(transaction, {
               actorId,
               action: AuditAction.PRODUCT_PRICE_UPDATED,
@@ -237,18 +331,23 @@ export class PrismaProductRepository implements ProductRepository {
               metadata: {
                 previousPrice: previous.price.toFixed(2),
                 newPrice: product.price.toFixed(2),
+                previousTiers,
+                newTiers: nextTiers,
+                previousSellingUnit: previous.sellingUnit,
+                sellingUnit: product.sellingUnit,
               },
             });
           }
-          if (previous.stockQuantity !== product.stockQuantity) {
+          if (!previous.stockQuantity.equals(product.stockQuantity)) {
             await writeAuditLog(transaction, {
               actorId,
               action: AuditAction.PRODUCT_STOCK_UPDATED,
               entityType: AuditEntityType.PRODUCT,
               entityId: product.id,
               metadata: {
-                previousQuantity: previous.stockQuantity,
-                newQuantity: product.stockQuantity,
+                previousQuantity: previous.stockQuantity.toString(),
+                newQuantity: product.stockQuantity.toString(),
+                sellingUnit: product.sellingUnit,
               },
             });
           }
@@ -289,7 +388,7 @@ export class PrismaProductRepository implements ProductRepository {
         async (transaction) => {
           const product = await transaction.product.findFirst({
             where: { id: productId, shop: { ownerId } },
-            select: { id: true, stockQuantity: true },
+            select: { id: true, stockQuantity: true, sellingUnit: true },
           });
           if (!product) return null;
           await transaction.$queryRaw`
@@ -298,6 +397,16 @@ export class PrismaProductRepository implements ProductRepository {
             WHERE "id" = ${product.id}::uuid
             FOR UPDATE
           `;
+          if (
+            product.sellingUnit === "UNIT" &&
+            (!Number.isInteger(input.stockQuantity) ||
+              (input.lowStockThreshold !== undefined &&
+                !Number.isInteger(input.lowStockThreshold)))
+          ) {
+            throw new SellingSetupError(
+              "UNIT quantities must be whole numbers.",
+            );
+          }
           const updated = await transaction.product.update({
             where: { id: productId },
             data: {
@@ -308,15 +417,16 @@ export class PrismaProductRepository implements ProductRepository {
             },
             select: productSelect,
           });
-          if (product.stockQuantity !== updated.stockQuantity) {
+          if (!product.stockQuantity.equals(updated.stockQuantity)) {
             await writeAuditLog(transaction, {
               actorId,
               action: AuditAction.PRODUCT_STOCK_UPDATED,
               entityType: AuditEntityType.PRODUCT,
               entityId: updated.id,
               metadata: {
-                previousQuantity: product.stockQuantity,
-                newQuantity: updated.stockQuantity,
+                previousQuantity: product.stockQuantity.toString(),
+                newQuantity: updated.stockQuantity.toString(),
+                sellingUnit: updated.sellingUnit,
               },
             });
           }

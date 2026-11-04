@@ -2,13 +2,15 @@ import {
   PreferredLanguage,
   Prisma,
   type PrismaClient,
-  UserRole,
 } from "@/generated/prisma/client";
+import { verifyPassword } from "@/lib/auth/password";
 import type { AuthenticatedUser } from "@/types/auth";
 
 const profileSelect = {
   id: true,
   name: true,
+  firstName: true,
+  lastName: true,
   email: true,
   phone: true,
   role: true,
@@ -17,14 +19,18 @@ const profileSelect = {
 } satisfies Prisma.UserSelect;
 
 export interface ProfileUpdateRecord {
-  name: string;
-  phone: string | null;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string | null;
   preferredLanguage: "EN" | "SI";
+  currentPassword?: string | undefined;
 }
-
 export interface PasswordRecord {
   passwordHash: string;
 }
+export class CurrentPasswordRequiredError extends Error {}
+export class IncorrectCurrentPasswordError extends Error {}
 
 export interface CustomerProfileRepository {
   findCustomerById(userId: string): Promise<AuthenticatedUser | null>;
@@ -47,28 +53,45 @@ export interface CustomerProfileRepository {
 export class PrismaCustomerProfileRepository implements CustomerProfileRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async findCustomerById(userId: string): Promise<AuthenticatedUser | null> {
-    return this.prisma.user.findFirst({
-      where: { id: userId, role: UserRole.CUSTOMER },
+  findCustomerById(userId: string): Promise<AuthenticatedUser | null> {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
       select: profileSelect,
     });
   }
 
-  async updateCustomer(
+  updateCustomer(
     userId: string,
     input: ProfileUpdateRecord,
   ): Promise<AuthenticatedUser> {
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        name: input.name,
-        phone: input.phone,
-        preferredLanguage:
-          input.preferredLanguage === "SI"
-            ? PreferredLanguage.SI
-            : PreferredLanguage.EN,
-      },
-      select: profileSelect,
+    return this.prisma.$transaction(async (transaction) => {
+      await transaction.$queryRaw`SELECT id FROM users WHERE id = ${userId}::uuid FOR UPDATE`;
+      const current = await transaction.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: { phone: true, passwordHash: true },
+      });
+      if (current.phone !== input.phone) {
+        if (!input.currentPassword) throw new CurrentPasswordRequiredError();
+        if (
+          !(await verifyPassword(input.currentPassword, current.passwordHash))
+        ) {
+          throw new IncorrectCurrentPasswordError();
+        }
+      }
+      return transaction.user.update({
+        where: { id: userId },
+        data: {
+          firstName: input.firstName,
+          lastName: input.lastName,
+          phone: input.phone,
+          email: input.email,
+          preferredLanguage:
+            input.preferredLanguage === "SI"
+              ? PreferredLanguage.SI
+              : PreferredLanguage.EN,
+        },
+        select: profileSelect,
+      });
     });
   }
 
@@ -76,8 +99,8 @@ export class PrismaCustomerProfileRepository implements CustomerProfileRepositor
     userId: string,
     preferredLanguage: "EN" | "SI",
   ): Promise<void> {
-    await this.prisma.user.updateMany({
-      where: { id: userId, role: UserRole.CUSTOMER },
+    await this.prisma.user.update({
+      where: { id: userId },
       data: {
         preferredLanguage:
           preferredLanguage === "SI"
@@ -87,9 +110,9 @@ export class PrismaCustomerProfileRepository implements CustomerProfileRepositor
     });
   }
 
-  async findPasswordRecord(userId: string): Promise<PasswordRecord | null> {
-    return this.prisma.user.findFirst({
-      where: { id: userId, role: UserRole.CUSTOMER },
+  findPasswordRecord(userId: string): Promise<PasswordRecord | null> {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
       select: { passwordHash: true },
     });
   }

@@ -1,47 +1,98 @@
 import { expect, test } from "@playwright/test";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../../src/generated/prisma/client";
+const initialPhone = `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`;
+const changedPhone = `+9476${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`;
+const email = `profile-browser-${Date.now()}@example.test`;
+const currentPassword = "CurrentPassword123!",
+  newPassword = "NewSecurePassword123!";
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({
+    connectionString:
+      process.env.TEST_DATABASE_URL ??
+      "postgresql://postgres:postgres@127.0.0.1:5432/ag_stores_test",
+  }),
+});
+let userId = "";
+test.afterAll(async () => {
+  const users = await prisma.user.findMany({
+    where: { OR: [{ phone: initialPhone }, { phone: changedPhone }] },
+    select: { id: true },
+  });
+  const ids = users.map(({ id }) => id);
+  await prisma.authSession.deleteMany({ where: { userId: { in: ids } } });
+  await prisma.user.deleteMany({ where: { id: { in: ids } } });
+  await prisma.$disconnect();
+});
 
-test("customer manages profile and changes password", async ({ page }) => {
-  const email = `profile-e2e-${Date.now()}@example.test`;
-  const phone = `+94${Date.now().toString().slice(-9)}`;
-  const currentPassword = "CurrentPassword123!";
-  const newPassword = "NewSecurePassword123!";
-
+test("customer changes mobile and optional email without losing identity, then changes password", async ({
+  page,
+}) => {
   await page.goto("/auth?mode=register");
-  await page.getByLabel("Name").fill("Profile E2E Customer");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(currentPassword);
+  await page.locator("#register-firstName").fill("Profile");
+  await page.locator("#register-lastName").fill("Customer");
+  await page.locator("#register-phone").fill(initialPhone);
+  await page.locator("#register-email").fill(email);
+  await page.locator("#register-password").fill(currentPassword);
   await page
     .locator("form:visible")
     .getByRole("button", { name: "Register", exact: true })
     .click();
   await expect(page).toHaveURL(/\/account$/);
-
-  await page.goto("/account/profile");
-  await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible();
-  await expect(page.getByLabel("Email")).toHaveValue(email);
-  await page.getByLabel("Name").fill("Updated E2E Customer");
-  await page.getByLabel("Phone").fill(phone);
-  await page.getByLabel("Preferred language").selectOption("SI");
-  await page.getByRole("button", { name: "Save profile" }).click();
-  await expect(page.getByText("Profile updated.", { exact: true })).toBeVisible();
-
-  await page.getByRole("link", { name: "Security" }).click();
-  await page.getByLabel("Current password").fill(currentPassword);
-  await page.getByLabel("New password", { exact: true }).fill(newPassword);
-  await page.getByLabel("Confirm new password").fill(newPassword);
-  await page.getByRole("button", { name: "Change password" }).click();
-  await expect(page.getByRole("status")).toHaveText(
-    "Password changed successfully.",
-  );
-
+  userId = (
+    await prisma.user.findUniqueOrThrow({ where: { phone: initialPhone } })
+  ).id;
+  await page.goto("/profile");
+  await expect(page.getByRole("heading", { name: "My profile" })).toBeVisible();
+  await page.getByLabel("First name", { exact: true }).fill("Updated");
+  await page.getByLabel("Email (optional)", { exact: true }).fill("");
   await page
-    .locator('[data-slot="sidebar-footer"] [data-slot="sidebar-menu-button"]')
+    .getByLabel("Mobile number", { exact: true })
+    .fill(`0${changedPhone.slice(3)}`);
+  await page.getByRole("button", { name: "Save profile", exact: true }).click();
+  await expect(
+    page.getByText(
+      "Enter your current password to change your mobile number.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await page.locator("#profile-currentPassword").fill(currentPassword);
+  await page.getByRole("button", { name: "Save profile", exact: true }).click();
+  await expect(
+    page.getByText("Profile updated.", { exact: true }),
+  ).toBeVisible();
+  await expect
+    .poll(
+      async () =>
+        (await prisma.user.findUniqueOrThrow({ where: { id: userId } })).phone,
+    )
+    .toBe(changedPhone);
+  expect(
+    await prisma.user.findUniqueOrThrow({ where: { id: userId } }),
+  ).toMatchObject({ email: null, name: "Updated Customer", role: "CUSTOMER" });
+  const security = page.locator("#password");
+  await security
+    .getByLabel("Current password", { exact: true })
+    .fill(currentPassword);
+  await security.getByLabel("New password", { exact: true }).fill(newPassword);
+  await security
+    .getByLabel("Confirm new password", { exact: true })
+    .fill(newPassword);
+  await security
+    .getByRole("button", { name: "Change password", exact: true })
     .click();
+  await expect(
+    page.getByText("Password changed successfully.", { exact: true }).first(),
+  ).toBeVisible();
+  await page.locator('[data-slot="sidebar-footer"] button').click();
   await page.getByRole("menuitem", { name: "Sign out" }).click();
-  await page.getByLabel("Email or phone").fill(email);
-  await page.getByLabel("Password").fill(newPassword);
-  await page.getByRole("button", { name: "Sign in" }).click();
-
+  await expect(page).toHaveURL(/\/auth(?:\?|$)/);
+  await page.goto("/auth");
+  await page.locator("#login-identifier").fill(changedPhone);
+  await page.locator("#login-password").fill(newPassword);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/account$/);
-  await expect(page.getByText("Updated E2E Customer")).toBeVisible();
+  await expect(
+    page.getByText("Updated Customer", { exact: true }).first(),
+  ).toBeVisible();
 });

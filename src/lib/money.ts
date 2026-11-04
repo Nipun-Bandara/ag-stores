@@ -1,3 +1,5 @@
+import { quantityMilli } from "@/lib/quantity";
+
 const DECIMAL_MONEY = /^(\d+)\.(\d{2})$/;
 
 function trimLeadingZeroes(value: string): string {
@@ -28,18 +30,9 @@ export function addMinorUnits(left: string, right: string): string {
 }
 
 export function multiplyMinorUnits(value: string, quantity: number): string {
-  if (!Number.isSafeInteger(quantity) || quantity < 0) {
-    throw new Error("Quantity must be a non-negative safe integer.");
-  }
-  let result = "0";
-  let addend = value;
-  let multiplier = quantity;
-  while (multiplier > 0) {
-    if (multiplier % 2 === 1) result = addMinorUnits(result, addend);
-    addend = addMinorUnits(addend, addend);
-    multiplier = Math.floor(multiplier / 2);
-  }
-  return result;
+  // Round each non-negative line half up to cents before adding lines.
+  const scaled = quantityMilli(quantity);
+  return ((BigInt(value) * scaled + BigInt(500)) / BigInt(1000)).toString();
 }
 
 export function minorUnitsToMoney(value: string): string {

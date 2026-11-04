@@ -7,24 +7,34 @@ import {
 
 describe("profile validation", () => {
   const validProfile = {
-    name: "Updated Customer",
+    firstName: "Updated",
+    lastName: "Customer",
+    email: "",
     phone: "+94771234567",
     preferredLanguage: "SI",
   };
 
   it("accepts valid editable profile fields", () => {
-    expect(profileUpdateSchema.parse(validProfile)).toEqual(validProfile);
+    expect(profileUpdateSchema.parse(validProfile)).toEqual({
+      ...validProfile,
+      email: null,
+    });
   });
 
   it("rejects invalid phone numbers", () => {
     expect(
-      profileUpdateSchema.safeParse({ ...validProfile, phone: "0771234567" })
+      profileUpdateSchema.safeParse({ ...validProfile, phone: "0111234567" })
         .success,
     ).toBe(false);
   });
 
-  it("rejects email, role, and user ID fields", () => {
-    for (const forbiddenField of ["email", "role", "userId"] as const) {
+  it("rejects role, status, shop assignment and user ID fields", () => {
+    for (const forbiddenField of [
+      "role",
+      "status",
+      "assignedShopId",
+      "userId",
+    ] as const) {
       expect(
         profileUpdateSchema.safeParse({
           ...validProfile,

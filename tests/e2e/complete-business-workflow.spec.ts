@@ -1,3 +1,8 @@
+import {
+  mobileForTestAccount,
+  fillAccountNames,
+  randomTestMobile,
+} from "./helpers/accounts";
 import { randomUUID } from "node:crypto";
 
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -52,8 +57,13 @@ async function signIn(
 ) {
   await page.context().clearCookies();
   await page.goto("/auth");
-  await page.getByLabel("Email or phone").fill(email);
-  await page.getByLabel("Password").fill(accountPassword);
+  await page
+    .locator("#login-identifier")
+    .fill(await mobileForTestAccount(email));
+  await page
+    .locator("form:visible")
+    .getByLabel("Password", { exact: true })
+    .fill(accountPassword);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(new RegExp(`${expectedPath}$`));
 }
@@ -88,6 +98,12 @@ test.describe.serial("complete retail order and delivery workflow", () => {
     const [owner, rider, otherRider] = await Promise.all([
       prisma.user.create({
         data: {
+          firstName: `Workflow Owner ${shortSuffix}`
+            .split(/\s+/)
+            .slice(0, -1)
+            .join(" "),
+          lastName: `Workflow Owner ${shortSuffix}`.split(/\s+/).at(-1)!,
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           name: `Workflow Owner ${shortSuffix}`,
           email: ownerEmail,
           passwordHash,
@@ -96,6 +112,12 @@ test.describe.serial("complete retail order and delivery workflow", () => {
       }),
       prisma.user.create({
         data: {
+          firstName: `Workflow Rider ${shortSuffix}`
+            .split(/\s+/)
+            .slice(0, -1)
+            .join(" "),
+          lastName: `Workflow Rider ${shortSuffix}`.split(/\s+/).at(-1)!,
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           name: `Workflow Rider ${shortSuffix}`,
           email: riderEmail,
           passwordHash,
@@ -104,6 +126,12 @@ test.describe.serial("complete retail order and delivery workflow", () => {
       }),
       prisma.user.create({
         data: {
+          firstName: `Workflow Other Rider ${shortSuffix}`
+            .split(/\s+/)
+            .slice(0, -1)
+            .join(" "),
+          lastName: `Workflow Other Rider ${shortSuffix}`.split(/\s+/).at(-1)!,
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           name: `Workflow Other Rider ${shortSuffix}`,
           email: otherRiderEmail,
           passwordHash,
@@ -253,17 +281,19 @@ test.describe.serial("complete retail order and delivery workflow", () => {
     page,
   }) => {
     await page.goto("/auth?mode=register");
-    await page.getByLabel("Name").fill(`Workflow Customer ${shortSuffix}`);
+    await fillAccountNames(page, "Workflow Customer");
+    await page.locator("#register-phone").fill(randomTestMobile());
     await page.getByLabel("Email").fill(customerEmail);
-    await page.getByLabel("Password").fill(password);
+    await page
+      .locator("form:visible")
+      .getByLabel("Password", { exact: true })
+      .fill(password);
     await page
       .locator("form:visible")
       .getByRole("button", { name: "Register", exact: true })
       .click();
     await expect(page).toHaveURL(/\/account$/);
-    await page
-      .locator('[data-slot="sidebar-footer"] [data-slot="sidebar-menu-button"]')
-      .click();
+    await page.locator('[data-slot="sidebar-footer"] button').click();
     await page.getByRole("menuitem", { name: "Sign out" }).click();
 
     await signIn(page, customerEmail, "/account");
@@ -386,11 +416,16 @@ test.describe.serial("complete retail order and delivery workflow", () => {
   }) => {
     await page.context().clearCookies();
     await page.goto("/auth");
-    await page.getByLabel("Email or phone").fill(customerEmail);
-    await page.getByLabel("Password").fill("DefinitelyWrong123!");
+    await page
+      .locator("#login-identifier")
+      .fill(await mobileForTestAccount(customerEmail));
+    await page
+      .locator("form:visible")
+      .getByLabel("Password", { exact: true })
+      .fill("DefinitelyWrong123!");
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(
-      page.getByText("Invalid email/phone or password.", { exact: true }),
+      page.getByText("Invalid mobile number or password.", { exact: true }),
     ).toBeVisible();
     await expect(page).toHaveURL(/\/auth$/);
 

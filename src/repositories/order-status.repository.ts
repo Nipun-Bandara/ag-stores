@@ -16,11 +16,23 @@ const orderTransitionSelect = {
   customerId: true,
   shopId: true,
   status: true,
-  shop: { select: { ownerId: true } },
+  packingRequired: true,
+  total: true,
+  shop: { select: { ownerId: true, weightDifferenceAllowancePct: true } },
   batchAssignment: {
     select: { batch: { select: { deliveryPersonId: true } } },
   },
-  items: { select: { productId: true, quantity: true } },
+  items: {
+    select: {
+      productId: true,
+      quantity: true,
+      packedQuantity: true,
+      sellingUnit: true,
+      contactWeight: true,
+      contactAgreedAt: true,
+      contactNote: true,
+    },
+  },
 } satisfies Prisma.OrderSelect;
 
 export type OrderTransitionRecord = Prisma.OrderGetPayload<{
@@ -34,6 +46,7 @@ export interface OrderStatusTransaction {
     expectedStatus: OrderStatus,
     nextStatus: OrderStatus,
     cancellation: { at: Date; reason: string | null } | null,
+    finalizePacking: boolean,
   ): Promise<boolean>;
   createHistory(input: {
     orderId: string;
@@ -44,7 +57,11 @@ export interface OrderStatusTransaction {
     createdAt: Date;
   }): Promise<{ id: string; createdAt: Date }>;
   restoreStock(
-    items: ReadonlyArray<{ productId: string; quantity: number }>,
+    items: ReadonlyArray<{
+      productId: string;
+      quantity: number | Prisma.Decimal;
+      packedQuantity?: number | Prisma.Decimal | null;
+    }>,
   ): Promise<void>;
   findActiveDeliveryPersonIds(shopId: string): Promise<string[]>;
   createNotifications(
@@ -62,7 +79,9 @@ export interface OrderStatusRepository {
 class PrismaOrderStatusTransaction implements OrderStatusTransaction {
   constructor(private readonly prisma: Prisma.TransactionClient) {}
 
-  findOrder(orderId: string): Promise<OrderTransitionRecord | null> {
+  async findOrder(orderId: string): Promise<OrderTransitionRecord | null> {
+    await this.prisma
+      .$queryRaw`SELECT "id" FROM "orders" WHERE "id" = ${orderId}::uuid FOR UPDATE`;
     return this.prisma.order.findUnique({
       where: { id: orderId },
       select: orderTransitionSelect,
@@ -74,11 +93,15 @@ class PrismaOrderStatusTransaction implements OrderStatusTransaction {
     expectedStatus: OrderStatus,
     nextStatus: OrderStatus,
     cancellation: { at: Date; reason: string | null } | null,
+    finalizePacking: boolean,
   ): Promise<boolean> {
     const result = await this.prisma.order.updateMany({
       where: { id: orderId, status: expectedStatus },
       data: {
         status: nextStatus,
+        ...(finalizePacking
+          ? { packingFinalizedAt: new Date(), packingVersion: { increment: 1 } }
+          : {}),
         ...(cancellation
           ? {
               cancelledAt: cancellation.at,
@@ -105,12 +128,18 @@ class PrismaOrderStatusTransaction implements OrderStatusTransaction {
   }
 
   async restoreStock(
-    items: ReadonlyArray<{ productId: string; quantity: number }>,
+    items: ReadonlyArray<{
+      productId: string;
+      quantity: number | Prisma.Decimal;
+      packedQuantity?: number | Prisma.Decimal | null;
+    }>,
   ): Promise<void> {
     for (const item of items) {
       await this.prisma.product.update({
         where: { id: item.productId },
-        data: { stockQuantity: { increment: item.quantity } },
+        data: {
+          stockQuantity: { increment: item.packedQuantity ?? item.quantity },
+        },
       });
     }
   }

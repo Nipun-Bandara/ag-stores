@@ -63,9 +63,9 @@ JavaScript floating-point arithmetic and returned to clients as fixed two-place
 strings.
 
 Each product stores a non-negative low-stock threshold. Inventory views derive
-three mutually exclusive states: zero units is out of stock, a positive quantity
-at or below the threshold is low stock, and a quantity above the threshold is
-available. PostgreSQL constraints prevent negative stock and thresholds.
+three mutually exclusive states: less than the first valid order quantity is out
+of stock, purchasable stock at or below the threshold is low stock, and
+purchasable stock above the threshold is available. PostgreSQL constraints prevent negative stock and thresholds.
 
 Checkout accepts only product identifiers and quantities from the browser. It
 locks stock through conditional decrements, reloads current database prices,
@@ -111,7 +111,12 @@ previous status, new status, actor, timestamp, and optional note.
 
 ## Uniqueness and indexing
 
-Emails and user phone numbers are globally unique. Address labels are unique
+User UUIDs remain immutable primary keys. Canonical Sri Lankan mobile numbers
+are required and globally unique; optional emails retain case-insensitive
+uniqueness. First/last names are required and nonunique. A trigger derives the
+read-compatible full-name column, and `legacyName` preserves original migrated
+names. See [mobile account migration](mobile-accounts.md) before applying the
+required identity constraints. Address labels are unique
 per customer, category and product English names are unique per shop, an order
 can appear in only one delivery batch, and batch sequence numbers cannot repeat.
 Indexes cover common role/status, shop catalog, customer order history, shop
@@ -141,3 +146,7 @@ record.
 The development seed is idempotent and creates four role-specific users, one
 shop, two bilingual categories, and two products. Its shared password is only a
 development fixture and must never be used for deployed accounts.
+
+## Product selling setup (stage 1)
+
+Products retain their UUID/category foreign keys and gain nullable shop-unique text item codes and barcodes. Full creation/editing requires an item code; legacy rows remain null until edited. Stock, thresholds and order-item quantities use Decimal(13,3). UNIT requires whole quantities; KG permits thousandths. New UNIT products use minimum/increment 1/1. New KG products use minimum 0.002 kg; their required increment column stores 0.001 as precision metadata. The server accepts typed KG weights with at most three decimal places above the saved minimum (at least 0.002 kg), without requiring increment multiples. Order items snapshot UNIT/KG. Migration backfills UNIT/1/1 without changing historical money or assigning identifiers. Line money uses integer-thousandth quantity multiplication and explicit half-up cent rounding before subtotal summation. See [the stage 1 decisions](product-pricing-and-packing.md) for concurrency, cart compatibility, migration and acceptance details.

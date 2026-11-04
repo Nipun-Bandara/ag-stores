@@ -1,10 +1,7 @@
+import { orderPricingSnapshot } from "@/lib/pricing";
 import { getDb } from "@/db";
 import { OrderStatus, UserRole } from "@/generated/prisma/client";
-import {
-  minorUnitsToMoney,
-  moneyToMinorUnits,
-  multiplyMinorUnits,
-} from "@/lib/money";
+
 import {
   PrismaCustomerOrderRepository,
   type CustomerOrderDetailRecord,
@@ -61,6 +58,10 @@ function toListView(order: CustomerOrderListRecord) {
     shopName: order.shop.name,
     itemCount: order._count.items,
     total: order.total.toFixed(2),
+    estimatedSubtotal: order.estimatedSubtotal?.toFixed(2) ?? null,
+    estimatedTotal: order.estimatedTotal?.toFixed(2) ?? null,
+    packingRequired: order.packingRequired,
+    packingFinalizedAt: order.packingFinalizedAt?.toISOString() ?? null,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
   };
@@ -89,6 +90,10 @@ function toDetailView(order: CustomerOrderDetailRecord) {
     subtotal: order.subtotal.toFixed(2),
     deliveryFee: order.deliveryFee.toFixed(2),
     total: order.total.toFixed(2),
+    estimatedSubtotal: order.estimatedSubtotal?.toFixed(2) ?? null,
+    estimatedTotal: order.estimatedTotal?.toFixed(2) ?? null,
+    packingRequired: order.packingRequired,
+    packingFinalizedAt: order.packingFinalizedAt?.toISOString() ?? null,
     customerNote: order.customerNote,
     cancelledAt: order.cancelledAt?.toISOString() ?? null,
     cancellationReason: order.cancellationReason,
@@ -105,14 +110,9 @@ function toDetailView(order: CustomerOrderDetailRecord) {
       nameEn: item.product.nameEn,
       nameSi: item.product.nameSi,
       imageUrl: item.product.imageUrl,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice.toFixed(2),
-      lineTotal: minorUnitsToMoney(
-        multiplyMinorUnits(
-          moneyToMinorUnits(item.unitPrice.toFixed(2)),
-          item.quantity,
-        ),
-      ),
+      quantity: Number(item.quantity),
+      sellingUnit: item.sellingUnit,
+      ...orderPricingSnapshot(item),
     })),
     timeline,
   };

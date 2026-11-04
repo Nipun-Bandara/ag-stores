@@ -1,4 +1,7 @@
 "use client";
+
+import { ProductPrice } from "@/features/pricing/price-display";
+import { firstOrderQuantity } from "@/lib/quantity";
 import { BilingualText } from "@/features/i18n/components/bilingual-text";
 import { useLocale, useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
@@ -76,9 +79,12 @@ function StockForm({
   }
 
   return (
-    <form className="mt-auto flex flex-wrap items-end gap-2 border-t border-border pt-4" onSubmit={handleSubmit}>
+    <form
+      className="mt-auto flex flex-wrap items-end gap-2 border-t border-border pt-3"
+      onSubmit={handleSubmit}
+    >
       <Label
-        className="order-1 w-full text-xs font-medium @min-[420px]/product-card:order-2 @min-[420px]/product-card:w-36"
+        className="order-1 w-full min-w-0 text-xs font-medium @min-[460px]/product-card:order-2 @min-[460px]/product-card:w-auto @min-[460px]/product-card:flex-1"
         htmlFor={`threshold-${product.id}`}
       >
         <Text value={"Low-stock threshold "} />
@@ -87,23 +93,24 @@ function StockForm({
           name="lowStockThreshold"
           type="number"
           min="0"
-          step="1"
+          step={product.sellingUnit === "KG" ? "0.001" : "1"}
           defaultValue={product.lowStockThreshold}
           className="mt-1 block h-9 w-full"
           required
         />
       </Label>
       <Label
-        className="order-2 w-20 text-xs font-medium @min-[420px]/product-card:order-1"
+        className="order-2 min-w-0 flex-1 text-xs font-medium @min-[460px]/product-card:order-1"
         htmlFor={`stock-${product.id}`}
       >
-        <Text value={"Stock "} />
+        <Text value={"Stock "} /> (
+        {product.sellingUnit === "KG" ? "kg" : t("units")})
         <Input
           id={`stock-${product.id}`}
           name="stockQuantity"
           type="number"
           min="0"
-          step="1"
+          step={product.sellingUnit === "KG" ? "0.001" : "1"}
           defaultValue={product.stockQuantity}
           className="mt-1 block h-9 w-full"
           required
@@ -112,7 +119,7 @@ function StockForm({
       <div className="order-3 flex items-center gap-2">
         <IconActionButton
           variant="success"
-          size="icon-sm"
+          size="icon"
           type="submit"
           label={pending ? t("Updating…") : t("Update stock")}
           disabled={pending}
@@ -124,7 +131,10 @@ function StockForm({
             render={
               <Link
                 href={`/owner/products/${product.id}/edit`}
-                className={buttonVariants({ variant: "outline", size: "icon-sm" })}
+                className={buttonVariants({
+                  variant: "outline",
+                  size: "icon",
+                })}
                 aria-label={editLabel}
               >
                 <Pencil aria-hidden="true" />
@@ -135,15 +145,22 @@ function StockForm({
         </Tooltip>
         <IconActionButton
           variant={product.isAvailable ? "destructive" : "success"}
-          className={product.isAvailable ? "text-white [html.dark_&]:text-black" : undefined}
-          size="icon-sm"
+          className={
+            product.isAvailable
+              ? "text-white [html.dark_&]:text-black"
+              : undefined
+          }
+          size="icon"
           type="button"
           label={`${t(product.isAvailable ? "Mark unavailable" : "Mark available")} ${productName}`}
           disabled={availabilityPending}
           onClick={onToggleAvailability}
         >
           {product.isAvailable ? (
-            <CircleX aria-hidden="true" className="stroke-white [html.dark_&]:stroke-black" />
+            <CircleX
+              aria-hidden="true"
+              className="stroke-white [html.dark_&]:stroke-black"
+            />
           ) : (
             <CircleCheck aria-hidden="true" />
           )}
@@ -164,6 +181,7 @@ export function ProductList({
   initialProducts: ProductView[];
 }) {
   const t = useText();
+  const locale = useLocale();
   const [products, setProducts] = useState(initialProducts);
   const [pendingId, setPendingId] = useState<string>();
   const [error, setError] = useState<string>();
@@ -211,11 +229,15 @@ export function ProductList({
   return (
     <div className="mt-6">
       {error ? <FormError>{error}</FormError> : null}
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2">
         {products.map((product) => (
-          <Card as="article" key={product.id} className="@container/product-card gap-0 p-5">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="min-w-0">
+          <Card
+            as="article"
+            key={product.id}
+            className="@container/product-card min-w-0 gap-3 p-4"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
                 <h2 className="break-words font-semibold">
                   <BilingualText
                     english={product.nameEn}
@@ -240,11 +262,24 @@ export function ProductList({
                   </a>
                 ) : null}
               </div>
-              <div className="flex flex-col items-end gap-2">
-                <Badge variant="secondary">
+              <div className="flex max-w-1/2 flex-col items-end gap-1.5">
+                <Badge
+                  variant="secondary"
+                  className="max-w-full whitespace-normal"
+                >
                   {product.isAvailable ? t("Available") : t("Unavailable")}
                 </Badge>
-                <Badge variant="warning" data-testid="inventory-status">
+                <Badge
+                  variant={
+                    product.inventoryStatus === "OUT_OF_STOCK"
+                      ? "destructive"
+                      : product.inventoryStatus === "LOW_STOCK"
+                        ? "warning"
+                        : "success"
+                  }
+                  className="max-w-full whitespace-normal"
+                  data-testid="inventory-status"
+                >
                   {product.inventoryStatus === "OUT_OF_STOCK"
                     ? t("Out of stock")
                     : product.inventoryStatus === "LOW_STOCK"
@@ -253,26 +288,39 @@ export function ProductList({
                 </Badge>
               </div>
             </div>
-            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-              <div>
+            <dl className="grid min-w-0 grid-cols-2 gap-x-3 gap-y-2 text-xs">
+              <div className="min-w-0">
                 <dt className="text-muted-foreground">
-                  <Text value={t("Price")} />
+                  <Text value="Item code" />
                 </dt>
-                <dd className="font-medium">{product.price}</dd>
+                <dd className="break-all font-medium">
+                  {product.itemCode ?? t("Not set")}
+                </dd>
               </div>
-              <div>
+              <div className="min-w-0">
                 <dt className="text-muted-foreground">
-                  <Text value={t("Stock")} />
+                  <Text value="Barcode (optional)" />
                 </dt>
-                <dd className="font-medium">{product.stockQuantity}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">
-                  <Text value={t("Low-stock threshold")} />
-                </dt>
-                <dd className="font-medium">{product.lowStockThreshold}</dd>
+                <dd className="break-all font-medium">
+                  {product.barcode ?? "—"}
+                </dd>
               </div>
             </dl>
+            <div className="flex flex-wrap items-end justify-between gap-2 text-sm">
+              <ProductPrice
+                regularPrice={product.price}
+                quantity={firstOrderQuantity(product)}
+                discountTiers={product.discountTiers}
+                sellingUnit={product.sellingUnit}
+                locale={locale}
+              />
+
+              <p className="text-xs text-muted-foreground">
+                <Text value="Minimum order quantity" />:{" "}
+                {product.minimumOrderQuantity}{" "}
+                <Text value={product.sellingUnit === "KG" ? "kg" : "units"} />
+              </p>
+            </div>
             <StockForm
               product={product}
               onSaved={saveProduct}

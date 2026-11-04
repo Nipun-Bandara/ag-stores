@@ -5,7 +5,6 @@ import { Text } from "@/features/i18n/components/text";
 import * as React from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  BadgeCheck,
   Bell,
   ChevronsUpDown,
   LogOut,
@@ -202,8 +201,8 @@ function NavUser({
                 }}
                 className="cursor-pointer"
               >
-                <BadgeCheck className="mr-2 h-4 w-4" />
-                <Text value={"Profile "} />
+                <User className="mr-2 h-4 w-4" />
+                <Text value="My profile" />
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {

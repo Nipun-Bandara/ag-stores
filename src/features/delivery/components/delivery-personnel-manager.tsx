@@ -36,7 +36,7 @@ interface ApiPayload {
 }
 
 async function readPayload(response: Response): Promise<ApiPayload> {
-  return (await response.json().catch(() => ({}))) as ApiPayload;
+  return ((await response.json().catch(() => null)) ?? {}) as ApiPayload;
 }
 
 function PersonnelForm({
@@ -73,7 +73,8 @@ function PersonnelForm({
         method: person ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: form.get("name"),
+          firstName: form.get("firstName"),
+          lastName: form.get("lastName"),
           email: form.get("email"),
           phone: form.get("phone"),
           assignedShopId,
@@ -114,26 +115,33 @@ function PersonnelForm({
         </h2>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <FormField
-            id={`delivery-name-${suffix}`}
-            name="name"
-            label="Name"
-            defaultValue={person?.name ?? ""}
-            maxLength={150}
+            id={`delivery-first-name-${suffix}`}
+            name="firstName"
+            label="First name"
+            defaultValue={person?.firstName ?? ""}
+            maxLength={75}
+            required
+          />
+          <FormField
+            id={`delivery-last-name-${suffix}`}
+            name="lastName"
+            label="Last name"
+            defaultValue={person?.lastName ?? ""}
+            maxLength={75}
             required
           />
           <FormField
             id={`delivery-email-${suffix}`}
             name="email"
-            label="Email"
+            label="Email (optional)"
             type="email"
             defaultValue={person?.email ?? ""}
             maxLength={320}
-            required
           />
           <FormField
             id={`delivery-phone-${suffix}`}
             name="phone"
-            label="Phone"
+            label="Mobile number"
             type="tel"
             defaultValue={person?.phone ?? ""}
             placeholder="+94771234567"

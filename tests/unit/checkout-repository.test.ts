@@ -16,7 +16,16 @@ const data: CheckoutOrderData = {
   deliveryFee: "50.00",
   total: "150.00",
   customerNote: null,
-  items: [{ productId: "product-id", quantity: 1, unitPrice: "100.00" }],
+  items: [
+    {
+      productId: "product-id",
+      quantity: 1,
+      sellingUnit: "UNIT",
+      unitPrice: "100.00",
+      regularPrice: "100.00",
+      appliedDiscount: "0.00",
+    },
+  ],
 };
 
 function setup() {
@@ -55,7 +64,13 @@ describe("checkout order creation", () => {
       timeout: 30_000,
     });
     expect(transaction.order.create).toHaveBeenCalledWith({
-      data: { ...data, items: { create: data.items } },
+      data: {
+        ...data,
+        estimatedSubtotal: data.subtotal,
+        estimatedTotal: data.total,
+        packingRequired: false,
+        items: { create: data.items },
+      },
       select: { id: true },
     });
     expect(transaction.order.findUniqueOrThrow).toHaveBeenCalledWith({
