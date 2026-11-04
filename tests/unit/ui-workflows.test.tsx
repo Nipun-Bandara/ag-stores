@@ -21,6 +21,8 @@ const state = vi.hoisted(() => ({
   refresh: vi.fn(),
   push: vi.fn(),
   clear: vi.fn(),
+  success: vi.fn(),
+  error: vi.fn(),
   items: [
     {
       id: "product-1",
@@ -31,6 +33,35 @@ const state = vi.hoisted(() => ({
       imageUrl: null,
     },
   ],
+}));
+vi.mock("@/context/AuthContext", () => ({
+  useAuth: () => ({ updateUser: vi.fn() }),
+}));
+vi.mock("sonner", () => ({
+  toast: { success: state.success, error: state.error },
+}));
+vi.mock("@/features/maps/components/location-picker", async (original) => ({
+  ...(await original<
+    typeof import("@/features/maps/components/location-picker")
+  >()),
+  LocationPicker: ({
+    value,
+    onChange,
+  }: {
+    value: { latitude: number; longitude: number } | null;
+    onChange: (value: { latitude: number; longitude: number }) => void;
+  }) => (
+    <>
+      <input type="hidden" name="latitude" value={value?.latitude ?? ""} />
+      <input type="hidden" name="longitude" value={value?.longitude ?? ""} />
+      <button
+        type="button"
+        onClick={() => onChange({ latitude: 6.9, longitude: 79.8 })}
+      >
+        Choose test location
+      </button>
+    </>
+  ),
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: state.refresh, push: state.push }),
@@ -84,15 +115,8 @@ describe("shared UI form workflows", () => {
     fireEvent.change(screen.getByLabelText("Address"), {
       target: { value: "12 Main Road" },
     });
-    fireEvent.click(screen.getByText("Enter coordinates manually"));
-    fireEvent.change(screen.getByLabelText("Latitude"), {
-      target: { value: "6.9" },
-    });
-    fireEvent.change(screen.getByLabelText("Longitude"), {
-      target: { value: "79.8" },
-    });
     fireEvent.click(
-      screen.getByRole("button", { name: "Use these coordinates" }),
+      screen.getByRole("button", { name: "Choose test location" }),
     );
     fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(screen.getByRole("button", { name: "Add address" }));
@@ -101,8 +125,8 @@ describe("shared UI form workflows", () => {
       label: "Home",
       isDefault: true,
     });
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Test validation response",
+    await waitFor(() =>
+      expect(state.error).toHaveBeenCalledWith("Test validation response"),
     );
   });
 
@@ -144,7 +168,17 @@ describe("shared UI form workflows", () => {
   });
 
   it("preserves profile values and the selected language on submission", async () => {
-    const fetcher = vi.fn().mockResolvedValue({ ok: true });
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          id: "customer-1",
+          firstName: "Test",
+          lastName: "User",
+          phone: "+94770000000",
+        },
+      }),
+    });
     vi.stubGlobal("fetch", fetcher);
     render(
       <ProfileForm
@@ -152,7 +186,9 @@ describe("shared UI form workflows", () => {
           id: "customer-1",
           name: "Customer",
           email: "customer@example.test",
-          phone: null,
+          firstName: "Test",
+          lastName: "User",
+          phone: "+94770000000",
           role: "CUSTOMER",
           status: "ACTIVE",
           preferredLanguage: "EN",
@@ -165,11 +201,12 @@ describe("shared UI form workflows", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
     await waitFor(() => expect(fetcher).toHaveBeenCalled());
     expect(JSON.parse(fetcher.mock.calls[0]![1].body)).toMatchObject({
-      name: "Customer",
+      firstName: "Test",
+      lastName: "User",
       preferredLanguage: "SI",
     });
-    expect(await screen.findByRole("status")).toHaveTextContent(
-      "Profile updated.",
+    await waitFor(() =>
+      expect(state.success).toHaveBeenCalledWith("Profile updated."),
     );
   });
 

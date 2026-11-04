@@ -1,3 +1,4 @@
+import { mobileForTestAccount, fillAccountNames } from "./helpers/accounts";
 import { randomUUID } from "node:crypto";
 
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -13,15 +14,20 @@ const prisma = new PrismaClient({
 });
 const suffix = randomUUID();
 const email = `delivery-management-${suffix}@example.test`;
-const initialName = `Delivery Person ${suffix.slice(0, 8)}`;
-const updatedName = `Updated Delivery ${suffix.slice(0, 8)}`;
-const digits = suffix.replace(/\D/g, "").padEnd(8, "7").slice(0, 8);
+const initialName = `Delivery Person ${suffix.replace(/[^a-f]/g, "").slice(0, 8)}`;
+const updatedName = `Updated Delivery ${suffix.replace(/[^a-f]/g, "").slice(0, 8)}`;
+const digits = suffix.replace(/\D/g, "").padEnd(7, "7").slice(0, 7);
 let temporaryPassword = "";
 
 async function signIn(page: Page, identifier: string, destination: string) {
   await page.goto("/auth");
-  await page.getByLabel("Email or phone").fill(identifier);
-  await page.getByLabel("Password").fill("ChangeMe123!");
+  await page
+    .locator("#login-identifier")
+    .fill(await mobileForTestAccount(identifier));
+  await page
+    .locator("form:visible")
+    .getByLabel("Password", { exact: true })
+    .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(new RegExp(`${destination}$`));
 }
@@ -49,9 +55,9 @@ test.describe.serial("delivery personnel management", () => {
       }),
     ).toBeVisible();
 
-    await page.getByLabel("Name").fill(initialName);
+    await fillAccountNames(page, initialName);
     await page.getByLabel("Email").fill(email);
-    await page.getByLabel("Phone").fill(`+9476${digits}`);
+    await page.getByLabel("Mobile number").fill(`+9476${digits}`);
     await page.getByRole("button", { name: "Create delivery account" }).click();
 
     const card = page
@@ -67,8 +73,8 @@ test.describe.serial("delivery personnel management", () => {
     expect(temporaryPassword.length).toBeGreaterThanOrEqual(12);
 
     await card.getByRole("button", { name: `Edit ${initialName}` }).click();
-    await page.getByLabel("Name").fill(updatedName);
-    await page.getByLabel("Phone").fill(`+9477${digits}`);
+    await fillAccountNames(page, updatedName);
+    await page.getByLabel("Mobile number").fill(`+9477${digits}`);
     await page.getByRole("button", { name: "Save delivery person" }).click();
 
     const updatedCard = page
@@ -83,13 +89,20 @@ test.describe.serial("delivery personnel management", () => {
 
   test("inactive delivery personnel cannot log in", async ({ page }) => {
     await page.goto("/auth");
-    await page.getByLabel("Email or phone").fill(email);
-    await page.getByLabel("Password").fill(temporaryPassword);
+    await page
+      .locator("#login-identifier")
+      .fill(await mobileForTestAccount(email));
+    await page
+      .locator("form:visible")
+      .getByLabel("Password", { exact: true })
+      .fill(temporaryPassword);
     await page.getByRole("button", { name: "Sign in" }).click();
 
     await expect(page).toHaveURL(/\/auth$/);
     await expect(
-      page.getByText("Invalid email/phone or password.", { exact: true }),
+      page
+        .getByText("Invalid mobile number or password.", { exact: true })
+        .first(),
     ).toBeVisible();
   });
 

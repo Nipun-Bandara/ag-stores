@@ -1,3 +1,4 @@
+import { mobileForTestAccount } from "./helpers/accounts";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { expect, test } from "@playwright/test";
 
@@ -81,8 +82,13 @@ test("Sinhala route renders Sinhala text and translated product fields", async (
 
 test("language switcher changes the locale route", async ({ page }) => {
   await page.goto("/auth");
-  await page.getByLabel("Email or phone").fill("customer@agstores.local");
-  await page.getByLabel("Password").fill("ChangeMe123!");
+  await page
+    .locator("#login-identifier")
+    .fill(await mobileForTestAccount("customer@agstores.local"));
+  await page
+    .locator("form:visible")
+    .getByLabel("Password", { exact: true })
+    .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/account$/);
 
@@ -103,9 +109,10 @@ test("signed-in customer language preference is remembered", async ({
   const password = "SecurePassword123!";
   const registration = await page.request.post("/api/auth/register", {
     data: {
-      name: "Localized E2E Customer",
+      firstName: "Localized Browser",
+      lastName: "Customer",
       email,
-      phone: "",
+      phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
       password,
       preferredLanguage: "EN",
     },
@@ -118,12 +125,19 @@ test("signed-in customer language preference is remembered", async ({
   await expect(page).toHaveURL(/\/si\/account$/);
   await expect(page.getByRole("heading", { name: "ඔබේ ගිණුම" })).toBeVisible();
 
-  await page.getByRole("button", { name: /Localized E2E Customer/ }).click();
+  await page
+    .getByRole("button", { name: /Localized Browser Customer/ })
+    .click();
   await page.getByRole("menuitem", { name: "ඉවත් වන්න" }).click();
   await page.context().clearCookies({ name: "ag_stores_locale" });
   await page.goto("/auth");
-  await page.getByLabel("Email or phone").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page
+    .locator("#login-identifier")
+    .fill(await mobileForTestAccount(email));
+  await page
+    .locator("form:visible")
+    .getByLabel("Password", { exact: true })
+    .fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
 
   await expect(page).toHaveURL(/\/account$/);
@@ -142,8 +156,13 @@ test("Sinhala storefront falls back to English for missing product text", async 
   page,
 }) => {
   await page.goto("/auth");
-  await page.getByLabel("Email or phone").fill("customer@agstores.local");
-  await page.getByLabel("Password").fill("ChangeMe123!");
+  await page
+    .locator("#login-identifier")
+    .fill(await mobileForTestAccount("customer@agstores.local"));
+  await page
+    .locator("form:visible")
+    .getByLabel("Password", { exact: true })
+    .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/account$/);
 

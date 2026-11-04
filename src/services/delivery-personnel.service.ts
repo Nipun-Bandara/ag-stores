@@ -16,6 +16,10 @@ import type {
   DeliveryPersonnelStatusInput,
   DeliveryPersonnelUpdateInput,
 } from "@/validations/delivery-personnel";
+import {
+  deliveryPersonnelCreateSchema,
+  deliveryPersonnelUpdateSchema,
+} from "@/validations/delivery-personnel";
 
 type DeliveryPersonnelErrorCode =
   | "MANAGEMENT_FORBIDDEN"
@@ -54,6 +58,8 @@ function toView(person: DeliveryPersonnelRecord) {
   return {
     id: person.id,
     name: person.name,
+    firstName: person.firstName,
+    lastName: person.lastName,
     email: person.email,
     phone: person.phone,
     role: person.role,
@@ -82,7 +88,7 @@ async function handleUnique<T>(operation: () => Promise<T>): Promise<T> {
     if (isUniqueConstraintError(error)) {
       throw new DeliveryPersonnelError(
         "DUPLICATE_CONTACT",
-        "An account already exists with that email or phone number.",
+        "An account already exists with that mobile number or email.",
         409,
       );
     }
@@ -108,6 +114,7 @@ export async function createDeliveryPerson(
   personnel: DeliveryPersonnelRepository = repository(),
 ) {
   const scope = scopeFor(user);
+  input = deliveryPersonnelCreateSchema.parse(input);
   await assertUsableShop(scope, input.assignedShopId, personnel);
   const temporaryPassword = `Ag!${randomBytes(12).toString("base64url")}7a`;
   const passwordHash = await hashPassword(temporaryPassword);
@@ -124,6 +131,7 @@ export async function updateDeliveryPerson(
   personnel: DeliveryPersonnelRepository = repository(),
 ) {
   const scope = scopeFor(user);
+  input = deliveryPersonnelUpdateSchema.parse(input);
   await assertUsableShop(scope, input.assignedShopId, personnel);
   const updated = await handleUnique(() =>
     personnel.updateManaged(scope, personId, input),

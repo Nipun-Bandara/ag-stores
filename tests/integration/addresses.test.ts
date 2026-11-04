@@ -55,9 +55,10 @@ describeWithDatabase("customer delivery address API", () => {
     async function register(email: string) {
       const response = await registerRoute(
         request("/api/auth/register", "POST", undefined, {
-          name: "Address Customer",
+          firstName: "Address",
+          lastName: "Customer",
           email,
-          phone: "",
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           password: "SecurePassword123!",
           preferredLanguage: "EN",
         }),

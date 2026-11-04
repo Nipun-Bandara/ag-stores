@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { getDb } from "@/db";
 
 import { NextRequest } from "next/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -27,7 +28,11 @@ async function login(email: string): Promise<string> {
     new Request("http://localhost/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier: email, password }),
+      body: JSON.stringify({
+        identifier: (await getDb().user.findUniqueOrThrow({ where: { email } }))
+          .phone,
+        password,
+      }),
     }),
   );
 

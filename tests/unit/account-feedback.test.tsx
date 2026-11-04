@@ -16,8 +16,12 @@ const mocks = vi.hoisted(() => ({
   success: vi.fn(),
   error: vi.fn(),
   refresh: vi.fn(),
+  updateUser: vi.fn(),
 }));
 vi.mock("sonner", () => ({ toast: mocks }));
+vi.mock("@/context/AuthContext", () => ({
+  useAuth: () => ({ updateUser: mocks.updateUser }),
+}));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: mocks.refresh }),
 }));
@@ -56,7 +60,9 @@ const user: AuthenticatedUser = {
   id: "customer",
   name: "Customer",
   email: "customer@example.com",
-  phone: null,
+  firstName: "Test",
+  lastName: "User",
+  phone: "+94770000000",
   role: "CUSTOMER",
   preferredLanguage: "EN",
   status: "ACTIVE",
@@ -171,7 +177,10 @@ it.each(["default", "delete"])(
 );
 
 it("confirms a profile save and refreshes the profile without an inline banner", async () => {
-  mocks.fetch.mockResolvedValue({ ok: true });
+  mocks.fetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ data: user }),
+  });
   const { container } = render(<ProfileForm user={user} />);
   fireEvent.submit(container.querySelector("form")!);
   await waitFor(() =>
@@ -179,6 +188,21 @@ it("confirms a profile save and refreshes the profile without an inline banner",
   );
   expect(mocks.refresh).toHaveBeenCalledOnce();
   expect(screen.queryByRole("status")).not.toBeInTheDocument();
+});
+
+it("rejects a malformed profile success response and preserves entered values", async () => {
+  mocks.fetch.mockResolvedValue({ ok: true, json: async () => null });
+  const { container } = render(<ProfileForm user={user} />);
+  fireEvent.change(screen.getByLabelText("First name"), {
+    target: { value: "Changed" },
+  });
+  fireEvent.submit(container.querySelector("form")!);
+  await waitFor(() =>
+    expect(mocks.error).toHaveBeenCalledWith("Unable to update your profile."),
+  );
+  expect(screen.getByLabelText("First name")).toHaveValue("Changed");
+  expect(mocks.success).not.toHaveBeenCalled();
+  expect(mocks.updateUser).not.toHaveBeenCalled();
 });
 
 it.each(["server", "network"])(
@@ -193,8 +217,8 @@ it.each(["server", "network"])(
       });
     else mocks.fetch.mockRejectedValue(new Error("Network failure"));
     const { container } = render(<ProfileForm user={user} />);
-    fireEvent.change(screen.getByLabelText("Name"), {
-      target: { value: "Changed name" },
+    fireEvent.change(screen.getByLabelText("First name"), {
+      target: { value: "Changed" },
     });
     fireEvent.submit(container.querySelector("form")!);
     await waitFor(() =>
@@ -204,7 +228,7 @@ it.each(["server", "network"])(
           : "Unable to update your profile.",
       ),
     );
-    expect(screen.getByLabelText("Name")).toHaveValue("Changed name");
+    expect(screen.getByLabelText("First name")).toHaveValue("Changed");
     expect(screen.getByRole("button", { name: "Save profile" })).toBeEnabled();
     expect(mocks.refresh).not.toHaveBeenCalled();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();

@@ -4,6 +4,8 @@ import { hashSessionToken } from "@/lib/auth/session-token";
 import { preferenceFromLocale, type Locale } from "@/lib/i18n/config";
 import { isUniqueConstraintError } from "@/repositories/auth.repository";
 import {
+  CurrentPasswordRequiredError,
+  IncorrectCurrentPasswordError,
   PrismaCustomerProfileRepository,
   type CustomerProfileRepository,
 } from "@/repositories/customer-profile.repository";
@@ -12,11 +14,12 @@ import type {
   PasswordChangeInput,
   ProfileUpdateInput,
 } from "@/validations/profile";
+import { profileUpdateSchema } from "@/validations/profile";
 
 type ProfileErrorCode =
-  | "CUSTOMER_ONLY"
+  | "PROFILE_NOT_FOUND"
   | "DUPLICATE_PHONE"
-  | "CONTACT_REQUIRED"
+  | "CURRENT_PASSWORD_REQUIRED"
   | "INVALID_CURRENT_PASSWORD";
 
 export class CustomerProfileError extends Error {
@@ -34,28 +37,17 @@ function getProfileRepository(): CustomerProfileRepository {
   return new PrismaCustomerProfileRepository(getDb());
 }
 
-function assertCustomer(user: AuthenticatedUser): void {
-  if (user.role !== "CUSTOMER") {
-    throw new CustomerProfileError(
-      "CUSTOMER_ONLY",
-      "Customer access is required.",
-      403,
-    );
-  }
-}
-
 export async function getCustomerProfile(
   user: AuthenticatedUser,
   repository: CustomerProfileRepository = getProfileRepository(),
 ): Promise<AuthenticatedUser> {
-  assertCustomer(user);
   const profile = await repository.findCustomerById(user.id);
 
   if (!profile) {
     throw new CustomerProfileError(
-      "CUSTOMER_ONLY",
-      "Customer access is required.",
-      403,
+      "PROFILE_NOT_FOUND",
+      "Profile not found.",
+      404,
     );
   }
 
@@ -67,23 +59,28 @@ export async function updateCustomerProfile(
   input: ProfileUpdateInput,
   repository: CustomerProfileRepository = getProfileRepository(),
 ): Promise<AuthenticatedUser> {
-  assertCustomer(user);
-
-  if (!user.email && !input.phone) {
-    throw new CustomerProfileError(
-      "CONTACT_REQUIRED",
-      "An account must retain an email address or phone number.",
-      400,
-    );
-  }
-
+  input = profileUpdateSchema.parse(input);
   try {
     return await repository.updateCustomer(user.id, input);
   } catch (error) {
+    if (error instanceof CurrentPasswordRequiredError) {
+      throw new CustomerProfileError(
+        "CURRENT_PASSWORD_REQUIRED",
+        "Enter your current password to change your mobile number.",
+        400,
+      );
+    }
+    if (error instanceof IncorrectCurrentPasswordError) {
+      throw new CustomerProfileError(
+        "INVALID_CURRENT_PASSWORD",
+        "Current password is incorrect.",
+        400,
+      );
+    }
     if (isUniqueConstraintError(error)) {
       throw new CustomerProfileError(
         "DUPLICATE_PHONE",
-        "That phone number is already associated with an account.",
+        "That mobile number or email is already associated with an account.",
         409,
       );
     }
@@ -96,7 +93,6 @@ export async function updateCustomerLanguage(
   locale: Locale,
   repository: CustomerProfileRepository = getProfileRepository(),
 ): Promise<void> {
-  assertCustomer(user);
   await repository.updatePreferredLanguage(
     user.id,
     preferenceFromLocale(locale),
@@ -109,7 +105,6 @@ export async function changeCustomerPassword(
   input: PasswordChangeInput,
   repository: CustomerProfileRepository = getProfileRepository(),
 ): Promise<void> {
-  assertCustomer(user);
   const record = await repository.findPasswordRecord(user.id);
   const currentPasswordMatches = record
     ? await verifyPassword(input.currentPassword, record.passwordHash)

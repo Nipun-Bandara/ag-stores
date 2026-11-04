@@ -73,7 +73,7 @@ function userWhere(filters: AdminUserFilters): Prisma.UserWhereInput {
           OR: [
             { name: { contains: search, mode: "insensitive" } },
             { email: { contains: search, mode: "insensitive" } },
-            { phone: { contains: search } },
+            { phone: { contains: normalizeMobile(search) ?? search } },
           ],
         }
       : {}),
@@ -160,3 +160,4 @@ export class PrismaAdminUserRepository implements AdminUserRepository {
     );
   }
 }
+import { normalizeMobile } from "@/lib/account-identity";

@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const registrationIdentifier = parsed.data.email ?? parsed.data.phone ?? "";
+  const registrationIdentifier = parsed.data.phone;
   const rateLimit = consumeAuthAttempt(
     request,
     "register",

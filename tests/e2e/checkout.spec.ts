@@ -1,12 +1,17 @@
+import { fillAccountNames, randomTestMobile } from "./helpers/accounts";
 import { expect, test } from "@playwright/test";
 
 test("customer places a Cash on Delivery order", async ({ page }) => {
   const email = `checkout-e2e-${Date.now()}@example.test`;
 
   await page.goto("/auth?mode=register");
-  await page.getByLabel("Name").fill("Checkout E2E Customer");
+  await fillAccountNames(page, "Checkout Browser Customer");
+  await page.locator("#register-phone").fill(randomTestMobile());
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill("SecurePassword123!");
+  await page
+    .locator("form:visible")
+    .getByLabel("Password", { exact: true })
+    .fill("SecurePassword123!");
   await page
     .locator("form:visible")
     .getByRole("button", { name: "Register", exact: true })

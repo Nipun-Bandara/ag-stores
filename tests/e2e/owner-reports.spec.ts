@@ -1,3 +1,4 @@
+import { mobileForTestAccount } from "./helpers/accounts";
 import { randomUUID } from "node:crypto";
 
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -32,8 +33,13 @@ async function signIn(
   destination: string,
 ) {
   await page.goto("/auth");
-  await page.getByLabel("Email or phone").fill(identifier);
-  await page.getByLabel("Password").fill(secret);
+  await page
+    .locator("#login-identifier")
+    .fill(await mobileForTestAccount(identifier));
+  await page
+    .locator("form:visible")
+    .getByLabel("Password", { exact: true })
+    .fill(secret);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(new RegExp(`${destination}$`));
 }
@@ -44,6 +50,9 @@ test.describe.serial("owner reports", () => {
     const [owner, customer] = await Promise.all([
       prisma.user.create({
         data: {
+          firstName: "E2E Reporting",
+          lastName: "Owner",
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           name: "E2E Reporting Owner",
           email,
           passwordHash,
@@ -52,6 +61,9 @@ test.describe.serial("owner reports", () => {
       }),
       prisma.user.create({
         data: {
+          firstName: "E2E Reporting",
+          lastName: "Customer",
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           name: "E2E Reporting Customer",
           email: `report-customer-e2e-${suffix}@example.test`,
           passwordHash,

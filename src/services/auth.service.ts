@@ -10,7 +10,11 @@ import {
   type AuthRepository,
 } from "@/repositories/auth.repository";
 import type { AuthenticatedUser, AuthenticationResult } from "@/types/auth";
-import type { LoginInput, RegistrationInput } from "@/validations/auth";
+import {
+  registrationSchema,
+  type LoginInput,
+  type RegistrationInput,
+} from "@/validations/auth";
 
 const DUMMY_PASSWORD_HASH =
   "scrypt$16384$8$1$MDEyMzQ1Njc4OWFiY2RlZg$dMEA_1U4kLKQuqALZybXWPrR5wHwGtxma-fbKkXQQJmtS4Ik5zQzE3kgc0IJ87XhjwkkM2Or-oMyBnXyihsVWw";
@@ -34,10 +38,11 @@ export async function registerCustomer(
   input: RegistrationInput,
   repository: AuthRepository = getAuthRepository(),
 ): Promise<AuthenticationResult> {
+  input = registrationSchema.parse(input);
   if (await repository.findDuplicate(input.email, input.phone)) {
     throw new AuthServiceError(
       "DUPLICATE_ACCOUNT",
-      "An account cannot be created with those details.",
+      "An account already exists with that mobile number or email.",
       409,
     );
   }
@@ -48,9 +53,10 @@ export async function registerCustomer(
   try {
     const user = await repository.createCustomerWithSession(
       {
-        name: input.name,
-        ...(input.email ? { email: input.email } : {}),
-        ...(input.phone ? { phone: input.phone } : {}),
+        firstName: input.firstName,
+        lastName: input.lastName,
+        email: input.email,
+        phone: input.phone,
         passwordHash,
         preferredLanguage: input.preferredLanguage,
       },
@@ -62,7 +68,7 @@ export async function registerCustomer(
     if (isUniqueConstraintError(error)) {
       throw new AuthServiceError(
         "DUPLICATE_ACCOUNT",
-        "An account cannot be created with those details.",
+        "An account already exists with that mobile number or email.",
         409,
       );
     }
@@ -83,7 +89,7 @@ export async function login(
   if (!user || !passwordMatches || user.status !== "ACTIVE") {
     throw new AuthServiceError(
       "INVALID_CREDENTIALS",
-      "Invalid email/phone or password.",
+      "Invalid mobile number or password.",
       401,
     );
   }
@@ -94,6 +100,8 @@ export async function login(
   const safeUser: AuthenticatedUser = {
     id: user.id,
     name: user.name,
+    firstName: user.firstName,
+    lastName: user.lastName,
     email: user.email,
     phone: user.phone,
     role: user.role,

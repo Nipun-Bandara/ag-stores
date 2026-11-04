@@ -2,9 +2,9 @@
 import { useText } from "@/features/i18n/components/locale-provider";
 
 import { useState, type FormEvent } from "react";
+import { toast } from "sonner";
 
-import { FormError, FormField } from "@/features/auth/components/form-fields";
-import { Alert } from "@/components/ui/alert";
+import { InputPasswordWithToggle } from "@/components/ui/input-password-with-toggle";
 import { Button } from "@/components/ui/button";
 
 interface ApiPayload {
@@ -13,14 +13,15 @@ interface ApiPayload {
 
 export function PasswordForm() {
   const t = useText();
-  const [error, setError] = useState<string>();
-  const [message, setMessage] = useState<string>();
   const [pending, setPending] = useState(false);
+  const passwordInputProps = {
+    showPasswordLabel: t("Show password"),
+    hidePasswordLabel: t("Hide password"),
+    placeholder: t("Enter your password"),
+  };
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(undefined);
-    setMessage(undefined);
     setPending(true);
 
     const formElement = event.currentTarget;
@@ -39,53 +40,49 @@ export function PasswordForm() {
       const payload = response
         ? ((await response.json().catch(() => ({}))) as ApiPayload)
         : {};
-      setError(t(payload.error?.message ?? "Unable to change your password."));
+      const message = t(
+        payload?.error?.message ?? "Unable to change your password.",
+      );
+      toast.error(message);
       setPending(false);
       return;
     }
 
     formElement.reset();
-    setMessage(t("Password changed successfully."));
+    toast.success(t("Password changed successfully."));
     setPending(false);
   }
 
   return (
     <form className="mt-8 max-w-lg space-y-5" onSubmit={handleSubmit}>
-      <FormField
+      <InputPasswordWithToggle
         id="currentPassword"
         name="currentPassword"
-        label="Current password"
-        type="password"
+        label={t("Current password")}
+        {...passwordInputProps}
         autoComplete="current-password"
         required
       />
-      <FormField
+      <InputPasswordWithToggle
         id="newPassword"
         name="newPassword"
-        label="New password"
-        type="password"
+        label={t("New password")}
+        {...passwordInputProps}
         autoComplete="new-password"
-        minLength={12}
+        minLength={8}
         maxLength={128}
-        hint="Use 12+ characters with uppercase, lowercase, number, and symbol."
         required
       />
-      <FormField
+      <InputPasswordWithToggle
         id="confirmPassword"
         name="confirmPassword"
-        label="Confirm new password"
-        type="password"
+        label={t("Confirm new password")}
+        {...passwordInputProps}
         autoComplete="new-password"
-        minLength={12}
+        minLength={8}
         maxLength={128}
         required
       />
-      {error ? <FormError>{error}</FormError> : null}
-      {message ? (
-        <Alert variant="success" role="status" className="">
-          {message}
-        </Alert>
-      ) : null}
       <Button
         variant="success"
         type="submit"

@@ -19,6 +19,9 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
+    "db:accounts:check": "tsx scripts/account-backfill.ts",
+    "db:accounts:dev-backfill": "tsx scripts/account-backfill.ts --dev-placeholders",
+    "db:credentials:reset-dev": "tsx scripts/reset-development-credentials.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {

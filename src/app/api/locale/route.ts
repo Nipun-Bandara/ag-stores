@@ -1,6 +1,5 @@
 import type { NextRequest } from "next/server";
 
-import { UserRole } from "@/generated/prisma/client";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { authenticateRequest } from "@/lib/auth/request";
 import { setLocaleCookie } from "@/lib/i18n/cookie";
@@ -23,7 +22,7 @@ export async function PATCH(request: NextRequest) {
   }
 
   const authentication = await authenticateRequest(request);
-  if (authentication?.user.role === UserRole.CUSTOMER) {
+  if (authentication) {
     await updateCustomerLanguage(authentication.user, parsed.data.locale);
   }
 

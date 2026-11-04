@@ -1,3 +1,4 @@
+import { mobileForTestAccount } from "./helpers/accounts";
 import { randomUUID } from "node:crypto";
 
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -29,6 +30,9 @@ test.describe.serial("notification center", () => {
     });
     const customer = await prisma.user.create({
       data: {
+        firstName: "Notification E2E",
+        lastName: "Customer",
+        phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
         name: "Notification E2E Customer",
         email,
         passwordHash: await hashPassword("ChangeMe123!"),
@@ -94,8 +98,13 @@ test.describe.serial("notification center", () => {
     page,
   }) => {
     await page.goto("/auth");
-    await page.getByLabel("Email or phone").fill(email);
-    await page.getByLabel("Password").fill("ChangeMe123!");
+    await page
+      .locator("#login-identifier")
+      .fill(await mobileForTestAccount(email));
+    await page
+      .locator("form:visible")
+      .getByLabel("Password", { exact: true })
+      .fill("ChangeMe123!");
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page).toHaveURL(/\/account$/);
     await expect(

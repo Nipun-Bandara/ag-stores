@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { getDb } from "@/db";
 
 import { randomUUID } from "node:crypto";
 
@@ -46,7 +47,11 @@ async function login(email: string, password = "ChangeMe123!") {
     new NextRequest("http://localhost/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier: email, password }),
+      body: JSON.stringify({
+        identifier: (await getDb().user.findUniqueOrThrow({ where: { email } }))
+          .phone,
+        password,
+      }),
     }),
   );
   return {
@@ -99,9 +104,11 @@ describeWithDatabase("delivery personnel management API", () => {
     const passwordHash = await hashPassword("ForeignPassword123!");
     const foreignOwner = await prisma.user.create({
       data: {
+        firstName: "Foreign Shop",
+        lastName: "Owner",
         name: "Foreign Shop Owner",
         email: `foreign-owner-${suffix}@example.test`,
-        phone: `+9471${suffix.replace(/\D/g, "").padEnd(8, "1").slice(0, 8)}`,
+        phone: `+9471${suffix.replace(/\D/g, "").padEnd(7, "1").slice(0, 7)}`,
         passwordHash,
         role: UserRole.SHOP_OWNER,
       },
@@ -120,10 +127,12 @@ describeWithDatabase("delivery personnel management API", () => {
     foreignShopId = foreignShop.id;
     const foreignPerson = await prisma.user.create({
       data: {
+        firstName: "Foreign Delivery",
+        lastName: "Person",
         assignedShopId: foreignShop.id,
         name: "Foreign Delivery Person",
         email: `foreign-delivery-${suffix}@example.test`,
-        phone: `+9472${suffix.replace(/\D/g, "").padEnd(8, "3").slice(0, 8)}`,
+        phone: `+9472${suffix.replace(/\D/g, "").padEnd(7, "3").slice(0, 7)}`,
         passwordHash,
         role: UserRole.DELIVERY_PERSON,
       },
@@ -159,10 +168,11 @@ describeWithDatabase("delivery personnel management API", () => {
 
   it("allows an owner to create a delivery account for their shop", async () => {
     const email = `managed-delivery-${suffix}@example.test`;
-    const phone = `+9473${suffix.replace(/\D/g, "").padEnd(8, "4").slice(0, 8)}`;
+    const phone = `+9473${suffix.replace(/\D/g, "").padEnd(7, "4").slice(0, 7)}`;
     const response = await createPersonnelRoute(
       apiRequest("/api/delivery-personnel", ownerToken, "POST", {
-        name: "Managed Delivery Person",
+        firstName: "Managed Delivery",
+        lastName: "Person",
         email,
         phone,
         assignedShopId: ownerShopId,
@@ -212,9 +222,10 @@ describeWithDatabase("delivery personnel management API", () => {
         ownerToken,
         "PATCH",
         {
-          name: "Updated Delivery Person",
+          firstName: "Updated Delivery",
+          lastName: "Person",
           email: `updated-delivery-${suffix}@example.test`,
-          phone: `+9474${suffix.replace(/\D/g, "").padEnd(8, "5").slice(0, 8)}`,
+          phone: `+9474${suffix.replace(/\D/g, "").padEnd(7, "5").slice(0, 7)}`,
           assignedShopId: ownerShopId,
         },
       ),
@@ -224,11 +235,45 @@ describeWithDatabase("delivery personnel management API", () => {
     expect((await response.json()).data.name).toBe("Updated Delivery Person");
   });
 
+  it("allows an administrator to create without email and rejects normalized mobile duplicates", async () => {
+    const phone = `+9476${suffix.replace(/\D/g, "").padEnd(7, "8").slice(0, 7)}`;
+    const input = {
+      firstName: "Managed Delivery",
+      lastName: "Person",
+      email: "",
+      phone: `0${phone.slice(3)}`,
+      assignedShopId: ownerShopId,
+      status: UserStatus.ACTIVE,
+    };
+    const response = await createPersonnelRoute(
+      apiRequest("/api/delivery-personnel", adminToken, "POST", input),
+    );
+    expect(response.status).toBe(201);
+    const data = (await response.json()).data;
+    try {
+      expect(data.personnel).toMatchObject({
+        phone,
+        email: null,
+        role: UserRole.DELIVERY_PERSON,
+      });
+      const duplicate = await createPersonnelRoute(
+        apiRequest("/api/delivery-personnel", adminToken, "POST", {
+          ...input,
+          phone,
+        }),
+      );
+      expect(duplicate.status).toBe(409);
+    } finally {
+      await prisma.user.deleteMany({ where: { id: data.personnel.id } });
+    }
+  });
+
   it("rejects creation by customers and delivery personnel", async () => {
     const input = {
-      name: "Forbidden Delivery Person",
+      firstName: "Forbidden Delivery",
+      lastName: "Person",
       email: `forbidden-delivery-${suffix}@example.test`,
-      phone: `+9475${suffix.replace(/\D/g, "").padEnd(8, "6").slice(0, 8)}`,
+      phone: `+9475${suffix.replace(/\D/g, "").padEnd(7, "6").slice(0, 7)}`,
       assignedShopId: ownerShopId,
       status: UserStatus.ACTIVE,
     };
@@ -305,7 +350,7 @@ describeWithDatabase("delivery personnel management API", () => {
     expect(inactiveLogin.response.status).toBe(401);
     expect((await inactiveLogin.response.json()).error).toMatchObject({
       code: "INVALID_CREDENTIALS",
-      message: "Invalid email/phone or password.",
+      message: "Invalid mobile number or password.",
     });
   });
 });

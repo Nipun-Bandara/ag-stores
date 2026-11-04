@@ -1,14 +1,13 @@
 import type { NextRequest } from "next/server";
 
-import { UserRole } from "@/generated/prisma/client";
 import { errorResponse, successResponse } from "@/lib/api-response";
-import { requireApiRole } from "@/lib/auth/request";
+import { requireApiAuth } from "@/lib/auth/request";
 import { profileErrorResponse } from "@/lib/profile-http";
 import { changeCustomerPassword } from "@/services/customer-profile.service";
 import { passwordChangeSchema } from "@/validations/profile";
 
 export async function POST(request: NextRequest) {
-  const authorization = await requireApiRole(request, UserRole.CUSTOMER);
+  const authorization = await requireApiAuth(request);
   if (!authorization.authorized) {
     return authorization.response;
   }

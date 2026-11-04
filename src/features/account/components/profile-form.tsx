@@ -1,104 +1,200 @@
 "use client";
-import { useText } from "@/features/i18n/components/locale-provider";
-import { Text } from "@/features/i18n/components/text";
-
-import { useState, type FormEvent } from "react";
-import { toast } from "sonner";
-
+import { useFormik } from "formik";
+import * as Yup from "yup";
 import { useRouter } from "next/navigation";
-
-import { FormField, SelectField } from "@/features/auth/components/form-fields";
-import type { AuthenticatedUser } from "@/types/auth";
-import { NativeSelectOption } from "@/components/ui/native-select";
+import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { useText } from "@/features/i18n/components/locale-provider";
+import { Input } from "@/components/ui/input";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import {
+  normalizeMobile,
+  personNameSchema,
+  optionalAccountEmailSchema,
+} from "@/lib/account-identity";
+import type { AuthenticatedUser } from "@/types/auth";
+import { profileUpdateSchema } from "@/validations/profile";
 
 interface ApiPayload {
+  data?: AuthenticatedUser;
   error?: { message?: string };
 }
-
 export function ProfileForm({ user }: { user: AuthenticatedUser }) {
   const t = useText();
   const router = useRouter();
-  const [pending, setPending] = useState(false);
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setPending(true);
-
-    const form = new FormData(event.currentTarget);
-    const response = await fetch("/api/account/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: form.get("name"),
-        phone: form.get("phone"),
-        preferredLanguage: form.get("preferredLanguage"),
-      }),
-    }).catch(() => null);
-
-    if (!response?.ok) {
+  const { updateUser } = useAuth();
+  const formik = useFormik({
+    initialValues: {
+      firstName: user.firstName,
+      lastName: user.lastName,
+      phone: user.phone,
+      email: user.email ?? "",
+      preferredLanguage: user.preferredLanguage,
+      currentPassword: "",
+    },
+    enableReinitialize: true,
+    validationSchema: Yup.object({
+      firstName: Yup.string()
+        .required(t("Required"))
+        .test(
+          "name",
+          t("Enter a valid name."),
+          (value) => !!value && personNameSchema.safeParse(value).success,
+        ),
+      lastName: Yup.string()
+        .required(t("Required"))
+        .test(
+          "name",
+          t("Enter a valid name."),
+          (value) => !!value && personNameSchema.safeParse(value).success,
+        ),
+      phone: Yup.string()
+        .required(t("Required"))
+        .test(
+          "mobile",
+          t("Enter a Sri Lankan mobile number such as 0771234567."),
+          (value) => !!value && !!normalizeMobile(value),
+        ),
+      email: Yup.string()
+        .trim()
+        .test(
+          "email",
+          t("Enter a valid email address."),
+          (value) => optionalAccountEmailSchema.safeParse(value).success,
+        ),
+      currentPassword: Yup.string()
+        .max(128, t("Password must contain at most 128 characters."))
+        .test(
+          "required-for-mobile",
+          t("Enter your current password to change your mobile number."),
+          function (value) {
+            return normalizeMobile(this.parent.phone) === user.phone || !!value;
+          },
+        ),
+    }),
+    onSubmit: async (values, helpers) => {
+      const parsed = profileUpdateSchema.safeParse(values);
+      if (!parsed.success) {
+        helpers.setErrors(
+          Object.fromEntries(
+            parsed.error.issues.map((issue) => [
+              issue.path[0],
+              t(issue.message),
+            ]),
+          ),
+        );
+        toast.error(t("Profile details are invalid."));
+        helpers.setSubmitting(false);
+        return;
+      }
+      const response = await fetch("/api/account/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed.data),
+      }).catch(() => null);
       const payload = response
-        ? ((await response.json().catch(() => ({}))) as ApiPayload)
+        ? ((await response.json().catch(() => null)) as ApiPayload | null)
         : {};
-      toast.error(
-        t(payload?.error?.message ?? "Unable to update your profile."),
-      );
-      setPending(false);
-      return;
-    }
-
-    toast.success(t("Profile updated."));
-    setPending(false);
-    router.refresh();
-  }
-
+      if (
+        !response?.ok ||
+        !payload?.data ||
+        payload.data.id !== user.id ||
+        typeof payload.data.phone !== "string" ||
+        !payload.data.firstName ||
+        !payload.data.lastName
+      ) {
+        const message = t(
+          payload?.error?.message ?? "Unable to update your profile.",
+        );
+        toast.error(message);
+        helpers.setSubmitting(false);
+        return;
+      }
+      updateUser(payload.data);
+      helpers.setFieldValue("currentPassword", "", false);
+      toast.success(t("Profile updated."));
+      router.refresh();
+      helpers.setSubmitting(false);
+    },
+  });
+  const field = (
+    key: "firstName" | "lastName" | "phone" | "email" | "currentPassword",
+    label: string,
+    type = "text",
+  ) => (
+    <div>
+      <Label htmlFor={`profile-${key}`}>{t(label)}</Label>
+      <Input
+        id={`profile-${key}`}
+        type={type}
+        className="mt-1.5 h-10"
+        autoComplete={
+          key === "phone"
+            ? "tel"
+            : key === "email"
+              ? "email"
+              : key === "currentPassword"
+                ? "current-password"
+                : key === "firstName"
+                  ? "given-name"
+                  : "family-name"
+        }
+        {...formik.getFieldProps(key)}
+        aria-invalid={!!(formik.touched[key] && formik.errors[key])}
+        aria-describedby={
+          formik.touched[key] && formik.errors[key]
+            ? `profile-${key}-error`
+            : undefined
+        }
+      />
+      {formik.touched[key] && formik.errors[key] ? (
+        <p
+          id={`profile-${key}-error`}
+          className="mt-1 text-xs text-destructive"
+        >
+          {formik.errors[key]}
+        </p>
+      ) : null}
+    </div>
+  );
   return (
-    <form className="mt-8 max-w-lg space-y-5" onSubmit={handleSubmit}>
-      <FormField
-        id="name"
-        name="name"
-        label="Name"
-        defaultValue={user.name}
-        minLength={2}
-        maxLength={150}
-        autoComplete="name"
-        required
-      />
-      <FormField
-        id="email"
-        label="Email"
-        type="email"
-        value={user.email ?? t("Not provided")}
-        disabled
-        hint="Email changes are not available from this page."
-      />
-      <FormField
-        id="phone"
-        name="phone"
-        label="Phone"
-        type="tel"
-        defaultValue={user.phone ?? ""}
-        placeholder="+94771234567"
-        autoComplete="tel"
-      />
-      <SelectField
-        id="preferredLanguage"
-        name="preferredLanguage"
-        label="Preferred language"
-        defaultValue={user.preferredLanguage}
-      >
-        <NativeSelectOption value="EN">
-          <Text value={t("English")} />
-        </NativeSelectOption>
-        <NativeSelectOption value="SI">සිංහල</NativeSelectOption>
-      </SelectField>
-      <Button
-        variant="success"
-        type="submit"
-        disabled={pending}
-        className="h-10"
-      >
-        {pending ? t("Saving…") : t("Save profile")}
+    <form className="mt-6 max-w-2xl space-y-5" onSubmit={formik.handleSubmit}>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {field("firstName", "First name")}
+        {field("lastName", "Last name")}
+      </div>
+      {field("phone", "Mobile number", "tel")}
+      {field("email", "Email (optional)", "email")}
+      <div>
+        <Label htmlFor="profile-preferredLanguage">
+          {t("Preferred language")}
+        </Label>
+        <NativeSelect
+          id="profile-preferredLanguage"
+          className="mt-1.5 h-10 w-full"
+          {...formik.getFieldProps("preferredLanguage")}
+        >
+          <NativeSelectOption value="EN">{t("English")}</NativeSelectOption>
+          <NativeSelectOption value="SI">සිංහල</NativeSelectOption>
+        </NativeSelect>
+      </div>
+      {normalizeMobile(formik.values.phone) !== user.phone ? (
+        <div>
+          {field("currentPassword", "Current password", "password")}
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t(
+              "Changing your mobile number requires your current password. No phone verification is performed.",
+            )}
+          </p>
+        </div>
+      ) : null}
+      <Button variant="success" type="submit" disabled={formik.isSubmitting}>
+        {formik.isSubmitting ? t("Saving…") : t("Save profile")}
       </Button>
     </form>
   );

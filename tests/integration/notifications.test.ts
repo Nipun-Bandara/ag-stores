@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { getDb } from "@/db";
 
 import { randomUUID } from "node:crypto";
 
@@ -52,7 +53,9 @@ function actor(user: {
 }): AuthenticatedUser {
   return {
     ...user,
-    phone: null,
+    firstName: "Test",
+    lastName: "User",
+    phone: "+94770000000",
     preferredLanguage: PreferredLanguage.EN,
     status: UserStatus.ACTIVE,
   };
@@ -87,7 +90,12 @@ describeWithDatabase("in-app order notifications", () => {
       new NextRequest("http://localhost/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier: email, password: "ChangeMe123!" }),
+        body: JSON.stringify({
+          identifier: (
+            await getDb().user.findUniqueOrThrow({ where: { email } })
+          ).phone,
+          password: "ChangeMe123!",
+        }),
       }),
     );
     const token = response.cookies.get(SESSION_COOKIE_NAME)?.value ?? "";
@@ -101,6 +109,9 @@ describeWithDatabase("in-app order notifications", () => {
       await Promise.all([
         prisma.user.create({
           data: {
+            firstName: "Notification",
+            lastName: "Owner",
+            phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
             name: "Notification Owner",
             email: `notification-owner-${suffix}@example.test`,
             passwordHash,
@@ -109,6 +120,9 @@ describeWithDatabase("in-app order notifications", () => {
         }),
         prisma.user.create({
           data: {
+            firstName: "Foreign Notification",
+            lastName: "Owner",
+            phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
             name: "Foreign Notification Owner",
             email: `notification-foreign-owner-${suffix}@example.test`,
             passwordHash,
@@ -117,6 +131,9 @@ describeWithDatabase("in-app order notifications", () => {
         }),
         prisma.user.create({
           data: {
+            firstName: "Notification",
+            lastName: "Customer",
+            phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
             name: "Notification Customer",
             email: `notification-customer-${suffix}@example.test`,
             passwordHash,
@@ -125,6 +142,9 @@ describeWithDatabase("in-app order notifications", () => {
         }),
         prisma.user.create({
           data: {
+            firstName: "Unrelated",
+            lastName: "Customer",
+            phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
             name: "Unrelated Customer",
             email: `notification-unrelated-${suffix}@example.test`,
             passwordHash,
@@ -168,6 +188,9 @@ describeWithDatabase("in-app order notifications", () => {
     const [riderRecord, foreignRiderRecord] = await Promise.all([
       prisma.user.create({
         data: {
+          firstName: "Notification",
+          lastName: "Rider",
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           assignedShopId: shop.id,
           name: "Notification Rider",
           email: `notification-rider-${suffix}@example.test`,
@@ -177,6 +200,9 @@ describeWithDatabase("in-app order notifications", () => {
       }),
       prisma.user.create({
         data: {
+          firstName: "Foreign Notification",
+          lastName: "Rider",
+          phone: `+9478${String(Math.floor(Math.random() * 10000000)).padStart(7, "0")}`,
           assignedShopId: foreignShop.id,
           name: "Foreign Notification Rider",
           email: `notification-foreign-rider-${suffix}@example.test`,
