@@ -747,7 +747,7 @@
   "Update your name, mobile number, optional email and language.": "ඔබේ නම, ජංගම දුරකථන අංකය, විකල්ප විද්‍යුත් තැපෑල සහ භාෂාව යාවත්කාලීන කරන්න.",
   "An account already exists with that mobile number or email.": "එම ජංගම දුරකථන අංකය හෝ විද්‍යුත් තැපෑල සහිත ගිණුමක් දැනටමත් ඇත.",
   "Use 8+ characters with uppercase, lowercase, and a number.": "ලොකු අකුරක්, කුඩා අකුරක් සහ අංකයක් සහිත අවම වශයෙන් අක්ෂර 8ක මුරපදයක් භාවිත කරන්න.",
-  "Password must contain at least 8 characters.": "මුරපදයේ අවම වශයෙන් අක්ෂර 8ක් තිබිය යුතුය."
+  "Password must contain at least 8 characters.": "මුරපදයේ අවම වශයෙන් අක්ෂර 8ක් තිබිය යුතුය.",
   "Product details": "නිෂ්පාදන විස්තර",
   "Selling setup": "විකිණීමේ සැකසුම්",
   "Optional details": "විකල්ප විස්තර",
