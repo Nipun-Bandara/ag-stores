@@ -67,6 +67,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: state.refresh, push: state.push }),
 }));
 vi.mock("@/features/cart/cart-store", () => ({
+  cartStore: { updateFromQuote: vi.fn() },
   useCart: () => ({
     items: state.items,
     subtotal: "200.00",
@@ -216,7 +217,28 @@ describe("shared UI form workflows", () => {
         ? {
             ok: true,
             json: async () => ({
-              data: { subtotal: "200.00", deliveryFee: "50.00" },
+              data: {
+                subtotal: "200.00",
+                deliveryFee: "50.00",
+                items: [
+                  {
+                    productId: "product-1",
+                    name: "Rice",
+                    nameSi: null,
+                    quantity: 1,
+                    sellingUnit: "UNIT",
+                    regularPrice: "200.00",
+                    unitPrice: "200.00",
+                    appliedDiscount: "0.00",
+                    lineTotal: "200.00",
+                    savings: "0.00",
+                    discountTiers: [],
+                    stockQuantity: 5,
+                    minimumOrderQuantity: 1,
+                    orderingIncrement: 1,
+                  },
+                ],
+              },
             }),
           }
         : { ok: true, json: async () => ({ data: { id: "order-1" } }) },

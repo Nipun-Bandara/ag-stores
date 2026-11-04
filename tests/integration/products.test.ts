@@ -70,6 +70,7 @@ describeWithDatabase("shop owner product API", () => {
   let otherProductId: string;
 
   const input = () => ({
+    itemCode: `000-${suffix}`,
     shopId: ownerShopId,
     categoryId,
     nameEn: `Integration Product ${suffix}`,

@@ -1,10 +1,11 @@
+import { calculatePricing, tierViews } from "@/lib/pricing";
+import { quantityValid } from "@/lib/quantity";
 import { getDb } from "@/db";
 import { CatalogStatus } from "@/generated/prisma/client";
 import {
   addMinorUnits,
   minorUnitsToMoney,
   moneyToMinorUnits,
-  multiplyMinorUnits,
 } from "@/lib/money";
 import {
   PrismaCartRepository,
@@ -14,7 +15,8 @@ import type { CartValidationInput } from "@/validations/cart";
 
 export class CartValidationError extends Error {
   constructor(
-    public readonly code: "PRODUCT_UNAVAILABLE" | "INSUFFICIENT_STOCK",
+    public readonly code:
+      "PRODUCT_UNAVAILABLE" | "INSUFFICIENT_STOCK" | "INVALID_QUANTITY",
     message: string,
   ) {
     super(message);
@@ -44,33 +46,47 @@ export async function validateCartForCheckout(
       !product ||
       !product.isAvailable ||
       product.category.status !== CatalogStatus.ACTIVE ||
-      product.stockQuantity === 0
+      Number(product.stockQuantity) === 0
     ) {
       throw new CartValidationError(
         "PRODUCT_UNAVAILABLE",
         "A product in your cart is no longer available.",
       );
     }
-    if (item.quantity > product.stockQuantity) {
+    if (item.quantity > Number(product.stockQuantity)) {
       throw new CartValidationError(
         "INSUFFICIENT_STOCK",
         `${product.nameEn} only has ${product.stockQuantity} available.`,
       );
     }
 
-    const unitPrice = product.price.toFixed(2);
-    const lineTotal = multiplyMinorUnits(
-      moneyToMinorUnits(unitPrice),
+    if (
+      !quantityValid(item.quantity, product) ||
+      (item.sellingUnit ?? "UNIT") !== product.sellingUnit
+    ) {
+      throw new CartValidationError(
+        "INVALID_QUANTITY",
+        "Product selling setup changed. Review your cart quantity and unit.",
+      );
+    }
+    const discountTiers = tierViews(product.discountTiers);
+    const pricing = calculatePricing(
+      product.price.toFixed(2),
       item.quantity,
+      discountTiers,
     );
-    subtotal = addMinorUnits(subtotal, lineTotal);
+    subtotal = addMinorUnits(subtotal, moneyToMinorUnits(pricing.lineTotal));
     return {
       productId: product.id,
       name: product.nameEn,
+      nameSi: product.nameSi,
       quantity: item.quantity,
-      unitPrice,
-      lineTotal: minorUnitsToMoney(lineTotal),
-      stockQuantity: product.stockQuantity,
+      ...pricing,
+      discountTiers,
+      minimumOrderQuantity: Number(product.minimumOrderQuantity),
+      orderingIncrement: Number(product.orderingIncrement),
+      stockQuantity: Number(product.stockQuantity),
+      sellingUnit: product.sellingUnit,
     };
   });
 
@@ -82,3 +98,5 @@ export async function validateCartForCheckout(
 
   return { items, subtotal: minorUnitsToMoney(subtotal), deliveryFee };
 }
+
+export type CartQuote = Awaited<ReturnType<typeof validateCartForCheckout>>;

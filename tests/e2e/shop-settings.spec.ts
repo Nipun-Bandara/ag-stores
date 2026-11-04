@@ -75,12 +75,18 @@ test.describe("owner shop settings", () => {
     await page.getByLabel("Shop name").fill("Updated E2E Settings Shop");
     await page.getByLabel("Address").fill("25 Updated Road, Colombo");
     await page.getByLabel("Phone").fill("+94112345672");
-    await page.getByLabel("Latitude").fill("6.930000");
-    await page.getByLabel("Longitude").fill("79.870000");
-    await page.getByLabel("Open for customer orders").uncheck();
+    await page.context().grantPermissions(["geolocation"]);
+    await page.context().setGeolocation({ latitude: 6.93, longitude: 79.87 });
+    await page.getByRole("button", { name: "Use my current location" }).click();
+    await page
+      .getByRole("checkbox", { name: "Open for customer orders" })
+      .uncheck();
     await page.getByLabel("Minimum order amount (LKR)").fill("600.00");
     await page.getByLabel("Delivery fee (LKR)").fill("80.50");
     await page.getByLabel("Maximum delivery radius (km)").fill("15.25");
+    await page
+      .getByLabel("Packed-weight difference allowance (%)")
+      .fill("7.50");
     await page.getByRole("button", { name: "Save settings" }).click();
     await expect(
       page.getByText("Shop settings saved.", { exact: true }),
@@ -92,5 +98,6 @@ test.describe("owner shop settings", () => {
     expect(shop.minimumOrderAmount.toFixed(2)).toBe("600.00");
     expect(shop.deliveryFee.toFixed(2)).toBe("80.50");
     expect(shop.maximumDeliveryRadiusKm.toFixed(2)).toBe("15.25");
+    expect(shop.weightDifferenceAllowancePct.toFixed(2)).toBe("7.50");
   });
 });

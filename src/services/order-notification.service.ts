@@ -14,6 +14,7 @@ interface OrderNotificationContext {
   shopOwnerId?: string;
   deliveryPersonId?: string;
   availableDeliveryPersonIds?: readonly string[];
+  finalTotal?: string;
 }
 
 function orderReference(orderId: string) {
@@ -93,7 +94,9 @@ export function buildOrderNotifications(
           context.orderId,
           type,
           "Order ready for delivery",
-          `Your order ${reference} is ready for delivery.`,
+          context.finalTotal
+            ? `Your order ${reference} is ready for delivery. Final cash-on-delivery amount: LKR ${context.finalTotal}.`
+            : `Your order ${reference} is ready for delivery.`,
         ),
         ...(context.availableDeliveryPersonIds ?? []).map((userId) =>
           record(

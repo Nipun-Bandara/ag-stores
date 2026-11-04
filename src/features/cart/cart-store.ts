@@ -1,5 +1,8 @@
 "use client";
 
+import { cartSelectionKey } from "./cart-quote";
+import type { CartQuote } from "@/services/cart.service";
+
 import { useSyncExternalStore } from "react";
 
 import {
@@ -82,6 +85,33 @@ function getServerSnapshot(): CartState {
 }
 
 export const cartStore = {
+  updateFromQuote(selectionKey: string, quote: CartQuote) {
+    loadState();
+    if (cartSelectionKey(state.items) !== selectionKey) return false;
+    const byId = new Map(quote.items.map((item) => [item.productId, item]));
+    const items = state.items.map((item) => {
+      const line = byId.get(item.id);
+      if (
+        !line ||
+        line.quantity !== item.quantity ||
+        line.sellingUnit !== (item.sellingUnit ?? "UNIT")
+      )
+        return item;
+      return {
+        ...item,
+        price: line.regularPrice,
+        discountTiers: line.discountTiers,
+        nameEn: line.name,
+        nameSi: line.nameSi,
+        stockQuantity: line.stockQuantity,
+        minimumOrderQuantity: line.minimumOrderQuantity,
+        orderingIncrement: line.orderingIncrement,
+      };
+    });
+    if (JSON.stringify(items) === JSON.stringify(state.items)) return false;
+    commit({ items });
+    return true;
+  },
   setOwner(userId: string | null) {
     if (ownerId === userId) return;
     ownerId = userId;

@@ -7,6 +7,11 @@ import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import {
+  DiscountTierEditor,
+  pricingDraft,
+  type TierDraft,
+} from "./discount-tier-editor";
 import { FormField } from "@/features/auth/components/form-fields";
 import type {
   ProductFormOptions,
@@ -27,7 +32,7 @@ import { Button } from "@/components/ui/button";
 
 interface ApiPayload {
   data?: { id: string };
-  error?: { message?: string };
+  error?: { message?: string; details?: Record<string, string[]> };
 }
 
 export function ProductForm({
@@ -48,6 +53,32 @@ export function ProductForm({
     "";
   const [shopId, setShopId] = useState(initialShopId);
   const [categoryId, setCategoryId] = useState(initialCategoryId);
+  const [sellingUnit, setSellingUnit] = useState<"UNIT" | "KG">(
+    product?.sellingUnit ?? "UNIT",
+  );
+  const [regularPrice, setRegularPrice] = useState(product?.price ?? "0.00");
+  const [discountTiers, setDiscountTiers] = useState<TierDraft[]>(
+    (product?.discountTiers ?? []).map((tier) => ({
+      minimumQuantity: String(tier.minimumQuantity),
+      discountAmount: tier.discountAmount,
+    })),
+  );
+  const [minimumQuantity, setMinimumQuantity] = useState(
+    String(product?.minimumOrderQuantity ?? 1),
+  );
+  const [increment, setIncrement] = useState(
+    String(product?.orderingIncrement ?? 1),
+  );
+  const pricingSetup = {
+    sellingUnit,
+    minimumOrderQuantity: product
+      ? Number(minimumQuantity)
+      : sellingUnit === "KG"
+        ? 0.002
+        : 1,
+    orderingIncrement:
+      sellingUnit === "KG" ? 0.001 : product ? Number(increment) : 1,
+  };
   const [pending, setPending] = useState(false);
   const categories = useMemo(
     () => options.categories.filter((category) => category.shopId === shopId),
@@ -56,6 +87,15 @@ export function ProductForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    let pricing;
+    try {
+      pricing = pricingDraft(regularPrice, discountTiers, pricingSetup);
+    } catch (error) {
+      toast.error(
+        t(error instanceof Error ? error.message : "Invalid discount tiers."),
+      );
+      return;
+    }
     setPending(true);
     const form = new FormData(event.currentTarget);
     const response = await fetch(
@@ -65,12 +105,27 @@ export function ProductForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...(!product ? { shopId } : {}),
+          itemCode: form.get("itemCode"),
+          barcode: form.get("barcode"),
+          sellingUnit,
+          minimumOrderQuantity: product
+            ? form.get("minimumOrderQuantity")
+            : sellingUnit === "KG"
+              ? 0.002
+              : 1,
+          orderingIncrement:
+            sellingUnit === "KG"
+              ? 0.001
+              : product
+                ? form.get("orderingIncrement")
+                : 1,
           categoryId: form.get("categoryId"),
           nameEn: form.get("nameEn"),
           nameSi: form.get("nameSi"),
           descriptionEn: form.get("descriptionEn"),
           descriptionSi: form.get("descriptionSi"),
-          price: form.get("price"),
+          price: pricing.price,
+          discountTiers: pricing.tiers,
           stockQuantity: form.get("stockQuantity"),
           lowStockThreshold: form.get("lowStockThreshold"),
           imageUrl: form.get("imageUrl"),
@@ -83,7 +138,13 @@ export function ProductForm({
       ? ((await response.json().catch(() => ({}))) as ApiPayload)
       : {};
     if (!response?.ok || !payload.data?.id) {
-      toast.error(t(payload.error?.message ?? "Unable to save this product."));
+      toast.error(
+        t(
+          payload.error?.details?.discountTiers?.[0] ??
+            payload.error?.message ??
+            "Unable to save this product.",
+        ),
+      );
       setPending(false);
       return;
     }
@@ -97,9 +158,12 @@ export function ProductForm({
 
   return (
     <form
-      className="mx-auto mt-8 grid w-full max-w-5xl gap-5 sm:grid-cols-6 lg:grid-cols-12"
+      className="mx-auto mt-8 grid w-full max-w-5xl gap-4 sm:grid-cols-6 lg:grid-cols-12"
       onSubmit={handleSubmit}
     >
+      <h2 className="text-lg font-semibold sm:col-span-6 lg:col-span-12">
+        <Text value="Product details" />
+      </h2>
       {product ? (
         <div className="sm:col-span-3 lg:col-span-6">
           <p className="text-sm font-medium">
@@ -128,7 +192,10 @@ export function ProductForm({
             }}
             required
           >
-            <SelectTrigger id="shopId" className="mt-1.5 h-10 w-full">
+            <SelectTrigger
+              id="shopId"
+              className="mt-1.5 h-10 w-full data-[size=default]:h-10"
+            >
               <SelectValue>
                 {(value) =>
                   options.shops.find((shop) => shop.id === value)?.name ??
@@ -136,7 +203,7 @@ export function ProductForm({
                 }
               </SelectValue>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent alignItemWithTrigger={false} className="min-w-0">
               {options.shops.map((shop) => (
                 <SelectItem key={shop.id} value={shop.id}>
                   {shop.name}
@@ -157,7 +224,10 @@ export function ProductForm({
           disabled={categories.length === 0}
           required
         >
-          <SelectTrigger id="categoryId" className="mt-1.5 h-10 w-full">
+          <SelectTrigger
+            id="categoryId"
+            className="mt-1.5 h-10 w-full data-[size=default]:h-10"
+          >
             <SelectValue>
               {(value) => {
                 const category = categories.find((item) => item.id === value);
@@ -167,7 +237,7 @@ export function ProductForm({
               }}
             </SelectValue>
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent alignItemWithTrigger={false} className="min-w-0">
             {categories.map((category) => (
               <SelectItem key={category.id} value={category.id}>
                 {localizeBilingual(category.nameEn, category.nameSi, locale)}
@@ -196,6 +266,187 @@ export function ProductForm({
           maxLength={180}
         />
       </div>
+      <div className="sm:col-span-3 lg:col-span-6">
+        <FormField
+          id="itemCode"
+          name="itemCode"
+          label="Item code"
+          defaultValue={product?.itemCode ?? ""}
+          maxLength={100}
+          required
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.preventDefault();
+          }}
+        />
+      </div>
+      <div className="sm:col-span-3 lg:col-span-6">
+        <FormField
+          id="barcode"
+          name="barcode"
+          label="Barcode (optional)"
+          defaultValue={product?.barcode ?? ""}
+          maxLength={100}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.preventDefault();
+          }}
+        />
+      </div>
+      <h2 className="text-lg font-semibold sm:col-span-6 lg:col-span-12">
+        <Text value="Selling setup" />
+      </h2>
+      <div className="min-w-0 sm:col-span-6 lg:col-span-4">
+        <Label htmlFor="sellingUnit" className="block text-sm font-medium">
+          <Text value="Selling unit" />
+        </Label>
+        <Select
+          name="sellingUnit"
+          value={sellingUnit}
+          items={[
+            {
+              value: "UNIT",
+              label: t("Whole units (including sealed packets)"),
+            },
+            { value: "KG", label: t("Kilograms (kg)") },
+          ]}
+          onValueChange={(value) => {
+            if (value === "UNIT" || value === "KG") {
+              setSellingUnit(value);
+              setMinimumQuantity(
+                String(
+                  product?.sellingUnit === value
+                    ? product.minimumOrderQuantity
+                    : value === "KG"
+                      ? 0.002
+                      : 1,
+                ),
+              );
+              setIncrement(
+                String(
+                  product?.sellingUnit === value
+                    ? product.orderingIncrement
+                    : value === "KG"
+                      ? 0.001
+                      : 1,
+                ),
+              );
+            }
+          }}
+        >
+          <SelectTrigger
+            id="sellingUnit"
+            className="mt-1.5 h-10 w-full data-[size=default]:h-10"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent alignItemWithTrigger={false} className="min-w-0">
+            <SelectItem value="UNIT">
+              {t("Whole units (including sealed packets)")}
+            </SelectItem>
+            <SelectItem value="KG">{t("Kilograms (kg)")}</SelectItem>
+          </SelectContent>
+        </Select>
+        {product ? (
+          <p className="mt-1 text-xs text-muted-foreground">
+            <Text value="Selling unit can only change with zero stock and no active orders." />
+          </p>
+        ) : null}
+      </div>
+      <div className="min-w-0 sm:col-span-3 lg:col-span-4">
+        <FormField
+          key={`minimum-${sellingUnit}`}
+          id="minimumOrderQuantity"
+          name="minimumOrderQuantity"
+          label="Minimum order quantity"
+          type="number"
+          min={sellingUnit === "KG" ? "0.002" : "1"}
+          step={sellingUnit === "KG" ? "0.001" : "1"}
+          value={
+            !product ? (sellingUnit === "KG" ? "0.002" : "1") : minimumQuantity
+          }
+          onChange={(event) => setMinimumQuantity(event.target.value)}
+          readOnly={!product}
+          required
+        />
+      </div>
+      <div className="min-w-0 sm:col-span-3 lg:col-span-4">
+        {sellingUnit === "KG" ? (
+          <>
+            <Label className="block text-sm font-medium">
+              <Text value="Ordering increment" />
+            </Label>
+            <p className="mt-1.5 flex h-10 items-center text-sm text-muted-foreground">
+              <Text value="Not applicable" />
+            </p>
+          </>
+        ) : (
+          <FormField
+            key={`increment-${sellingUnit}`}
+            id="orderingIncrement"
+            name="orderingIncrement"
+            label="Ordering increment"
+            type="number"
+            min="1"
+            step="1"
+            value={!product ? "1" : increment}
+            onChange={(event) => setIncrement(event.target.value)}
+            readOnly={!product}
+            required
+          />
+        )}
+      </div>
+      <h2 className="text-lg font-semibold sm:col-span-6 lg:col-span-12">
+        <Text value="Price and inventory" />
+      </h2>
+      <div className="min-w-0 sm:col-span-2 lg:col-span-4">
+        <FormField
+          id="price"
+          name="price"
+          label="Regular price"
+          hint={sellingUnit === "KG" ? "LKR per kg" : "LKR per unit"}
+          type="number"
+          min="0"
+          max="9999999999.99"
+          step="0.01"
+          value={regularPrice}
+          onChange={(event) => setRegularPrice(event.target.value)}
+          required
+        />
+      </div>
+      <div className="min-w-0 sm:col-span-2 lg:col-span-4">
+        <FormField
+          id="stockQuantity"
+          name="stockQuantity"
+          label="Stock quantity"
+          type="number"
+          min="0"
+          max="2147483647"
+          step={sellingUnit === "KG" ? "0.001" : "1"}
+          defaultValue={product?.stockQuantity ?? 0}
+          required
+        />
+      </div>
+      <div className="min-w-0 sm:col-span-2 lg:col-span-4">
+        <FormField
+          id="lowStockThreshold"
+          name="lowStockThreshold"
+          label="Low-stock threshold"
+          type="number"
+          min="0"
+          max="2147483647"
+          step={sellingUnit === "KG" ? "0.001" : "1"}
+          defaultValue={product?.lowStockThreshold ?? 5}
+          required
+        />
+      </div>
+      <DiscountTierEditor
+        regularPrice={regularPrice}
+        drafts={discountTiers}
+        onChange={setDiscountTiers}
+        setup={pricingSetup}
+      />
+      <h2 className="text-lg font-semibold sm:col-span-6 lg:col-span-12">
+        <Text value="Optional details" />
+      </h2>
       <Label
         className="block min-w-0 text-sm font-medium sm:col-span-3 lg:col-span-6"
         htmlFor="descriptionEn"
@@ -222,45 +473,6 @@ export function ProductForm({
           className="mt-1.5 min-h-28 w-full"
         />
       </Label>
-      <div className="min-w-0 sm:col-span-2 lg:col-span-4">
-        <FormField
-          id="price"
-          name="price"
-          label="Price"
-          type="number"
-          min="0"
-          max="9999999999.99"
-          step="0.01"
-          defaultValue={product?.price ?? "0.00"}
-          required
-        />
-      </div>
-      <div className="min-w-0 sm:col-span-2 lg:col-span-4">
-        <FormField
-          id="stockQuantity"
-          name="stockQuantity"
-          label="Stock quantity"
-          type="number"
-          min="0"
-          max="2147483647"
-          step="1"
-          defaultValue={product?.stockQuantity ?? 0}
-          required
-        />
-      </div>
-      <div className="min-w-0 sm:col-span-2 lg:col-span-4">
-        <FormField
-          id="lowStockThreshold"
-          name="lowStockThreshold"
-          label="Low-stock threshold"
-          type="number"
-          min="0"
-          max="2147483647"
-          step="1"
-          defaultValue={product?.lowStockThreshold ?? 5}
-          required
-        />
-      </div>
       <div className="min-w-0 sm:col-span-6 lg:col-span-12">
         <FormField
           id="imageUrl"

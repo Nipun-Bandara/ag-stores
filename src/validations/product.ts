@@ -1,3 +1,4 @@
+import { validatePricing, type DiscountTier } from "@/lib/pricing";
 import { z } from "zod";
 
 const nullableText = (maximum: number) =>
@@ -22,17 +23,69 @@ const priceSchema = z
     return `${BigInt(whole).toString()}.${fraction.padEnd(2, "0")}`;
   });
 
-const stockQuantitySchema = z.coerce
-  .number({ error: "Stock quantity must be a number." })
-  .int("Stock quantity must be a whole number.")
-  .min(0, "Stock quantity cannot be negative.")
-  .max(2_147_483_647);
+export const stockQuantitySchema = z
+  .preprocess(
+    (value) => (typeof value === "number" ? String(value) : value),
+    z
+      .string()
+      .trim()
+      .regex(
+        /^\d{1,10}(?:\.\d{1,3})?$/,
+        "Quantity must have at most three decimal places.",
+      ),
+  )
+  .transform(Number)
+  .pipe(z.number().min(0).max(2147483647));
+const lowStockThresholdSchema = stockQuantitySchema;
 
-const lowStockThresholdSchema = z.coerce
-  .number({ error: "Low-stock threshold must be a number." })
-  .int("Low-stock threshold must be a whole number.")
-  .min(0, "Low-stock threshold cannot be negative.")
-  .max(2_147_483_647);
+function validateSetup(
+  value: {
+    price: string;
+    discountTiers?: DiscountTier[] | undefined;
+    sellingUnit: "UNIT" | "KG";
+    stockQuantity: number;
+    lowStockThreshold?: number | undefined;
+    minimumOrderQuantity: number;
+    orderingIncrement: number;
+  },
+  context: z.RefinementCtx,
+) {
+  if (value.discountTiers !== undefined) {
+    try {
+      validatePricing(value.price, value.discountTiers, value);
+    } catch (error) {
+      context.addIssue({
+        code: "custom",
+        path: ["discountTiers"],
+        message:
+          error instanceof Error ? error.message : "Invalid discount tiers.",
+      });
+    }
+  }
+  for (const field of ["minimumOrderQuantity", "orderingIncrement"] as const) {
+    if (value[field] <= 0)
+      context.addIssue({
+        code: "custom",
+        path: [field],
+        message: "Minimum and increment must be positive.",
+      });
+  }
+  if (value.sellingUnit === "UNIT") {
+    for (const field of [
+      "stockQuantity",
+      "lowStockThreshold",
+      "minimumOrderQuantity",
+      "orderingIncrement",
+    ] as const) {
+      if (value[field] !== undefined && !Number.isInteger(value[field]))
+        context.addIssue({
+          code: "custom",
+          path: [field],
+          message: "UNIT quantities must be whole numbers.",
+        });
+    }
+  }
+}
 
 const secureImageUrlSchema = z
   .url()
@@ -42,12 +95,28 @@ const secureImageUrlSchema = z
   });
 
 const productFields = {
+  itemCode: z.string().trim().min(1, "Item code is required.").max(100),
+  barcode: nullableText(100),
+  sellingUnit: z.enum(["UNIT", "KG"]).default("UNIT"),
+  minimumOrderQuantity: stockQuantitySchema.default(1),
+  orderingIncrement: stockQuantitySchema.default(1),
   categoryId: z.uuid(),
   nameEn: z.string().trim().min(1).max(180),
   nameSi: nullableText(180),
   descriptionEn: nullableText(5000),
   descriptionSi: nullableText(5000),
   price: priceSchema,
+  discountTiers: z
+    .array(
+      z
+        .object({
+          minimumQuantity: stockQuantitySchema,
+          discountAmount: priceSchema,
+        })
+        .strict(),
+    )
+    .max(4, "A product can have at most four discount tiers.")
+    .optional(),
   stockQuantity: stockQuantitySchema,
   imageUrl: z
     .union([secureImageUrlSchema, z.literal(""), z.null()])
@@ -62,14 +131,25 @@ export const productCreateSchema = z
     ...productFields,
     lowStockThreshold: lowStockThresholdSchema.optional().default(5),
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) =>
+    validateSetup({ ...value, discountTiers: undefined }, context),
+  )
+  .transform((value) => ({
+    ...value,
+    minimumOrderQuantity: value.sellingUnit === "KG" ? 0.002 : 1,
+    // Database precision for weight, not a customer ordering increment.
+    orderingIncrement: value.sellingUnit === "KG" ? 0.001 : 1,
+  }))
+  .superRefine(validateSetup);
 
 export const productUpdateSchema = z
   .object({
     ...productFields,
     lowStockThreshold: lowStockThresholdSchema.optional(),
   })
-  .strict();
+  .strict()
+  .superRefine(validateSetup);
 
 export const productAvailabilitySchema = z
   .object({ isAvailable: z.boolean() })

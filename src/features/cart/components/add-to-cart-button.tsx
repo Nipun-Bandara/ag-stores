@@ -1,5 +1,6 @@
 "use client";
 
+import { stepQuantity, firstOrderQuantity } from "@/lib/quantity";
 import { useState } from "react";
 import { Minus, Plus } from "lucide-react";
 
@@ -9,6 +10,7 @@ import { getDictionary, type Locale } from "@/lib/i18n/config";
 import { Button } from "@/components/ui/button";
 import { IconActionButton } from "@/components/ui/icon-action-button";
 import { translate } from "@/lib/i18n/text";
+import { WeightCartControl } from "@/features/cart/components/weight-cart-control";
 
 export function AddToCartButton({
   product,
@@ -23,13 +25,37 @@ export function AddToCartButton({
 }) {
   const { items, add, updateQuantity, remove } = useCart();
   const [message, setMessage] = useState<string>();
-  const outOfStock = product.stockQuantity === 0;
+  const outOfStock = product.stockQuantity < firstOrderQuantity(product);
   const copy = getDictionary(locale).storefront;
-  const quantity = items.find((item) => item.id === product.id)?.quantity ?? 0;
+  const cartItem = items.find((item) => item.id === product.id);
+  const quantity = cartItem?.quantity ?? 0;
+  const setupChanged =
+    !!cartItem &&
+    (cartItem.sellingUnit ?? "UNIT") !== (product.sellingUnit ?? "UNIT");
+  if (setupChanged)
+    return (
+      <a className="text-sm underline" href="/cart">
+        {translate(
+          locale,
+          "Product selling setup changed. Review your cart quantity and unit.",
+        )}
+      </a>
+    );
 
   function handleAdd() {
     const added = add(product);
     setMessage(added ? copy.addedToCart : copy.maximumInCart);
+  }
+
+  if (product.sellingUnit === "KG") {
+    return (
+      <WeightCartControl
+        key={`${product.id}:${quantity}`}
+        product={product}
+        quantity={quantity}
+        locale={locale}
+      />
+    );
   }
 
   if (compact) {
@@ -38,13 +64,17 @@ export function AddToCartButton({
         <IconActionButton
           type="button"
           variant="ghost"
-          label={translate(locale, "Remove one {name} from cart", {
+          label={translate(locale, "Reduce quantity of {name}", {
             name: product.name,
           })}
           disabled={quantity === 0}
           onClick={() => {
-            if (quantity === 1) remove(product.id);
-            else updateQuantity(product.id, quantity - 1);
+            if (quantity <= firstOrderQuantity(product)) remove(product.id);
+            else
+              updateQuantity(
+                product.id,
+                stepQuantity(quantity, product.orderingIncrement ?? 1, -1),
+              );
           }}
         >
           <Minus aria-hidden="true" />
@@ -63,7 +93,15 @@ export function AddToCartButton({
               ? `Add ${product.name} to cart`
               : `${copy.addToCart}: ${product.name}`
           }
-          disabled={outOfStock || quantity >= product.stockQuantity}
+          disabled={
+            outOfStock ||
+            stepQuantity(
+              quantity,
+              quantity === 0
+                ? firstOrderQuantity(product)
+                : (product.orderingIncrement ?? 1),
+            ) > product.stockQuantity
+          }
           onClick={handleAdd}
         >
           <Plus aria-hidden="true" />

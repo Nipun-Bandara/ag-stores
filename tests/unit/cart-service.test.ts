@@ -15,8 +15,13 @@ function product(
   return {
     id: productId,
     nameEn: "Red Rice",
+    nameSi: null,
+    discountTiers: [],
     price: new Prisma.Decimal("475.25"),
-    stockQuantity: 5,
+    stockQuantity: new Prisma.Decimal(5),
+    sellingUnit: "UNIT",
+    minimumOrderQuantity: new Prisma.Decimal(1),
+    orderingIncrement: new Prisma.Decimal(1),
     isAvailable: true,
     category: { status: CatalogStatus.ACTIVE },
     shop: {
@@ -62,7 +67,7 @@ describe("checkout cart validation", () => {
 
   it.each([
     product({ isAvailable: false }),
-    product({ stockQuantity: 0 }),
+    product({ stockQuantity: new Prisma.Decimal(0) }),
     product({ category: { status: CatalogStatus.INACTIVE } }),
     null,
   ])("rejects unavailable, zero-stock, or missing products", async (record) => {
@@ -76,3 +81,34 @@ describe("checkout cart validation", () => {
     });
   });
 });
+
+it("quotes typed KG weights without applying the old increment multiple", async () => {
+  const record = product({
+    sellingUnit: "KG",
+    minimumOrderQuantity: new Prisma.Decimal("0.002"),
+    orderingIncrement: new Prisma.Decimal("0.125"),
+  });
+  const result = await validateCartForCheckout(
+    { items: [{ productId, quantity: 0.003, sellingUnit: "KG" }] },
+    repository(record),
+  );
+  expect(result.items[0]?.quantity).toBe(0.003);
+  expect(result.subtotal).toBe("1.43");
+});
+
+it.each([0.001, 0.0021])(
+  "rejects invalid KG weight %s during server cart validation",
+  async (quantity) => {
+    const record = product({
+      sellingUnit: "KG",
+      minimumOrderQuantity: new Prisma.Decimal("0.002"),
+      orderingIncrement: new Prisma.Decimal("0.001"),
+    });
+    await expect(
+      validateCartForCheckout(
+        { items: [{ productId, quantity, sellingUnit: "KG" }] },
+        repository(record),
+      ),
+    ).rejects.toMatchObject({ code: "INVALID_QUANTITY" });
+  },
+);

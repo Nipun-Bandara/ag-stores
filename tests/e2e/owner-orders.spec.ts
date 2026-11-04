@@ -66,8 +66,11 @@ test.describe.serial("owner order management", () => {
     await page
       .getByLabel("Address", { exact: true })
       .fill("70 Owner Order Lane");
-    await page.getByLabel("Latitude").fill("6.927079");
-    await page.getByLabel("Longitude").fill("79.861244");
+    await page.context().grantPermissions(["geolocation"]);
+    await page
+      .context()
+      .setGeolocation({ latitude: 6.927079, longitude: 79.861244 });
+    await page.getByRole("button", { name: "Use my current location" }).click();
     await page.getByRole("button", { name: "Add address" }).click();
 
     workflowOrderId = await placeOrder(page);

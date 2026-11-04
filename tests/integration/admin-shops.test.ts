@@ -307,8 +307,10 @@ describeWithDatabase("admin shop management API", () => {
     expect(checkout.status).toBe(409);
     expect((await checkout.json()).error.code).toBe("SHOP_INACTIVE");
     expect(
-      await prisma.product.findUniqueOrThrow({ where: { id: productId } }),
-    ).toMatchObject({ stockQuantity: 10 });
+      (
+        await prisma.product.findUniqueOrThrow({ where: { id: productId } })
+      ).stockQuantity.toString(),
+    ).toBe("10");
 
     const activate = await shopStatusRoute(
       request(`/api/admin/shops/${shopId}/status`, adminToken, "PATCH", {

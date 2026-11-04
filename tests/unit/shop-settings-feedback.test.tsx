@@ -42,6 +42,7 @@ const shop: ShopSettingsView = {
   minimumOrderAmount: "0.00",
   deliveryFee: "250.00",
   maximumDeliveryRadiusKm: "50.00",
+  weightDifferenceAllowancePct: "10.00",
   updatedAt: "2026-11-01T00:00:00Z",
 };
 beforeEach(() => {

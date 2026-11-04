@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { productCreateSchema, productStockSchema } from "@/validations/product";
 
 const validProduct = {
+  itemCode: "001",
   shopId: "00000000-0000-4000-8000-000000000001",
   categoryId: "00000000-0000-4000-8000-000000000002",
   nameEn: "Tea",
@@ -37,12 +38,12 @@ describe("product validation", () => {
     },
   );
 
-  it("rejects negative and fractional stock", () => {
+  it("accepts three decimal stock for validation against the stored selling unit", () => {
     expect(productStockSchema.safeParse({ stockQuantity: -1 }).success).toBe(
       false,
     );
     expect(productStockSchema.safeParse({ stockQuantity: 1.5 }).success).toBe(
-      false,
+      true,
     );
     expect(
       productStockSchema.safeParse({

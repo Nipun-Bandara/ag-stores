@@ -272,9 +272,10 @@ describeWithDatabase("shop settings and checkout rules", () => {
     expect(response.status).toBe(409);
     expect((await response.json()).error.code).toBe("SHOP_CLOSED");
     expect(
-      (await prisma.product.findUniqueOrThrow({ where: { id: productId } }))
-        .stockQuantity,
-    ).toBe(20);
+      (
+        await prisma.product.findUniqueOrThrow({ where: { id: productId } })
+      ).stockQuantity.toString(),
+    ).toBe("20");
   });
 
   it("enforces the minimum order amount", async () => {

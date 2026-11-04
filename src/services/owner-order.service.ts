@@ -1,10 +1,7 @@
+import { orderPricingSnapshot } from "@/lib/pricing";
 import { getDb } from "@/db";
 import { OrderStatus, UserRole } from "@/generated/prisma/client";
-import {
-  multiplyMinorUnits,
-  moneyToMinorUnits,
-  minorUnitsToMoney,
-} from "@/lib/money";
+
 import {
   PrismaOwnerOrderRepository,
   type OwnerOrderDetailRecord,
@@ -85,6 +82,13 @@ function toListView(order: OwnerOrderListRecord) {
     id: order.id,
     status: order.status,
     total: order.total.toFixed(2),
+    estimatedSubtotal: order.estimatedSubtotal?.toFixed(2) ?? null,
+    estimatedTotal: order.estimatedTotal?.toFixed(2) ?? null,
+    packingRequired: order.packingRequired,
+    packingVersion: order.packingVersion,
+    packingFinalizedAt: order.packingFinalizedAt?.toISOString() ?? null,
+    weightDifferenceAllowancePct:
+      order.shop.weightDifferenceAllowancePct.toFixed(2),
     createdAt: order.createdAt.toISOString(),
     customer: order.customer,
     shopName: order.shop.name,
@@ -100,6 +104,13 @@ function toDetailView(order: OwnerOrderDetailRecord) {
     subtotal: order.subtotal.toFixed(2),
     deliveryFee: order.deliveryFee.toFixed(2),
     total: order.total.toFixed(2),
+    estimatedSubtotal: order.estimatedSubtotal?.toFixed(2) ?? null,
+    estimatedTotal: order.estimatedTotal?.toFixed(2) ?? null,
+    packingRequired: order.packingRequired,
+    packingVersion: order.packingVersion,
+    packingFinalizedAt: order.packingFinalizedAt?.toISOString() ?? null,
+    weightDifferenceAllowancePct:
+      order.shop.weightDifferenceAllowancePct.toFixed(2),
     customerNote: order.customerNote,
     cancelledAt: order.cancelledAt?.toISOString() ?? null,
     cancellationReason: order.cancellationReason,
@@ -116,14 +127,11 @@ function toDetailView(order: OwnerOrderDetailRecord) {
       id: item.id,
       nameEn: item.product.nameEn,
       nameSi: item.product.nameSi,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice.toFixed(2),
-      lineTotal: minorUnitsToMoney(
-        multiplyMinorUnits(
-          moneyToMinorUnits(item.unitPrice.toFixed(2)),
-          item.quantity,
-        ),
-      ),
+      quantity: Number(item.quantity),
+      sellingUnit: item.sellingUnit,
+      ...orderPricingSnapshot(item),
+      contactAgreedAt: item.contactAgreedAt?.toISOString() ?? null,
+      contactNote: item.contactNote,
     })),
     statusHistory: order.statusHistory.map((history) => ({
       ...history,

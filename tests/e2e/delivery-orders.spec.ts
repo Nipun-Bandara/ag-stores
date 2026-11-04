@@ -41,6 +41,11 @@ async function signIn(page: Page, email: string, destination: string) {
     .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(new RegExp(`${destination}$`));
+  await page
+    .context()
+    .addCookies([
+      { name: "ag_stores_locale", value: "en", url: "http://127.0.0.1:3100" },
+    ]);
 }
 
 test.describe.serial("available delivery orders", () => {

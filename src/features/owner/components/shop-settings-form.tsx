@@ -52,6 +52,7 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
         minimumOrderAmount: form.get("minimumOrderAmount"),
         deliveryFee: form.get("deliveryFee"),
         maximumDeliveryRadiusKm: form.get("maximumDeliveryRadiusKm"),
+        weightDifferenceAllowancePct: form.get("weightDifferenceAllowancePct"),
       }),
     }).catch(() => null);
     const payload = response
@@ -172,6 +173,22 @@ export function ShopSettingsForm({ initial }: { initial: ShopSettingsView }) {
             </span>
           </Label>
         </div>
+        <Label className="block max-w-xs text-sm font-medium">
+          <Text value="Packed-weight difference allowance (%)" />
+          <Input
+            name="weightDifferenceAllowancePct"
+            type="number"
+            min="0"
+            max="100"
+            step="0.01"
+            defaultValue={settings.weightDifferenceAllowancePct}
+            className={inputClass}
+            required
+          />
+          <span className="mt-1 block text-xs text-muted-foreground">
+            <Text value="Larger changes require a recorded customer call and note." />
+          </span>
+        </Label>
         <div className="flex flex-wrap items-center gap-4">
           <Button variant="success" type="submit" disabled={pending}>
             {pending ? t("Saving…") : t("Save settings")}

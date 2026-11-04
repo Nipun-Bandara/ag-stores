@@ -63,3 +63,29 @@ describe("product form selects", () => {
     expect(values.get("categoryId")).toBe("category-two");
   });
 });
+
+it("uses the selling-unit select and updates automatic new-product quantity rules", async () => {
+  const { container } = render(<ProductForm options={options} />);
+  const minimum = screen.getByLabelText("Minimum order quantity");
+  expect(minimum).toHaveValue(1);
+  expect(minimum).toHaveAttribute("readonly");
+  expect(screen.getByLabelText("Ordering increment")).toHaveValue(1);
+  fireEvent.click(screen.getByRole("combobox", { name: "Selling unit" }));
+  const weight = await screen.findByRole("option", { name: "Kilograms (kg)" });
+  fireEvent.pointerDown(weight, { pointerType: "mouse" });
+  fireEvent.click(weight);
+  expect(
+    screen.getByRole("combobox", { name: "Selling unit" }),
+  ).toHaveTextContent("Kilograms (kg)");
+  expect(screen.getByLabelText("Minimum order quantity")).toHaveValue(0.002);
+  expect(screen.getByText("Not applicable")).toBeVisible();
+  expect(container.querySelector('input[name="orderingIncrement"]')).toBeNull();
+  fireEvent.click(screen.getByRole("combobox", { name: "Selling unit" }));
+  const unit = await screen.findByRole("option", {
+    name: "Whole units (including sealed packets)",
+  });
+  fireEvent.pointerDown(unit, { pointerType: "mouse" });
+  fireEvent.click(unit);
+  expect(screen.getByLabelText("Minimum order quantity")).toHaveValue(1);
+  expect(screen.getByLabelText("Ordering increment")).toHaveValue(1);
+});

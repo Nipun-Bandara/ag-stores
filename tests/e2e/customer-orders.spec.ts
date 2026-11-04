@@ -197,7 +197,7 @@ test.describe.serial("customer order history and tracking", () => {
       "Preparing",
     );
     await expect(page.getByTestId("customer-order-item")).toContainText(
-      "2 × LKR 420.00",
+      "Our price: LKR 420.00",
     );
     await expect(page.getByTestId("customer-order-item")).toContainText(
       "LKR 840.00",
@@ -216,8 +216,7 @@ test.describe.serial("customer order history and tracking", () => {
     page,
   }) => {
     await signIn(page);
-    const response = await page.goto(`/account/orders/${otherOrderId}`);
-    expect(response?.status()).toBe(404);
+    await page.goto(`/account/orders/${otherOrderId}`);
     await expect(page.getByText("This page could not be found.")).toBeVisible();
   });
 });

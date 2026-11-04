@@ -11,6 +11,26 @@ function conflict() {
 }
 
 describe("serializable transaction retry", () => {
+  it("retries pg adapter serialization failures from row locks", async () => {
+    const failure = new Prisma.PrismaClientKnownRequestError(
+      "raw serialization conflict",
+      {
+        code: "P2010",
+        clientVersion: "test",
+        meta: {
+          driverAdapterError: {
+            cause: { kind: "TransactionWriteConflict", originalCode: "40001" },
+          },
+        },
+      },
+    );
+    const operation = vi
+      .fn<() => Promise<string>>()
+      .mockRejectedValueOnce(failure)
+      .mockResolvedValue("completed");
+    await expect(withSerializableRetry(operation)).resolves.toBe("completed");
+    expect(operation).toHaveBeenCalledTimes(2);
+  });
   it("retries transient serialization conflicts", async () => {
     const operation = vi
       .fn<() => Promise<string>>()

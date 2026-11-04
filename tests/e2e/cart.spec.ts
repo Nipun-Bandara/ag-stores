@@ -26,10 +26,14 @@ test("customer manages a cart and continues to checkout", async ({ page }) => {
   await page.goto("/cart", { timeout: 60_000 });
 
   await expect(page.getByTestId("cart-item")).toHaveCount(1);
-  await expect(page.getByLabel("Quantity for Red Rice 1kg")).toHaveValue("2");
+  await expect(
+    page.getByRole("group", { name: "Quantity for Red Rice 1kg" }),
+  ).toContainText("2");
   await expect(page.getByTestId("cart-subtotal")).toHaveText("LKR 840.00");
 
-  await page.getByLabel("Quantity for Red Rice 1kg").fill("3");
+  await page
+    .getByRole("button", { name: "Increase quantity of Red Rice 1kg" })
+    .click();
   await expect(page.getByTestId("cart-subtotal")).toHaveText("LKR 1260.00");
 
   await page.getByRole("link", { name: "Proceed to checkout" }).click();
