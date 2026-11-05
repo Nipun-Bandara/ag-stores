@@ -26,6 +26,7 @@ import { localizeBilingual } from "@/lib/i18n/config";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 interface ApiPayload {
@@ -251,16 +252,17 @@ export function ProductList({
                   />{" "}
                   · {product.shopName}
                 </p>
-                {product.imageUrl ? (
-                  <a
-                    href={product.imageUrl}
-                    rel="noreferrer"
-                    target="_blank"
-                    className="mt-2 inline-block text-xs text-primary hover:underline"
-                  >
-                    <Text value={"View image "} />
-                  </a>
-                ) : null}
+                <ImageWithFallback
+                  src={product.imageUrl}
+                  alt={localizeBilingual(
+                    product.nameEn,
+                    product.nameSi,
+                    locale,
+                  )}
+                  fallback={t("No photo")}
+                  className="mt-2 aspect-square w-20 rounded-md border border-border"
+                  sizes="80px"
+                />
               </div>
               <div className="flex max-w-1/2 flex-col items-end gap-1.5">
                 <Badge

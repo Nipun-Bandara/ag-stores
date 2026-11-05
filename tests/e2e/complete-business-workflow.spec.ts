@@ -1,3 +1,4 @@
+import { updateOwnerOrderStatus } from "./helpers/order-status";
 import {
   mobileForTestAccount,
   fillAccountNames,
@@ -367,15 +368,15 @@ test.describe.serial("complete retail order and delivery workflow", () => {
       .filter({ hasText: mainOrderId });
     await expect(ownerOrderCard).toBeVisible();
     await ownerOrderCard.getByRole("link", { name: "View order" }).click();
-    await page.getByRole("button", { name: "Confirm order" }).click();
+    await updateOwnerOrderStatus(page, "Confirmed");
     await expect(
       page.getByText("Confirmed", { exact: true }).first(),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Mark preparing" }).click();
+    await updateOwnerOrderStatus(page, "Preparing");
     await expect(
       page.getByText("Preparing", { exact: true }).first(),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Mark ready for delivery" }).click();
+    await updateOwnerOrderStatus(page, "Ready for delivery");
     await expect(
       page.getByText("Ready for delivery", { exact: true }).first(),
     ).toBeVisible();

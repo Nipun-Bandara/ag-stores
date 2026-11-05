@@ -15,6 +15,7 @@ import { notFound } from "next/navigation";
 
 import { UserRole } from "@/generated/prisma/client";
 import { OwnerOrderStatusActions } from "@/features/owner/components/owner-order-status-actions";
+import { OwnerOrderReceipt } from "@/features/owner/components/owner-order-receipt";
 import { orderStatusLabels } from "@/features/orders/order-presentation";
 import { requireRole } from "@/lib/auth/server";
 import { getOwnerOrder, OwnerOrderError } from "@/services/owner-order.service";
@@ -69,9 +70,12 @@ export default async function OwnerOrderDetailPage({
             {order.shopName}
           </p>
         </div>
-        <Badge variant="secondary">
-          <Text value={orderStatusLabels[order.status]} />
-        </Badge>
+        <div className="flex flex-wrap items-center gap-3">
+          <OwnerOrderReceipt order={order} cashier={user.name} />
+          <Badge variant="secondary">
+            <Text value={orderStatusLabels[order.status]} />
+          </Badge>
+        </div>
       </div>
 
       {order.cancelledAt ? (
@@ -93,6 +97,7 @@ export default async function OwnerOrderDetailPage({
       ) : null}
 
       <OwnerOrderStatusActions
+        key={order.status}
         orderId={order.id}
         status={order.status}
         canMarkReady={
@@ -242,6 +247,7 @@ export default async function OwnerOrderDetailPage({
                     </p>
                   ) : null}
                   <PriceSummary
+                    separateLineItems
                     pricing={item}
                     sellingUnit={item.sellingUnit}
                     locale={priceLocale}

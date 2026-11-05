@@ -22,6 +22,7 @@
     "db:accounts:check": "tsx scripts/account-backfill.ts",
     "db:accounts:dev-backfill": "tsx scripts/account-backfill.ts --dev-placeholders",
     "db:credentials:reset-dev": "tsx scripts/reset-development-credentials.ts",
+    "db:photos:cleanup": "tsx scripts/cleanup-product-photos.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
@@ -47,6 +48,7 @@
     "react-day-picker": "^10.0.2",
     "react-dom": "19.3.0",
     "recharts": "^3.10.1",
+    "sharp": "0.35.4",
     "sonner": "^2.0.8",
     "tailwind-merge": "3.7.0",
     "yup": "^1.7.1",

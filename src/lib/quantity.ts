@@ -80,3 +80,18 @@ export function stepQuantity(
 }
 
 export class SellingSetupError extends Error {}
+
+/** One gram equals one stored thousandth of a kilogram; fractional grams are unsupported. */
+export function weightToKilograms(value: string, unit: "kg" | "g"): number {
+  if (unit === "kg") return quantityNumber(quantityMilli(value));
+  if (!/^\d{1,13}$/.test(value))
+    throw new Error("Enter a whole number of grams.");
+  const grams = BigInt(value);
+  if (grams > BigInt(MAX_QUANTITY) * BigInt(1000))
+    throw new Error("Quantity is too large.");
+  return quantityNumber(grams);
+}
+
+export function displayWeight(kilograms: number, unit: "kg" | "g"): string {
+  return unit === "kg" ? String(kilograms) : String(quantityMilli(kilograms));
+}

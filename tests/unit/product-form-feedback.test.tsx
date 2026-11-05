@@ -42,6 +42,9 @@ function submitProduct() {
   fireEvent.change(screen.getByLabelText("English name"), {
     target: { value: "Tea" },
   });
+  fireEvent.change(screen.getByLabelText("Item code"), {
+    target: { value: "TEA-001" },
+  });
   fireEvent.change(screen.getByLabelText("Regular price"), {
     target: { value: "100.00" },
   });
@@ -124,6 +127,12 @@ it("submits automatic KG quantity rules without an editable increment", async ()
     json: async () => ({ data: { id: "rice" } }),
   });
   const { container } = render(<ProductForm options={options} />);
+  fireEvent.change(screen.getByLabelText("English name"), {
+    target: { value: "Rice" },
+  });
+  fireEvent.change(screen.getByLabelText("Item code"), {
+    target: { value: "RICE-001" },
+  });
   fireEvent.click(screen.getByRole("combobox", { name: "Selling unit" }));
   const option = await screen.findByRole("option", { name: "Kilograms (kg)" });
   fireEvent.pointerDown(option, { pointerType: "mouse" });
@@ -135,4 +144,39 @@ it("submits automatic KG quantity rules without an editable increment", async ()
     minimumOrderQuantity: 0.002,
     orderingIncrement: 0.001,
   });
+});
+
+it("shows required field errors and prevents invalid product creation", async () => {
+  const { container } = render(<ProductForm options={options} />);
+  fireEvent.submit(container.querySelector("form")!);
+  await waitFor(() =>
+    expect(screen.getByLabelText("English name")).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    ),
+  );
+  expect(screen.getByText("Item code is required.")).toBeVisible();
+  expect(mocks.fetch).not.toHaveBeenCalled();
+  expect(mocks.error).not.toHaveBeenCalled();
+});
+
+it("rejects fractional unit inventory before uploading or saving", async () => {
+  const { container } = render(<ProductForm options={options} />);
+  fireEvent.change(screen.getByLabelText("English name"), {
+    target: { value: "Tea" },
+  });
+  fireEvent.change(screen.getByLabelText("Item code"), {
+    target: { value: "TEA-001" },
+  });
+  fireEvent.change(screen.getByLabelText("Stock quantity"), {
+    target: { value: "0.5" },
+  });
+  fireEvent.submit(container.querySelector("form")!);
+  await waitFor(() =>
+    expect(screen.getByLabelText("Stock quantity")).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    ),
+  );
+  expect(mocks.fetch).not.toHaveBeenCalled();
 });

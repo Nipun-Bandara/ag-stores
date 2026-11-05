@@ -8,6 +8,7 @@ import {
 } from "@/generated/prisma/client";
 import { withSerializableRetry } from "@/lib/db-transaction";
 import { writeAuditLog } from "@/repositories/audit-write.repository";
+import { publicPhotoUrl } from "@/lib/product-photo-storage";
 import type {
   ProductAvailabilityInput,
   ProductCreateInput,
@@ -37,12 +38,17 @@ const productSelect = {
   stockQuantity: true,
   lowStockThreshold: true,
   imageUrl: true,
+  imageStorageKey: true,
   isAvailable: true,
   createdAt: true,
   updatedAt: true,
   shop: { select: { name: true } },
   category: { select: { nameEn: true, nameSi: true, status: true } },
 } satisfies Prisma.ProductSelect;
+
+// A photo attachment and audit write add round trips to product saves. The
+// database can be slower than Prisma's five-second interactive default.
+const productWriteTransaction = { timeout: 20_000 } as const;
 
 export type ProductRecord = Prisma.ProductGetPayload<{
   select: typeof productSelect;
@@ -187,12 +193,29 @@ export class PrismaProductRepository implements ProductRepository {
   }
 
   create(input: ProductCreateInput, actorId: string): Promise<ProductRecord> {
-    const { discountTiers = [], ...fields } = input;
+    const { discountTiers = [], imageUploadId, ...fields } = input;
     validatePricing(input.price, discountTiers, input);
     return this.prisma.$transaction(async (transaction) => {
+      const upload = imageUploadId
+        ? await transaction.productPhotoUpload.findFirst({
+            where: {
+              id: imageUploadId,
+              ownerId: actorId,
+              shopId: input.shopId,
+              productId: null,
+              attachedAt: null,
+              deletedAt: null,
+            },
+          })
+        : null;
+      if (imageUploadId && !upload) throw new Error("PHOTO_UPLOAD_NOT_OWNED");
       const product = await transaction.product.create({
         data: {
           ...fields,
+          imageUrl: upload
+            ? publicPhotoUrl(upload.storageKey)
+            : fields.imageUrl,
+          imageStorageKey: upload?.storageKey ?? null,
           discountTiers: {
             create: discountTiers.map((tier, index) => ({
               ...tier,
@@ -202,6 +225,13 @@ export class PrismaProductRepository implements ProductRepository {
         },
         select: productSelect,
       });
+      if (upload) {
+        const claimed = await transaction.productPhotoUpload.updateMany({
+          where: { id: upload.id, attachedAt: null, deletedAt: null },
+          data: { productId: product.id, attachedAt: new Date() },
+        });
+        if (claimed.count !== 1) throw new Error("PHOTO_UPLOAD_NOT_OWNED");
+      }
       await writeAuditLog(transaction, {
         actorId,
         action: AuditAction.PRODUCT_PRICE_UPDATED,
@@ -216,7 +246,7 @@ export class PrismaProductRepository implements ProductRepository {
         },
       });
       return product;
-    });
+    }, productWriteTransaction);
   }
 
   async update(
@@ -237,6 +267,9 @@ export class PrismaProductRepository implements ProductRepository {
             where: { id: productId, shop: { ownerId: actorId } },
             select: {
               price: true,
+              shopId: true,
+              imageUrl: true,
+              imageStorageKey: true,
               stockQuantity: true,
               sellingUnit: true,
               lowStockThreshold: true,
@@ -282,6 +315,26 @@ export class PrismaProductRepository implements ProductRepository {
             }
           }
           const previousTiers = tierViews(previous.discountTiers);
+          const upload = input.imageUploadId
+            ? await transaction.productPhotoUpload.findFirst({
+                where: {
+                  id: input.imageUploadId,
+                  ownerId: actorId,
+                  shopId: previous.shopId,
+                  attachedAt: null,
+                  deletedAt: null,
+                  OR: [{ productId: null }, { productId }],
+                },
+              })
+            : null;
+          if (input.imageUploadId && !upload)
+            throw new Error("PHOTO_UPLOAD_NOT_OWNED");
+          if (
+            !upload &&
+            input.imageUrl !== previous.imageUrl &&
+            input.imageUrl !== null
+          )
+            throw new Error("PHOTO_REFERENCE_INVALID");
           const nextTiers = input.discountTiers ?? previousTiers;
           validatePricing(input.price, nextTiers, input);
           const product = await transaction.product.update({
@@ -310,7 +363,12 @@ export class PrismaProductRepository implements ProductRepository {
                     },
                   }),
               stockQuantity: input.stockQuantity,
-              imageUrl: input.imageUrl,
+              imageUrl: upload
+                ? publicPhotoUrl(upload.storageKey)
+                : input.imageUrl,
+              imageStorageKey:
+                upload?.storageKey ??
+                (input.imageUrl === null ? null : previous.imageStorageKey),
               isAvailable: input.isAvailable,
               ...(input.lowStockThreshold === undefined
                 ? {}
@@ -318,6 +376,13 @@ export class PrismaProductRepository implements ProductRepository {
             },
             select: productSelect,
           });
+          if (upload) {
+            const claimed = await transaction.productPhotoUpload.updateMany({
+              where: { id: upload.id, attachedAt: null, deletedAt: null },
+              data: { productId, attachedAt: new Date() },
+            });
+            if (claimed.count !== 1) throw new Error("PHOTO_UPLOAD_NOT_OWNED");
+          }
           if (
             !previous.price.equals(product.price) ||
             JSON.stringify(previousTiers) !== JSON.stringify(nextTiers) ||
@@ -353,7 +418,10 @@ export class PrismaProductRepository implements ProductRepository {
           }
           return product;
         },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          ...productWriteTransaction,
+        },
       ),
     );
   }

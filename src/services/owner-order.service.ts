@@ -118,6 +118,8 @@ function toDetailView(order: OwnerOrderDetailRecord) {
     updatedAt: order.updatedAt.toISOString(),
     customer: order.customer,
     shopName: order.shop.name,
+    shopAddress: order.shop.address,
+    shopOwnerPhone: order.shop.owner.phone,
     deliveryAddress: {
       ...order.deliveryAddress,
       latitude: order.deliveryAddress.latitude.toString(),

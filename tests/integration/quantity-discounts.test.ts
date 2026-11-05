@@ -48,7 +48,9 @@ suite("quantity discounts in database transactions", () => {
       role,
       name: "Discount Test",
       email: null,
-      phone: null,
+      phone: "+94770000000",
+      firstName: "Test",
+      lastName: "Owner",
       status: UserStatus.ACTIVE,
       preferredLanguage: PreferredLanguage.EN,
     };
@@ -97,6 +99,9 @@ suite("quantity discounts in database transactions", () => {
           await prisma.user.create({
             data: {
               name: "Discount",
+              firstName: "Discount",
+              lastName: "Tester",
+              phone: `+947${randomUUID().replace(/\D/g, "").slice(0, 8).padEnd(8, "0")}`,
               email: `${randomUUID()}@example.test`,
               passwordHash: "test-only",
               role,

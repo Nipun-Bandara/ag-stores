@@ -161,6 +161,7 @@ export default async function CustomerOrderDetailsPage({
                       </p>
                     ) : null}
                     <PriceSummary
+                      separateLineItems
                       pricing={item}
                       sellingUnit={item.sellingUnit}
                       locale={priceLocale}

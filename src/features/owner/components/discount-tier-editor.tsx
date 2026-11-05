@@ -1,6 +1,9 @@
 "use client";
 import { quantityValid } from "@/lib/quantity";
-import { useState } from "react";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import { Label } from "@/components/ui/label";
+import { useId } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useLocale, useText } from "@/features/i18n/components/locale-provider";
@@ -59,7 +62,25 @@ export function DiscountTierEditor({
 }) {
   const t = useText();
   const locale = useLocale();
-  const [exampleQuantity, setExampleQuantity] = useState("1");
+  const exampleId = useId();
+  const exampleSchema = Yup.object({
+    exampleQuantity: Yup.string()
+      .required(t("Enter a valid example quantity."))
+      .test("quantity", t("Enter a valid example quantity."), (value) =>
+        Boolean(
+          value &&
+          /^\d+(?:\.\d{1,3})?$/.test(value) &&
+          quantityValid(value, setup),
+        ),
+      ),
+  });
+  const exampleForm = useFormik({
+    initialValues: { exampleQuantity: "1" },
+    validationSchema: exampleSchema,
+    onSubmit: () => {},
+  });
+  const { exampleQuantity } = exampleForm.values;
+  const exampleValid = exampleSchema.isValidSync(exampleForm.values);
   let validated: { price: string; tiers: DiscountTier[] } | undefined;
   let error: string | undefined;
   try {
@@ -77,7 +98,7 @@ export function DiscountTierEditor({
   }
   return (
     <section
-      className="space-y-3 rounded-lg border p-4 sm:col-span-6 lg:col-span-12"
+      className="space-y-3 rounded-lg border border-border p-4 sm:col-span-6 lg:col-span-12"
       aria-label={t("Quantity discounts (optional)")}
     >
       <h2 className="font-semibold">{t("Quantity discounts (optional)")}</h2>
@@ -88,10 +109,11 @@ export function DiscountTierEditor({
       </p>
       {drafts.map((tier, index) => (
         <div key={index} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-          <label className="text-sm">
+          <label className="flex min-w-0 flex-col gap-2 text-sm">
             {t("Tier minimum quantity")} {index + 1}
             <Input
               aria-label={`${t("Tier minimum quantity")} ${index + 1}`}
+              className="h-10"
               type="number"
               min={setup.sellingUnit === "KG" ? "0.002" : "1"}
               step={setup.sellingUnit === "KG" ? "0.001" : "1"}
@@ -102,10 +124,11 @@ export function DiscountTierEditor({
               required
             />
           </label>
-          <label className="text-sm">
+          <label className="flex min-w-0 flex-col gap-2 text-sm">
             {t("Discount per unit/kg (LKR)")} {index + 1}
             <Input
               aria-label={`${t("Discount per unit/kg (LKR)")} ${index + 1}`}
+              className="h-10"
               type="number"
               min="0"
               step="0.01"
@@ -119,7 +142,7 @@ export function DiscountTierEditor({
           <Button
             type="button"
             variant="outline"
-            className="self-end"
+            className="h-10 self-end"
             onClick={() => onChange(drafts.filter((_, i) => i !== index))}
             aria-label={t("Remove tier {number}", { number: index + 1 })}
           >
@@ -143,32 +166,61 @@ export function DiscountTierEditor({
         </p>
       ) : null}
       {validated && drafts.length > 0 ? (
-        <div className="space-y-2 border-t pt-3">
+        <div className="space-y-2 border-t border-border pt-3">
           <h3 className="font-medium">{t("Live price example")}</h3>
-          <label className="block text-sm">
-            {t("Example quantity")}
-            <Input
-              className="mt-1 max-w-40"
-              type="number"
-              value={exampleQuantity}
-              onChange={(event) => setExampleQuantity(event.target.value)}
-              min={setup.sellingUnit === "KG" ? "0.002" : "1"}
-              step={setup.sellingUnit === "KG" ? "0.001" : "1"}
-            />
-          </label>
-          {/^\d+(?:\.\d{1,3})?$/.test(exampleQuantity) &&
-          quantityValid(exampleQuantity, setup) ? (
-            <ProductPrice
-              regularPrice={validated.price}
-              quantity={Number(exampleQuantity)}
-              discountTiers={validated.tiers}
-              sellingUnit={setup.sellingUnit ?? "UNIT"}
-              locale={locale}
-              showLine
-            />
-          ) : (
-            <p>{t("Enter a valid example quantity.")}</p>
-          )}
+          <div className="grid min-w-0 items-start gap-4 md:grid-cols-[minmax(10rem,1fr)_minmax(0,3fr)]">
+            <div className="min-w-0 space-y-2">
+              <Label htmlFor={exampleId} className="block text-sm font-medium">
+                {t("Example quantity")}
+              </Label>
+              <Input
+                id={exampleId}
+                className="h-10 w-full"
+                type="number"
+                {...exampleForm.getFieldProps("exampleQuantity")}
+                onChange={(event) => {
+                  void exampleForm.setFieldValue(
+                    "exampleQuantity",
+                    event.currentTarget.value,
+                  );
+                }}
+                min={setup.sellingUnit === "KG" ? "0.002" : "1"}
+                step={setup.sellingUnit === "KG" ? "0.001" : "1"}
+                aria-invalid={!exampleValid}
+                aria-describedby={
+                  !exampleValid ? `${exampleId}-error` : undefined
+                }
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    void exampleForm.setFieldTouched("exampleQuantity", true);
+                  }
+                }}
+              />
+              {!exampleValid ? (
+                <p
+                  id={`${exampleId}-error`}
+                  className="text-sm text-destructive"
+                >
+                  {t("Enter a valid example quantity.")}
+                </p>
+              ) : null}
+            </div>
+            <div className="min-w-0" aria-live="polite">
+              {exampleValid ? (
+                <ProductPrice
+                  regularPrice={validated.price}
+                  quantity={Number(exampleQuantity)}
+                  discountTiers={validated.tiers}
+                  sellingUnit={setup.sellingUnit ?? "UNIT"}
+                  locale={locale}
+                  layout="grid"
+                  showLine
+                  separateLineItems
+                />
+              ) : null}
+            </div>
+          </div>
         </div>
       ) : null}
     </section>

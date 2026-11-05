@@ -108,6 +108,7 @@ model User {
   sessions           AuthSession[]
   orderStatusChanges OrderStatusHistory[] @relation("OrderStatusChangedBy")
   notifications      Notification[]
+  photoUploads       ProductPhotoUpload[]
 
   @@index([role, status])
   @@index([assignedShopId, status])
@@ -160,11 +161,12 @@ model Shop {
   createdAt                    DateTime @default(now()) @db.Timestamptz(3)
   updatedAt                    DateTime @updatedAt @db.Timestamptz(3)
 
-  owner             User       @relation("ShopOwner", fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  deliveryPersonnel User[]     @relation("ShopDeliveryPersonnel")
+  owner             User                 @relation("ShopOwner", fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  deliveryPersonnel User[]               @relation("ShopDeliveryPersonnel")
   categories        Category[]
   products          Product[]
   orders            Order[]
+  photoUploads      ProductPhotoUpload[]
 
   @@unique([ownerId, name])
   @@unique([phone])
@@ -231,6 +233,7 @@ model Product {
   stockQuantity        Decimal     @default(0) @db.Decimal(13, 3)
   lowStockThreshold    Decimal     @default(5) @db.Decimal(13, 3)
   imageUrl             String?     @db.VarChar(2048)
+  imageStorageKey      String?     @unique @db.VarChar(255)
   isAvailable          Boolean     @default(true)
   createdAt            DateTime    @default(now()) @db.Timestamptz(3)
   updatedAt            DateTime    @updatedAt @db.Timestamptz(3)
@@ -239,6 +242,7 @@ model Product {
   category      Category              @relation(fields: [categoryId, shopId], references: [id, shopId], onDelete: Restrict, onUpdate: Cascade)
   discountTiers ProductDiscountTier[]
   orderItems    OrderItem[]
+  photoUploads  ProductPhotoUpload[]
 
   @@unique([shopId, nameEn])
   @@unique([shopId, itemCode])
@@ -246,6 +250,25 @@ model Product {
   @@index([categoryId, shopId])
   @@index([shopId, isAvailable])
   @@map("products")
+}
+
+model ProductPhotoUpload {
+  id         String    @id @default(uuid()) @db.Uuid
+  shopId     String    @db.Uuid
+  ownerId    String    @db.Uuid
+  productId  String?   @db.Uuid
+  storageKey String    @unique @db.VarChar(255)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  attachedAt DateTime? @db.Timestamptz(3)
+  deletedAt  DateTime? @db.Timestamptz(3)
+  purgedAt   DateTime? @db.Timestamptz(3)
+
+  shop    Shop     @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  owner   User     @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([attachedAt, createdAt])
+  @@map("product_photo_uploads")
 }
 
 model ProductDiscountTier {

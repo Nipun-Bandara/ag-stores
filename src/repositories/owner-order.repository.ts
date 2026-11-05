@@ -45,7 +45,14 @@ const ownerOrderDetailSelect = {
   createdAt: true,
   updatedAt: true,
   customer: { select: { name: true, email: true, phone: true } },
-  shop: { select: { name: true, weightDifferenceAllowancePct: true } },
+  shop: {
+    select: {
+      name: true,
+      address: true,
+      owner: { select: { phone: true } },
+      weightDifferenceAllowancePct: true,
+    },
+  },
   deliveryAddress: {
     select: {
       label: true,

@@ -78,6 +78,7 @@ function toDetailView(batch: DeliveryBatchDetailRecord) {
       id: order.id,
       sequence,
       status: order.status,
+      customerFirstName: order.customer.firstName,
       total: order.total.toFixed(2),
       customerNote: order.customerNote,
       createdAt: order.createdAt.toISOString(),

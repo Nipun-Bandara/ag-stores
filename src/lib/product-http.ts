@@ -4,6 +4,19 @@ import { errorResponse } from "@/lib/api-response";
 import { ProductError } from "@/services/product.service";
 
 export function productErrorResponse(error: unknown) {
+  if (
+    error instanceof Error &&
+    (error.message === "PHOTO_UPLOAD_NOT_OWNED" ||
+      error.message === "PHOTO_REFERENCE_INVALID")
+  )
+    return errorResponse(
+      {
+        code: "INVALID_PHOTO",
+        message:
+          "This photo cannot be attached to this product. Choose it again.",
+      },
+      409,
+    );
   if (error instanceof PricingConfigurationError)
     return errorResponse(
       { code: "INVALID_PRICING", message: error.message },

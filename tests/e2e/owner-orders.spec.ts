@@ -1,3 +1,4 @@
+import { updateOwnerOrderStatus } from "./helpers/order-status";
 import {
   mobileForTestAccount,
   fillAccountNames,
@@ -78,7 +79,7 @@ test.describe.serial("owner order management", () => {
     expect(workflowOrderId).not.toBe(rejectedOrderId);
   });
 
-  test("owner filters orders and completes the shop preparation workflow", async ({
+  test("owner filters orders and marks an order ready directly", async ({
     page,
   }) => {
     await page.context().clearCookies();
@@ -97,15 +98,7 @@ test.describe.serial("owner order management", () => {
     await expect(cards.first()).toContainText(workflowOrderId);
     await cards.first().getByRole("link", { name: "View order" }).click();
 
-    await page.getByRole("button", { name: "Confirm order" }).click();
-    await expect(
-      page.getByText("Confirmed", { exact: true }).first(),
-    ).toBeVisible();
-    await page.getByRole("button", { name: "Mark preparing" }).click();
-    await expect(
-      page.getByText("Preparing", { exact: true }).first(),
-    ).toBeVisible();
-    await page.getByRole("button", { name: "Mark ready for delivery" }).click();
+    await updateOwnerOrderStatus(page, "Ready for delivery");
     await expect(
       page.getByText("Ready for delivery", { exact: true }).first(),
     ).toBeVisible();
@@ -114,12 +107,12 @@ test.describe.serial("owner order management", () => {
   test("owner rejects a placed order", async ({ page }) => {
     await signIn(page, "owner@agstores.local", "/owner");
     await page.goto(`/owner/orders/${rejectedOrderId}`);
-    await page.getByRole("button", { name: "Reject order" }).click();
+    await updateOwnerOrderStatus(page, "Rejected");
     await expect(
       page.getByText("Rejected", { exact: true }).first(),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Confirm order" }),
+      page.getByRole("combobox", { name: "Update order status" }),
     ).toHaveCount(0);
   });
 

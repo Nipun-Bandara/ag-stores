@@ -87,3 +87,62 @@ it("lets customers type weights and rejects too little, excess precision, and ex
     screen.queryByRole("button", { name: "Reduce quantity of Rice" }),
   ).not.toBeInTheDocument();
 });
+
+it("converts between grams and kilograms without changing the selected weight or its discounted price", async () => {
+  const { CataloguePricing } =
+    await import("@/features/pricing/catalogue-pricing");
+  const product = {
+    id: "weighted-rice",
+    name: "Rice",
+    price: "100.00",
+    sellingUnit: "KG" as const,
+    minimumOrderQuantity: 0.002,
+    orderingIncrement: 0.001,
+    stockQuantity: 2,
+    imageUrl: null,
+    discountTiers: [{ minimumQuantity: 0.25, discountAmount: "10.00" }],
+  };
+  render(
+    <TooltipProvider>
+      <AddToCartButton compact product={product} />
+      <CataloguePricing product={product} locale="en" />
+    </TooltipProvider>,
+  );
+  const selectUnit = async (label: string) => {
+    fireEvent.click(
+      screen.getByRole("combobox", { name: "Weight unit for Rice" }),
+    );
+    const option = await screen.findByRole("option", {
+      name: label,
+    });
+    fireEvent.pointerDown(option, { pointerType: "mouse" });
+    fireEvent.click(option);
+  };
+  await selectUnit("g");
+  const grams = screen.getByRole("spinbutton", {
+    name: "Weight in g for Rice",
+  });
+  expect(grams).toHaveAttribute("min", "2");
+  expect(grams).toHaveAttribute("max", "2000");
+  expect(grams).toHaveAttribute("step", "1");
+  for (const amount of ["1", "2.5", "2001"]) {
+    fireEvent.change(grams, { target: { value: amount } });
+    fireEvent.click(screen.getByRole("button", { name: "Add Rice to cart" }));
+    expect(screen.getByRole("alert")).toBeVisible();
+  }
+  fireEvent.change(grams, { target: { value: "250" } });
+  fireEvent.click(screen.getByRole("button", { name: "Add Rice to cart" }));
+  expect(
+    screen.getByRole("spinbutton", { name: "Weight in g for Rice" }),
+  ).toHaveValue(250);
+  expect(screen.getByText(/Our price.*90.00/)).toBeVisible();
+  expect(screen.getByText(/Line total.*22.50/)).toBeVisible();
+  expect(
+    screen.getByRole("combobox", { name: "Weight unit for Rice" }),
+  ).toHaveTextContent("g");
+  await selectUnit("kg");
+  expect(
+    screen.getByRole("spinbutton", { name: "Weight in kg for Rice" }),
+  ).toHaveValue(0.25);
+  expect(screen.getByText(/Line total.*22.50/)).toBeVisible();
+});

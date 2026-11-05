@@ -11,9 +11,12 @@ import { OrderStatus, UserRole } from "@/generated/prisma/client";
 
 const validTransitions = [
   [OrderStatus.PLACED, OrderStatus.CONFIRMED],
+  [OrderStatus.PLACED, OrderStatus.PREPARING],
+  [OrderStatus.PLACED, OrderStatus.READY_FOR_DELIVERY],
   [OrderStatus.PLACED, OrderStatus.REJECTED],
   [OrderStatus.PLACED, OrderStatus.CANCELLED],
   [OrderStatus.CONFIRMED, OrderStatus.PREPARING],
+  [OrderStatus.CONFIRMED, OrderStatus.READY_FOR_DELIVERY],
   [OrderStatus.PREPARING, OrderStatus.READY_FOR_DELIVERY],
   [OrderStatus.READY_FOR_DELIVERY, OrderStatus.ASSIGNED],
   [OrderStatus.ASSIGNED, OrderStatus.OUT_FOR_DELIVERY],

@@ -4,23 +4,45 @@ import type { CartItem } from "./cart-state";
 import { cartStore } from "./cart-store";
 import { cartSelectionKey } from "./cart-quote";
 import type { CartQuote } from "@/services/cart.service";
+import { calculatePricing } from "@/lib/pricing";
+import {
+  addMinorUnits,
+  minorUnitsToMoney,
+  moneyToMinorUnits,
+} from "@/lib/money";
 
-export function useCartQuote(items: readonly CartItem[]) {
+export function useCartQuote(
+  items: readonly CartItem[],
+  mode: "selection" | "products" = "selection",
+) {
   const selectionKey = cartSelectionKey(items);
-  const [revision, setRevision] = useState(0);
-  const key = `${selectionKey}:${revision}`;
+  // Cart editing reuses the initially fetched rates; checkout validates each selection.
   const [result, setResult] = useState<{
     key: string;
     data?: CartQuote;
     error?: string;
   }>();
-  useEffect(() => {
-    const refresh = () => setRevision((value) => value + 1);
-    window.addEventListener("focus", refresh);
-    return () => window.removeEventListener("focus", refresh);
-  }, []);
+  const reuseProducts =
+    mode === "products" &&
+    result?.data &&
+    items.every((item) =>
+      result.data?.items.some(
+        (line) =>
+          line.productId === item.id &&
+          line.sellingUnit === (item.sellingUnit ?? "UNIT"),
+      ),
+    );
+  const key = reuseProducts
+    ? result.key
+    : mode === "products"
+      ? JSON.stringify(
+          items.map((item) => [item.id, item.sellingUnit ?? "UNIT"]),
+        )
+      : selectionKey;
+  const completedKey = mode === "products" ? result?.key : undefined;
   useEffect(() => {
     if (selectionKey === "[]") return;
+    if (completedKey === key) return;
     const controller = new AbortController();
     let active = true;
     void fetch("/api/checkout/validate", {
@@ -72,10 +94,32 @@ export function useCartQuote(items: readonly CartItem[]) {
       active = false;
       controller.abort();
     };
-  }, [selectionKey, key]);
+  }, [selectionKey, key, completedKey]);
   const current = result?.key === key ? result : undefined;
+  let quote = current?.data;
+  if (mode === "products" && quote) {
+    let subtotal = "0";
+    const lines = quote.items
+      .filter((line) => items.some((item) => item.id === line.productId))
+      .map((line) => {
+        const quantity =
+          items.find((item) => item.id === line.productId)?.quantity ??
+          line.quantity;
+        const pricing = calculatePricing(
+          line.regularPrice,
+          quantity,
+          line.discountTiers,
+        );
+        subtotal = addMinorUnits(
+          subtotal,
+          moneyToMinorUnits(pricing.lineTotal),
+        );
+        return { ...line, quantity, ...pricing };
+      });
+    quote = { ...quote, items: lines, subtotal: minorUnitsToMoney(subtotal) };
+  }
   return {
-    quote: current?.data,
+    quote,
     quoteError: current?.error,
     quotePending: items.length > 0 && !current,
   };

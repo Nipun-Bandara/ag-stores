@@ -7,9 +7,12 @@ import { useAuth } from "@/context/AuthContext";
 import { useText } from "@/features/i18n/components/locale-provider";
 import { Input } from "@/components/ui/input";
 import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
@@ -174,14 +177,33 @@ export function ProfileForm({ user }: { user: AuthenticatedUser }) {
         <Label htmlFor="profile-preferredLanguage">
           {t("Preferred language")}
         </Label>
-        <NativeSelect
-          id="profile-preferredLanguage"
-          className="mt-1.5 h-10 w-full"
-          {...formik.getFieldProps("preferredLanguage")}
+        <Select
+          name="preferredLanguage"
+          value={formik.values.preferredLanguage}
+          items={[
+            { value: "EN", label: t("English") },
+            { value: "SI", label: "සිංහල" },
+          ]}
+          onValueChange={(value) => {
+            if (value === "EN" || value === "SI") {
+              void formik.setFieldValue("preferredLanguage", value);
+            }
+          }}
         >
-          <NativeSelectOption value="EN">{t("English")}</NativeSelectOption>
-          <NativeSelectOption value="SI">සිංහල</NativeSelectOption>
-        </NativeSelect>
+          <SelectTrigger
+            id="profile-preferredLanguage"
+            className="mt-1.5 h-10 w-full data-[size=default]:h-10"
+            onBlur={() =>
+              void formik.setFieldTouched("preferredLanguage", true)
+            }
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent alignItemWithTrigger={false} className="min-w-0">
+            <SelectItem value="EN">{t("English")}</SelectItem>
+            <SelectItem value="SI">සිංහල</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       {normalizeMobile(formik.values.phone) !== user.phone ? (
         <div>

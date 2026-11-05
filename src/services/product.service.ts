@@ -1,6 +1,7 @@
 import { tierViews, type DiscountTier } from "@/lib/pricing";
 import { firstOrderQuantity } from "@/lib/quantity";
 import { getDb } from "@/db";
+import { deletePhoto, isManagedPhotoUrl } from "@/lib/product-photo-storage";
 import { isUniqueConstraintError } from "@/repositories/auth.repository";
 import {
   PrismaProductRepository,
@@ -184,6 +185,15 @@ export async function createProduct(
   repository: ProductRepository = getProductRepository(),
 ): Promise<ProductView> {
   assertOwner(user);
+  if (
+    isManagedPhotoUrl(input.imageUrl) ||
+    (input.imageUploadId && input.imageUrl)
+  )
+    throw new ProductError(
+      "PRODUCT_NOT_FOUND",
+      "Invalid photo reference. Choose the photo again.",
+      400,
+    );
   await assertOwnedCategory(
     user.id,
     input.shopId,
@@ -215,15 +225,40 @@ export async function updateProduct(
   if (!existing) {
     throw new ProductError("PRODUCT_NOT_FOUND", "Product not found.", 404);
   }
+  if (isManagedPhotoUrl(input.imageUrl) && input.imageUrl !== existing.imageUrl)
+    throw new ProductError(
+      "PRODUCT_NOT_FOUND",
+      "Invalid photo reference. Choose the photo again.",
+      400,
+    );
   await assertOwnedCategory(
     user.id,
     existing.shopId,
     input.categoryId,
     repository,
   );
-  return toProductView(
-    await handleWrite(() => repository.update(user.id, productId, input)),
+  const updated = await handleWrite(() =>
+    repository.update(user.id, productId, input),
   );
+  if (
+    existing.imageStorageKey &&
+    existing.imageStorageKey !== updated.imageStorageKey
+  ) {
+    const key = existing.imageStorageKey;
+    try {
+      const db = getDb();
+      if (!(await db.product.count({ where: { imageStorageKey: key } }))) {
+        await deletePhoto(key);
+        await db.productPhotoUpload.updateMany({
+          where: { storageKey: key, deletedAt: null },
+          data: { deletedAt: new Date(), purgedAt: new Date() },
+        });
+      }
+    } catch (error) {
+      console.error("Deferred product photo cleanup", error);
+    }
+  }
+  return toProductView(updated);
 }
 
 export async function setProductAvailability(

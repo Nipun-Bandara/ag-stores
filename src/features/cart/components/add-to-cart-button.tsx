@@ -25,6 +25,7 @@ export function AddToCartButton({
 }) {
   const { items, add, updateQuantity, remove } = useCart();
   const [message, setMessage] = useState<string>();
+  const [weightUnit, setWeightUnit] = useState<"kg" | "g">("kg");
   const outOfStock = product.stockQuantity < firstOrderQuantity(product);
   const copy = getDictionary(locale).storefront;
   const cartItem = items.find((item) => item.id === product.id);
@@ -54,6 +55,8 @@ export function AddToCartButton({
         product={product}
         quantity={quantity}
         locale={locale}
+        unit={weightUnit}
+        onUnitChange={setWeightUnit}
       />
     );
   }

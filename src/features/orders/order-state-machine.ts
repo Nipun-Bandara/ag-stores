@@ -1,12 +1,17 @@
-import { OrderStatus, UserRole } from "@/generated/prisma/client";
+import { OrderStatus, UserRole } from "@/generated/prisma/enums";
 
 export const ORDER_STATUS_TRANSITIONS = {
   [OrderStatus.PLACED]: [
     OrderStatus.CONFIRMED,
+    OrderStatus.PREPARING,
+    OrderStatus.READY_FOR_DELIVERY,
     OrderStatus.REJECTED,
     OrderStatus.CANCELLED,
   ],
-  [OrderStatus.CONFIRMED]: [OrderStatus.PREPARING],
+  [OrderStatus.CONFIRMED]: [
+    OrderStatus.PREPARING,
+    OrderStatus.READY_FOR_DELIVERY,
+  ],
   [OrderStatus.PREPARING]: [OrderStatus.READY_FOR_DELIVERY],
   [OrderStatus.READY_FOR_DELIVERY]: [OrderStatus.ASSIGNED],
   [OrderStatus.ASSIGNED]: [OrderStatus.OUT_FOR_DELIVERY],
@@ -27,11 +32,14 @@ export const ORDER_TRANSITION_ROLES: Readonly<
 > = {
   [OrderStatus.PLACED]: {
     [OrderStatus.CONFIRMED]: [UserRole.SHOP_OWNER],
+    [OrderStatus.PREPARING]: [UserRole.SHOP_OWNER],
+    [OrderStatus.READY_FOR_DELIVERY]: [UserRole.SHOP_OWNER],
     [OrderStatus.REJECTED]: [UserRole.SHOP_OWNER],
     [OrderStatus.CANCELLED]: [UserRole.CUSTOMER],
   },
   [OrderStatus.CONFIRMED]: {
     [OrderStatus.PREPARING]: [UserRole.SHOP_OWNER],
+    [OrderStatus.READY_FOR_DELIVERY]: [UserRole.SHOP_OWNER],
   },
   [OrderStatus.PREPARING]: {
     [OrderStatus.READY_FOR_DELIVERY]: [UserRole.SHOP_OWNER],

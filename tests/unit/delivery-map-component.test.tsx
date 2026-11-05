@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { DeliveryMap } from "@/features/maps/components/delivery-map";
@@ -17,7 +17,7 @@ const data = {
     {
       id: "order-1",
       kind: "delivery-stop" as const,
-      label: "Stop 1 · Home",
+      label: "Stop 1 · Nimal",
       markerLabel: "1",
       sequence: 1,
       latitude: 6.91,
@@ -54,7 +54,18 @@ describe("DeliveryMap", () => {
       }),
     ).toHaveAttribute("data-map-provider", "mock-provider");
     expect(screen.getByText("Shop · Central Shop")).toBeVisible();
-    expect(screen.getByText("Stop 1 · Home")).toBeVisible();
+    expect(screen.getByText("Stop 1 · Nimal")).toBeVisible();
+    const markers = within(
+      screen.getByRole("list", { name: "Map markers" }),
+    ).getAllByRole("listitem");
+    expect(markers).toHaveLength(2);
+    expect(markers[0]).toHaveAttribute("data-slot", "timeline-item");
+    expect(within(markers[0]!).getByRole("heading")).toHaveTextContent(
+      "Shop · Central Shop",
+    );
+    expect(within(markers[1]!).getByRole("heading")).toHaveTextContent(
+      "Stop 1 · Nimal",
+    );
     expect(screen.getByRole("note")).toHaveTextContent("Stop 2");
   });
 

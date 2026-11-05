@@ -21,13 +21,16 @@ shadcn/ui conventions, PostgreSQL, Prisma, and Zod.
 2. Create the local environment file:
 
    ```bash
-   cp.env.example .env.example .env
+   cp .env.example .env
    ```
 
    Delivery maps are disabled by default. To enable Mapbox visualization, set
    `NEXT_PUBLIC_MAP_PROVIDER="mapbox"` and provide a URL-restricted public
    `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` beginning with `pk.`. Never use a Mapbox
    secret token (`sk.*`) in a `NEXT_PUBLIC_*` variable.
+
+   Product photo uploads additionally require server-only Supabase Storage
+   configuration; follow [product photo setup](docs/product-photos.md).
 
 3. Update `DATABASE_URL` in `.env`, then generate the Prisma client:
 

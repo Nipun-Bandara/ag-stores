@@ -5,12 +5,12 @@ import { useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { useRouter } from "next/navigation";
 
 import type { AvailableDeliveryOrdersView } from "@/services/delivery-order.service";
 import { Button } from "@/components/ui/button";
-import { Alert } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
@@ -32,8 +32,6 @@ export function AvailableOrderBatchSelector({
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const orderById = new Map(orders.map((order) => [order.id, order]));
 
   function toggle(orderId: string, checked: boolean) {
@@ -55,23 +53,29 @@ export function AvailableOrderBatchSelector({
 
   async function createBatch() {
     setPending(true);
-    setError("");
-    setSuccess("");
     try {
       const response = await fetch("/api/delivery/batches", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderIds: selectedIds }),
       });
-      const payload = (await response.json()) as BatchApiPayload;
-      if (!response.ok || !payload.data) {
-        setError(t(payload.error?.message ?? "Unable to create the batch."));
+      const payload = (await response
+        .json()
+        .catch(() => null)) as BatchApiPayload | null;
+      if (
+        !response.ok ||
+        !payload?.data?.id ||
+        !Array.isArray(payload.data.orders)
+      ) {
+        toast.error(
+          t(payload?.error?.message ?? "Unable to create the batch."),
+        );
         if (response.status === 409) router.refresh();
         return;
       }
 
       const count = payload.data.orders.length;
-      setSuccess(
+      toast.success(
         t("Batch {id} created with {count} {orders}.", {
           id: payload.data.id,
           count,
@@ -81,7 +85,7 @@ export function AvailableOrderBatchSelector({
       setSelectedIds([]);
       router.refresh();
     } catch {
-      setError(t("Unable to create the batch."));
+      toast.error(t("Unable to create the batch."));
     } finally {
       setPending(false);
     }
@@ -182,16 +186,6 @@ export function AvailableOrderBatchSelector({
           {pending ? t("Creating batch…") : t("Create delivery batch")}
         </Button>
       </Card>
-      {error ? (
-        <Alert variant="destructive" role="alert" className="mt-3">
-          {error}
-        </Alert>
-      ) : null}
-      {success ? (
-        <Alert variant="success" role="status" className="mt-3">
-          {success}
-        </Alert>
-      ) : null}
 
       <div className="mt-4 grid gap-4">
         {orders.map((order) => (

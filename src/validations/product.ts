@@ -122,6 +122,7 @@ const productFields = {
     .union([secureImageUrlSchema, z.literal(""), z.null()])
     .optional()
     .transform((value) => value || null),
+  imageUploadId: z.uuid().nullable().optional(),
   isAvailable: z.boolean().optional().default(true),
 };
 

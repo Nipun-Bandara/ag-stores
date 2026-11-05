@@ -25,6 +25,9 @@ test.beforeAll(async () => {
     await prisma.user.create({
       data: {
         name: "Packing owner",
+        firstName: "Packing",
+        lastName: "Owner",
+        phone: `+947${randomUUID().replace(/\D/g, "").slice(0, 8).padEnd(8, "0")}`,
         email,
         passwordHash: await hashPassword("ChangeMe123!"),
         role: UserRole.SHOP_OWNER,
@@ -35,6 +38,9 @@ test.beforeAll(async () => {
     await prisma.user.create({
       data: {
         name: "Packing customer",
+        firstName: "Packing",
+        lastName: "Customer",
+        phone: `+947${randomUUID().replace(/\D/g, "").slice(0, 8).padEnd(8, "0")}`,
         email: `packed-customer-${suffix}@example.test`,
         passwordHash: await hashPassword("ChangeMe123!"),
         role: UserRole.CUSTOMER,
@@ -146,7 +152,10 @@ test("owner previews, saves and finalizes a packed KG order", async ({
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/owner$/);
   await page.goto(`/owner/orders/${orderId}`);
-  const ready = page.getByRole("button", { name: "Mark ready for delivery" });
+  const ready = page.getByRole("button", {
+    name: "Update status",
+    exact: true,
+  });
   await expect(ready).toBeDisabled();
   await page.getByLabel("Actual packed weight (kg)").fill("1.98");
   await expect(page.getByText(/New line amount.*356\.40/)).toBeVisible();

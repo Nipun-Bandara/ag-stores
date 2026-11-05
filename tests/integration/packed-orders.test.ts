@@ -38,7 +38,9 @@ suite("packed KG orders", () => {
     role,
     name: "Packing test",
     email: null,
-    phone: null,
+    phone: "+94770000000",
+    firstName: "Test",
+    lastName: "Owner",
     preferredLanguage: PreferredLanguage.EN,
     status: UserStatus.ACTIVE,
   });
@@ -87,6 +89,9 @@ suite("packed KG orders", () => {
           await prisma.user.create({
             data: {
               name: "Packing",
+              firstName: "Packing",
+              lastName: "Tester",
+              phone: `+947${randomUUID().replace(/\D/g, "").slice(0, 8).padEnd(8, "0")}`,
               email: `${randomUUID()}@example.test`,
               passwordHash: "test-only",
               role,

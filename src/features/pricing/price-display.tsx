@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { calculatePricing, type DiscountTier } from "@/lib/pricing";
 import { type SellingUnit } from "@/lib/quantity";
 import { type Locale } from "@/lib/i18n/config";
@@ -15,31 +16,87 @@ export function PriceSummary({
   sellingUnit = "UNIT",
   locale = "en",
   showLine = true,
+  layout = "stacked",
+  separateLineItems = false,
 }: {
   pricing: PriceSummaryValue;
   sellingUnit?: SellingUnit;
   locale?: Locale;
   showLine?: boolean;
+  layout?: "stacked" | "grid";
+  separateLineItems?: boolean;
 }) {
   const t = (text: string) => translate(locale, text);
   const unit = t(sellingUnit === "KG" ? "kg" : "unit");
   return (
-    <div className="space-y-1 text-sm tabular-nums">
+    <div
+      className={cn(
+        "min-w-0 text-sm tabular-nums",
+        layout === "grid"
+          ? "grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+          : "space-y-1",
+      )}
+    >
       {pricing.regularPrice !== null ? (
-        <p className="text-muted-foreground">
+        <p
+          className={cn(
+            "text-muted-foreground",
+            layout === "grid" && "rounded-lg bg-muted/40 p-3",
+          )}
+        >
           {t("Regular price")}: LKR {pricing.regularPrice} / {unit}
         </p>
       ) : null}
-      <p className="font-semibold">
+      <p
+        className={cn(
+          "font-semibold",
+          layout === "grid" && "rounded-lg bg-muted/40 p-3",
+        )}
+      >
         {t("Our price")}: LKR {pricing.unitPrice} / {unit}
       </p>
       {pricing.appliedDiscount !== null ? (
-        <p className="text-emerald-700 dark:text-emerald-400">
+        <p
+          className={cn(
+            "text-emerald-700 dark:text-emerald-400",
+            layout === "grid" && "rounded-lg bg-muted/40 p-3",
+          )}
+        >
           {t("Savings")}: LKR {pricing.appliedDiscount} / {unit}
         </p>
       ) : null}
-      {showLine ? (
-        <p>
+      {showLine && separateLineItems ? (
+        layout === "grid" ? (
+          <>
+            <p className="rounded-lg bg-muted/40 p-3">
+              {t("Line total")}: LKR {pricing.lineTotal}
+            </p>
+            {pricing.savings !== null ? (
+              <p className="rounded-lg bg-muted/40 p-3">
+                {t("Line savings")}: LKR {pricing.savings}
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <div className="space-y-1 pt-3">
+            <p>
+              {t("Line total")}: LKR {pricing.lineTotal}
+            </p>
+            {pricing.savings !== null ? (
+              <p>
+                {t("Line savings")}: LKR {pricing.savings}
+              </p>
+            ) : null}
+          </div>
+        )
+      ) : showLine ? (
+        <p
+          className={
+            layout === "grid"
+              ? "rounded-lg bg-muted/40 p-3 sm:col-span-2 xl:col-span-3"
+              : undefined
+          }
+        >
           {t("Line total")}: LKR {pricing.lineTotal}
           {pricing.savings !== null ? (
             <>
@@ -60,6 +117,8 @@ export function ProductPrice({
   locale = "en",
   showLine = false,
   showOffers = true,
+  layout = "stacked",
+  separateLineItems = false,
 }: {
   regularPrice: string;
   quantity: number;
@@ -68,6 +127,8 @@ export function ProductPrice({
   locale?: Locale;
   showLine?: boolean;
   showOffers?: boolean;
+  layout?: "stacked" | "grid";
+  separateLineItems?: boolean;
 }) {
   const t = (text: string) => translate(locale, text);
   return (
@@ -77,6 +138,8 @@ export function ProductPrice({
         sellingUnit={sellingUnit}
         locale={locale}
         showLine={showLine}
+        layout={layout}
+        separateLineItems={separateLineItems}
       />
       {showOffers &&
       discountTiers.some((tier) => tier.minimumQuantity > quantity) ? (

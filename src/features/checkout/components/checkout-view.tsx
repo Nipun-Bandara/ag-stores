@@ -23,6 +23,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CheckoutProductsSkeleton } from "./checkout-skeleton";
 import {
   Empty,
   EmptyContent,
@@ -138,7 +140,7 @@ export function CheckoutView({
   return (
     <form
       onSubmit={submitOrder}
-      className="grid gap-8 lg:grid-cols-[1fr_22rem]"
+      className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]"
     >
       <div className="space-y-6">
         <Card as="section" className="gap-0 p-5 sm:p-6">
@@ -174,14 +176,12 @@ export function CheckoutView({
           <h2 className="text-xl font-black text-foreground">
             <Text value={"Review products "} />
           </h2>
-          <div className="mt-4 divide-y">
-            {!quote ? (
+          <div className="mt-4 divide-y" aria-busy={quotePending}>
+            {quotePending ? (
+              <CheckoutProductsSkeleton count={items.length} />
+            ) : !quote ? (
               <p role="status">
-                {t(
-                  quotePending
-                    ? "Updating prices…"
-                    : "Prices unavailable. Review the cart before checkout.",
-                )}
+                {t("Prices unavailable. Review the cart before checkout.")}
               </p>
             ) : null}
             {quote?.items.map((item) => (
@@ -238,13 +238,19 @@ export function CheckoutView({
         <h2 className="text-xl font-black text-foreground">
           <Text value={t("Order summary")} />
         </h2>
-        <dl className="mt-6 space-y-4 text-sm">
+        <dl className="mt-6 space-y-4 text-sm" aria-busy={quotePending}>
           <div className="flex justify-between">
             <dt>
               <Text value={t("Subtotal")} />
             </dt>
             <dd data-testid="checkout-subtotal">
-              {quote ? `LKR ${quote.subtotal}` : t("Updating prices…")}
+              {quotePending ? (
+                <Skeleton aria-hidden="true" className="h-5 w-24" />
+              ) : quote ? (
+                `LKR ${quote.subtotal}`
+              ) : (
+                "—"
+              )}
             </dd>
           </div>
           <div className="flex justify-between">
@@ -252,9 +258,13 @@ export function CheckoutView({
               <Text value={t("Delivery fee")} />
             </dt>
             <dd data-testid="checkout-delivery-fee">
-              {deliveryFee
-                ? `LKR ${deliveryFee}`
-                : t("Calculated at confirmation")}
+              {quotePending ? (
+                <Skeleton aria-hidden="true" className="h-5 w-24" />
+              ) : deliveryFee ? (
+                `LKR ${deliveryFee}`
+              ) : (
+                t("Calculated at confirmation")
+              )}
             </dd>
           </div>
           <div className="flex justify-between border-t pt-4 text-base font-black text-foreground">
@@ -262,7 +272,13 @@ export function CheckoutView({
               <Text value={t("Total")} />
             </dt>
             <dd data-testid="checkout-total">
-              {total ? `LKR ${total}` : t("Calculated at confirmation")}
+              {quotePending ? (
+                <Skeleton aria-hidden="true" className="h-6 w-24" />
+              ) : total ? (
+                `LKR ${total}`
+              ) : (
+                t("Calculated at confirmation")
+              )}
             </dd>
           </div>
         </dl>
