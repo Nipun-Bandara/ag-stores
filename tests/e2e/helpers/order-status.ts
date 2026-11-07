@@ -6,4 +6,10 @@ export async function updateOwnerOrderStatus(page: Page, label: string) {
   await page
     .getByRole("button", { name: "Update status", exact: true })
     .click();
+  if (label === "Rejected") {
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Reject order", exact: true })
+      .click();
+  }
 }

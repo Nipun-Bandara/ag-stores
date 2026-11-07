@@ -1,4 +1,5 @@
 "use client";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import { useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 
@@ -297,6 +298,9 @@ export function DeliveryPersonnelManager({
       );
     }
     setPendingId(undefined);
+    return Boolean(
+      response?.ok && payload.data && !("personnel" in payload.data),
+    );
   }
 
   return (
@@ -392,29 +396,53 @@ export function DeliveryPersonnelManager({
                       >
                         <Pencil aria-hidden="true" />
                       </IconActionButton>
-                      <IconActionButton
+                      <ConfirmAction
+                        title={t(
+                          person.status === "ACTIVE"
+                            ? "Deactivate delivery person"
+                            : "Activate delivery person",
+                        )}
+                        description={t(
+                          person.status === "ACTIVE"
+                            ? "Deactivate {name}? They will not be able to sign in until their account is activated again."
+                            : "Activate {name} to allow them to sign in again?",
+                          { name: person.name },
+                        )}
+                        confirmLabel={t(
+                          person.status === "ACTIVE"
+                            ? "Deactivate"
+                            : "Activate",
+                        )}
                         variant={
                           person.status === "ACTIVE" ? "destructive" : "success"
                         }
-                        className="text-white"
-                        size="icon-sm"
-                        type="button"
-                        label={`${t(person.status === "ACTIVE" ? "Deactivate" : "Activate")} ${person.name}`}
-                        disabled={pendingId === person.id}
-                        onClick={() => changeStatus(person)}
+                        onConfirm={() => changeStatus(person)}
                       >
-                        {person.status === "ACTIVE" ? (
-                          <CircleX
-                            aria-hidden="true"
-                            className="stroke-white"
-                          />
-                        ) : (
-                          <CircleCheck
-                            aria-hidden="true"
-                            className="stroke-white"
-                          />
-                        )}
-                      </IconActionButton>
+                        <IconActionButton
+                          variant={
+                            person.status === "ACTIVE"
+                              ? "destructive"
+                              : "success"
+                          }
+                          className="text-white"
+                          size="icon-sm"
+                          type="button"
+                          label={`${t(person.status === "ACTIVE" ? "Deactivate" : "Activate")} ${person.name}`}
+                          disabled={pendingId === person.id}
+                        >
+                          {person.status === "ACTIVE" ? (
+                            <CircleX
+                              aria-hidden="true"
+                              className="stroke-white"
+                            />
+                          ) : (
+                            <CircleCheck
+                              aria-hidden="true"
+                              className="stroke-white"
+                            />
+                          )}
+                        </IconActionButton>
+                      </ConfirmAction>
                     </div>
                   </div>
                 </div>

@@ -84,6 +84,10 @@ test.describe.serial("delivery personnel management", () => {
     await updatedCard
       .getByRole("button", { name: `Deactivate ${updatedName}` })
       .click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Deactivate", exact: true })
+      .click();
     await expect(updatedCard).toContainText("Inactive");
   });
 

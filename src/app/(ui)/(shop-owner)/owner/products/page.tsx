@@ -6,7 +6,7 @@ import Link from "next/link";
 
 import { UserRole } from "@/generated/prisma/client";
 import { ProductList } from "@/features/owner/components/product-list";
-import { ProductFilterSelects } from "@/features/owner/components/product-filter-selects";
+import { ProductFilters } from "@/features/owner/components/product-filters";
 import { requireRole } from "@/lib/auth/server";
 import {
   getProductFormOptions,
@@ -17,9 +17,7 @@ import {
   productInventoryStatusSchema,
   productSearchSchema,
 } from "@/validations/product";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -38,7 +36,6 @@ interface ProductsPageProps {
 export default async function OwnerProductsPage({
   searchParams,
 }: ProductsPageProps) {
-  const t = await getServerText();
   const user = await requireRole(UserRole.SHOP_OWNER, "/owner/products");
   const query = await searchParams;
   const categoryValue = Array.isArray(query.categoryId)
@@ -92,29 +89,14 @@ export default async function OwnerProductsPage({
         </Link>
       </div>
       <Card className="gap-0 mt-8 p-5">
-        <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto]">
-          <Label className="text-sm font-medium" htmlFor="search">
-            <Text value={"Search "} />
-            <Input
-              id="search"
-              name="search"
-              defaultValue={search?.success ? search.data : ""}
-              placeholder={t("Name, description, item code or barcode")}
-              className="mt-1.5 h-10 w-full"
-            />
-          </Label>
-          <ProductFilterSelects
-            key={`${category?.success ? category.data : ""}:${inventory?.success ? inventory.data : ""}`}
-            categories={options.categories}
-            initialCategoryId={category?.success ? category.data : ""}
-            initialInventoryStatus={inventory?.success ? inventory.data : ""}
-          />
-          <Button variant="outline" type="submit" className="h-10 self-end">
-            <Text value={"Apply filters "} />
-          </Button>
-        </form>
+        <ProductFilters
+          categories={options.categories}
+          initialSearch={search?.success ? search.data : ""}
+          initialCategoryId={category?.success ? category.data : ""}
+          initialInventoryStatus={inventory?.success ? inventory.data : ""}
+        />
       </Card>
-      <ProductList initialProducts={products} />
+      <ProductList key={JSON.stringify(filters)} initialProducts={products} />
     </section>
   );
 }

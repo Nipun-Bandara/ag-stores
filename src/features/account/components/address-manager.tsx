@@ -1,4 +1,5 @@
 "use client";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import { useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 
@@ -235,6 +236,7 @@ export function AddressManager({
       toast.success(t("Address deleted."));
     }
     setPendingId(undefined);
+    return Boolean(response?.ok);
   }
 
   return (
@@ -298,18 +300,27 @@ export function AddressManager({
                       <CircleCheck aria-hidden="true" />
                     </IconActionButton>
                   ) : null}
-                  <IconActionButton
-                    variant="destructive"
-                    type="button"
-                    label={`${t("Delete")} ${item.label}`}
-                    disabled={pendingId === item.id}
-                    onClick={() => deleteAddress(item.id)}
+                  <ConfirmAction
+                    title={t("Delete address")}
+                    description={t(
+                      "Delete {name}? You will need to add it again to use it for future orders.",
+                      { name: item.label },
+                    )}
+                    confirmLabel={t("Delete")}
+                    onConfirm={() => deleteAddress(item.id)}
                   >
-                    <Trash2
-                      aria-hidden="true"
-                      className="text-white [html.dark_&]:text-black"
-                    />
-                  </IconActionButton>
+                    <IconActionButton
+                      variant="destructive"
+                      type="button"
+                      label={`${t("Delete")} ${item.label}`}
+                      disabled={pendingId === item.id}
+                    >
+                      <Trash2
+                        aria-hidden="true"
+                        className="text-white [html.dark_&]:text-black"
+                      />
+                    </IconActionButton>
+                  </ConfirmAction>
                 </div>
               </Card>
             ))}

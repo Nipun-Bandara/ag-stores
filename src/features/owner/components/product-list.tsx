@@ -1,4 +1,6 @@
 "use client";
+import { toast } from "sonner";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 
 import { ProductPrice } from "@/features/pricing/price-display";
 import { firstOrderQuantity } from "@/lib/quantity";
@@ -11,7 +13,6 @@ import { CircleCheck, CircleX, Pencil, Save } from "lucide-react";
 
 import Link from "next/link";
 
-import { FormError } from "@/features/auth/components/form-fields";
 import type { ProductView } from "@/services/product.service";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -46,7 +47,7 @@ function StockForm({
 }: {
   product: ProductView;
   onSaved: (product: ProductView) => void;
-  onToggleAvailability: () => void;
+  onToggleAvailability: () => Promise<boolean>;
   availabilityPending: boolean;
 }) {
   const t = useText();
@@ -144,28 +145,46 @@ function StockForm({
           />
           <TooltipContent>{editLabel}</TooltipContent>
         </Tooltip>
-        <IconActionButton
-          variant={product.isAvailable ? "destructive" : "success"}
-          className={
+        <ConfirmAction
+          title={t(
             product.isAvailable
-              ? "text-white [html.dark_&]:text-black"
-              : undefined
-          }
-          size="icon"
-          type="button"
-          label={`${t(product.isAvailable ? "Mark unavailable" : "Mark available")} ${productName}`}
-          disabled={availabilityPending}
-          onClick={onToggleAvailability}
-        >
-          {product.isAvailable ? (
-            <CircleX
-              aria-hidden="true"
-              className="stroke-white [html.dark_&]:stroke-black"
-            />
-          ) : (
-            <CircleCheck aria-hidden="true" />
+              ? "Mark product unavailable"
+              : "Mark product available",
           )}
-        </IconActionButton>
+          description={t(
+            product.isAvailable
+              ? "Mark {name} unavailable? Customers will no longer be able to add it to their cart."
+              : "Make {name} available for customer orders again?",
+            { name: productName },
+          )}
+          confirmLabel={t(
+            product.isAvailable ? "Mark unavailable" : "Mark available",
+          )}
+          variant={product.isAvailable ? "destructive" : "success"}
+          onConfirm={onToggleAvailability}
+        >
+          <IconActionButton
+            variant={product.isAvailable ? "destructive" : "success"}
+            className={
+              product.isAvailable
+                ? "text-white [html.dark_&]:text-black"
+                : undefined
+            }
+            size="icon"
+            type="button"
+            label={`${t(product.isAvailable ? "Mark unavailable" : "Mark available")} ${productName}`}
+            disabled={availabilityPending}
+          >
+            {product.isAvailable ? (
+              <CircleX
+                aria-hidden="true"
+                className="stroke-white [html.dark_&]:stroke-black"
+              />
+            ) : (
+              <CircleCheck aria-hidden="true" />
+            )}
+          </IconActionButton>
+        </ConfirmAction>
       </div>
       {error ? (
         <Alert variant="destructive" role="alert" className="order-4 w-full">
@@ -185,7 +204,6 @@ export function ProductList({
   const locale = useLocale();
   const [products, setProducts] = useState(initialProducts);
   const [pendingId, setPendingId] = useState<string>();
-  const [error, setError] = useState<string>();
 
   function saveProduct(saved: ProductView) {
     setProducts((current) =>
@@ -194,7 +212,6 @@ export function ProductList({
   }
 
   async function toggleAvailability(product: ProductView) {
-    setError(undefined);
     setPendingId(product.id);
     const response = await fetch(
       `/api/owner/products/${product.id}/availability`,
@@ -207,12 +224,18 @@ export function ProductList({
 
     if (!response?.ok) {
       const payload = response ? await readPayload(response) : {};
-      setError(t(payload.error?.message ?? "Unable to update availability."));
+      toast.error(
+        t(payload.error?.message ?? "Unable to update availability."),
+      );
     } else {
       const payload = await readPayload(response);
-      if (payload.data) saveProduct(payload.data);
+      if (payload.data) {
+        saveProduct(payload.data);
+        toast.success(t("Product availability updated."));
+      }
     }
     setPendingId(undefined);
+    return Boolean(response?.ok);
   }
 
   if (products.length === 0) {
@@ -229,7 +252,6 @@ export function ProductList({
 
   return (
     <div className="mt-6">
-      {error ? <FormError>{error}</FormError> : null}
       <div className="grid gap-4 xl:grid-cols-2">
         {products.map((product) => (
           <Card

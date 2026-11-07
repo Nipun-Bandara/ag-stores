@@ -145,6 +145,10 @@ test.describe.serial("admin shop management", () => {
     await page
       .getByRole("button", { name: `Deactivate ${updatedName}` })
       .click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Deactivate", exact: true })
+      .click();
     await expect(
       page.getByRole("button", { name: `Activate ${updatedName}` }),
     ).toBeVisible();

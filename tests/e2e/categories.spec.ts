@@ -46,5 +46,9 @@ test("shop owner creates, edits, and deactivates a category", async ({
   await updatedCategory
     .getByRole("button", { name: `Deactivate ${updatedName}` })
     .click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Deactivate", exact: true })
+    .click();
   await expect(updatedCategory.getByText("Inactive")).toBeVisible();
 });

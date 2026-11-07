@@ -70,15 +70,21 @@ test("shop owner creates, views, edits, stocks, and disables a product", async (
 
   await page.getByRole("combobox", { name: "Inventory" }).click();
   await page.getByRole("option", { name: "Low stock" }).click();
-  await page.getByRole("button", { name: "Apply filters" }).click();
+  await expect(page).toHaveURL(/inventoryStatus=LOW_STOCK/);
   await expect(product).toBeVisible();
 
   await product
     .getByRole("button", { name: `Mark unavailable ${updatedName}` })
     .click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Mark unavailable", exact: true })
+    .click();
   await expect(product.getByText("Unavailable")).toBeVisible();
 
   await page.getByLabel("Search").fill(updatedName);
-  await page.getByRole("button", { name: "Apply filters" }).click();
+  await expect
+    .poll(() => new URL(page.url()).searchParams.get("search"))
+    .toBe(updatedName);
   await expect(product).toBeVisible();
 });

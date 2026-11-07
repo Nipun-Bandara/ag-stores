@@ -3,6 +3,7 @@ import { useText } from "@/features/i18n/components/locale-provider";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import { Check } from "lucide-react";
 import type { OrderStatus } from "@/generated/prisma/client";
 import {
@@ -64,16 +65,34 @@ export function OwnerOrderStatusActions({
         toast.error(
           t(payload?.error?.message ?? "Unable to update this order."),
         );
-        return;
+        return false;
       }
       toast.success(t("Order status updated."));
       router.refresh();
+      return true;
     } catch {
       toast.error(t("Unable to update this order."));
+      return false;
     } finally {
       setPending(false);
     }
   }
+  const updateButton = (
+    <Button
+      type="button"
+      className="h-10"
+      variant={nextStatus === "REJECTED" ? "destructive" : "success"}
+      disabled={
+        pending ||
+        !nextStatus ||
+        (nextStatus === "READY_FOR_DELIVERY" && !canMarkReady)
+      }
+      onClick={nextStatus === "REJECTED" ? undefined : transition}
+    >
+      <Check aria-hidden="true" />
+      {pending ? t("Updating…") : t("Update status")}
+    </Button>
+  );
   return (
     <Card
       as="section"
@@ -110,20 +129,18 @@ export function OwnerOrderStatusActions({
             </SelectContent>
           </Select>
         </div>
-        <Button
-          type="button"
-          className="h-10"
-          variant={nextStatus === "REJECTED" ? "destructive" : "success"}
-          disabled={
-            pending ||
-            !nextStatus ||
-            (nextStatus === "READY_FOR_DELIVERY" && !canMarkReady)
-          }
-          onClick={transition}
-        >
-          <Check aria-hidden="true" />
-          {pending ? t("Updating…") : t("Update status")}
-        </Button>
+        {nextStatus === "REJECTED" ? (
+          <ConfirmAction
+            title={t("Reject order")}
+            description={t("Reject this order? This cannot be undone.")}
+            confirmLabel={t("Reject order")}
+            onConfirm={transition}
+          >
+            {updateButton}
+          </ConfirmAction>
+        ) : (
+          updateButton
+        )}
       </div>
       {!canMarkReady ? (
         <p className="mt-3 text-sm text-muted-foreground">

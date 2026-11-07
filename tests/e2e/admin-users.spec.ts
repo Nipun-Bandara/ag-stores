@@ -78,7 +78,7 @@ test.describe.serial("admin user management", () => {
 
     await row.getByRole("button", { name: `Deactivate ${name}` }).click();
     await page
-      .getByRole("dialog", { name: "Deactivate user" })
+      .getByRole("alertdialog", { name: "Deactivate user" })
       .getByRole("button", { name: "Cancel", exact: true })
       .click();
     await expect(row).toContainText("Active");
@@ -91,7 +91,7 @@ test.describe.serial("admin user management", () => {
 
     await page.getByRole("button", { name: `Deactivate ${name}` }).click();
     await page
-      .getByRole("dialog", { name: "Deactivate user" })
+      .getByRole("alertdialog", { name: "Deactivate user" })
       .getByRole("button", { name: "Deactivate", exact: true })
       .click();
     await expect(
@@ -100,7 +100,7 @@ test.describe.serial("admin user management", () => {
 
     await page.getByRole("button", { name: `Activate ${name}` }).click();
     await page
-      .getByRole("dialog", { name: "Activate user" })
+      .getByRole("alertdialog", { name: "Activate user" })
       .getByRole("button", { name: "Activate", exact: true })
       .click();
     await expect(

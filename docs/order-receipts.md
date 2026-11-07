@@ -2,9 +2,9 @@
 
 On an owned order, select **Preview and print bill**. The bill always has Sinhala labels and uses the product's saved Sinhala name when available; otherwise it uses the saved English name. Prices come from the order snapshot, including final packed weights, rather than the current catalogue.
 
-Choose **80 mm**, **58 mm**, or **A4**, review the preview, and select **Print bill**. This opens the browser's print dialog for the receipt only. Select the connected printer and matching paper size. For thermal receipts, disable browser headers and footers and use the printer's receipt paper settings. The app cannot silently select a printer or confirm physical printing.
+The preview defaults to **80 mm**; **58 mm** and **A4** remain available in the paper selector. Review the bill and press **Enter** or select **Print bill**. Enter also works while the receipt preview has focus; it selects an option normally when the paper selector is focused. Printing waits for the Sinhala fonts. The app sends only the receipt to the browser print flow. A standard browser may still show its native print dialog; silent printing needs printer or kiosk configuration outside the web application. The app cannot confirm physical printing.
 
-The bill includes shop contact details, the order reference, cashier, customer, products, delivery fee, total due, and known savings. An unfinished KG order is marked as an estimate. Cash received, card payments, and change are not shown because those transactions are not recorded by this application. The order UUID is the bill reference; no separate sequential POS invoice number is generated.
+The bill includes shop contact details, cashier, customer, products, delivery fee, total due, and known savings. An unfinished KG order is marked as an estimate. Cash received, card payments, and change are not shown because those transactions are not recorded by this application. Order numbers are omitted from the bill.
 
 Sinhala fonts are served locally from `public/fonts`, with their redistribution license in `NOTO-LICENSE.txt`.
 

@@ -56,6 +56,10 @@ test("customer manages a cart and continues to checkout", async ({ page }) => {
   ).toBeVisible();
   await page.goto("/cart", { timeout: 60_000 });
   await page.getByRole("button", { name: "Clear cart" }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Clear cart", exact: true })
+    .click();
   await expect(page.getByText("Your cart is empty")).toBeVisible();
 });
 

@@ -6,7 +6,7 @@ import { useState } from "react";
 import { CircleCheck, CircleX } from "lucide-react";
 import { toast } from "sonner";
 import { IconActionButton } from "@/components/ui/icon-action-button";
-import { Alert } from "@/components/ui/alert";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 
 export function AdminShopStatusControl({
   shopId,
@@ -21,12 +21,10 @@ export function AdminShopStatusControl({
   const router = useRouter();
   const [isActive, setIsActive] = useState(initialIsActive);
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string>();
   const action = isActive ? t("Deactivate") : t("Activate");
 
   async function changeStatus() {
     setPending(true);
-    setError(undefined);
     const response = await fetch(`/api/admin/shops/${shopId}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -42,7 +40,6 @@ export function AdminShopStatusControl({
       const message = t(
         payload.error?.message ?? "Unable to update shop status.",
       );
-      setError(message);
       toast.error(message);
     } else {
       setIsActive(payload.data.isActive);
@@ -57,10 +54,22 @@ export function AdminShopStatusControl({
       router.refresh();
     }
     setPending(false);
+    return Boolean(response?.ok && typeof payload.data?.isActive === "boolean");
   }
 
   return (
-    <div>
+    <ConfirmAction
+      title={t(isActive ? "Deactivate shop" : "Activate shop")}
+      description={t(
+        isActive
+          ? "Deactivate {name}? Customers will no longer be able to order from this shop."
+          : "Activate {name} to make the shop available again?",
+        { name: shopName },
+      )}
+      confirmLabel={action}
+      variant={isActive ? "destructive" : "success"}
+      onConfirm={changeStatus}
+    >
       <IconActionButton
         label={pending ? t("Updating…") : `${action} ${shopName}`}
         variant={isActive ? "destructive" : "success"}
@@ -68,7 +77,6 @@ export function AdminShopStatusControl({
         size="icon-sm"
         type="button"
         disabled={pending}
-        onClick={changeStatus}
       >
         {isActive ? (
           <CircleX aria-hidden="true" className="stroke-white" />
@@ -76,11 +84,6 @@ export function AdminShopStatusControl({
           <CircleCheck aria-hidden="true" className="stroke-white" />
         )}
       </IconActionButton>
-      {error ? (
-        <Alert variant="destructive" role="alert" className="mt-2">
-          {error}
-        </Alert>
-      ) : null}
-    </div>
+    </ConfirmAction>
   );
 }

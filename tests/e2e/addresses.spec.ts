@@ -52,5 +52,9 @@ test("customer creates, edits, defaults, and deletes delivery addresses", async 
   await expect(office.getByText("20 Updated Work Road")).toBeVisible();
 
   await home.getByRole("button", { name: "Delete Home" }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Delete", exact: true })
+    .click();
   await expect(home).toHaveCount(0);
 });

@@ -1,4 +1,5 @@
 "use client";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import { useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 
@@ -113,7 +114,7 @@ export function DeliveryBatchActions({
     orderId: string,
     nextStatus: "DELIVERED" | "FAILED_DELIVERY",
   ) {
-    await request(
+    return request(
       `/api/delivery/batches/${batchId}/orders/${orderId}/status`,
       "PATCH",
       t(
@@ -237,18 +238,27 @@ export function DeliveryBatchActions({
                   >
                     <CircleCheck aria-hidden="true" />
                   </IconActionButton>
-                  <IconActionButton
-                    variant="destructive"
-                    type="button"
-                    label={`${t("Mark failed")} · ${order.customerFirstName}`}
-                    disabled={pending !== ""}
-                    onClick={() => finishOrder(order.id, "FAILED_DELIVERY")}
+                  <ConfirmAction
+                    title={t("Mark delivery failed")}
+                    description={t(
+                      "Mark the delivery for {name} as failed? This records the delivery as unsuccessful.",
+                      { name: order.customerFirstName },
+                    )}
+                    confirmLabel={t("Mark failed")}
+                    onConfirm={() => finishOrder(order.id, "FAILED_DELIVERY")}
                   >
-                    <CircleX
-                      aria-hidden="true"
-                      className="stroke-white [html.dark_&]:stroke-current"
-                    />
-                  </IconActionButton>
+                    <IconActionButton
+                      variant="destructive"
+                      type="button"
+                      label={`${t("Mark failed")} · ${order.customerFirstName}`}
+                      disabled={pending !== ""}
+                    >
+                      <CircleX
+                        aria-hidden="true"
+                        className="stroke-white [html.dark_&]:stroke-current"
+                      />
+                    </IconActionButton>
+                  </ConfirmAction>
                 </div>
               ) : null}
             </Card>

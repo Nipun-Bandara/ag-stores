@@ -18,6 +18,8 @@ describe("Sinhala order receipts", () => {
     expect(doc.querySelector(".savings")?.textContent).toContain("20.00");
     expect(doc.querySelector(".notice")).toBeNull();
     expect(doc.body.textContent).toContain("2026-11-05 14:30");
+    expect(doc.documentElement.textContent).not.toContain("ඇණවුම් අංකය");
+    expect(doc.documentElement.textContent).not.toContain(receiptOrder.id);
     expect(doc.body.textContent).not.toContain("මුදලින් ගෙවීම්");
   });
   it("renders the database shop name and address, fixed Sinhala slogan, and owner account mobile", () => {

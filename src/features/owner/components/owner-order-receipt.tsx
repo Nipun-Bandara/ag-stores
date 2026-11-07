@@ -1,13 +1,12 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Printer } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -38,6 +37,8 @@ export function OwnerOrderReceipt({
 }) {
   const t = useText();
   const frame = useRef<HTMLIFrameElement>(null);
+  const title = useRef<HTMLHeadingElement>(null);
+  const printing = useRef(false);
   const [paper, setPaper] = useState<ReceiptPaper>("80mm");
   const [ready, setReady] = useState(false);
   const [open, setOpen] = useState(false);
@@ -46,17 +47,56 @@ export function OwnerOrderReceipt({
     [order, cashier, paper],
   );
 
-  async function print() {
+  const print = useCallback(async () => {
+    if (printing.current) return;
     try {
       const preview = frame.current?.contentWindow;
       if (!ready || !preview) return;
+      printing.current = true;
       await preview.document.fonts.ready;
       preview.focus();
       preview.print();
     } catch {
       toast.error(t("Unable to open the print dialog. Please try again."));
+    } finally {
+      printing.current = false;
     }
-  }
+  }, [ready, t]);
+
+  useEffect(() => {
+    if (!open || !ready) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (
+        event.key !== "Enter" ||
+        event.repeat ||
+        event.isComposing ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.metaKey ||
+        event.shiftKey ||
+        event.defaultPrevented
+      )
+        return;
+      // Enter must still select an option when the paper selector has focus.
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.closest?.(
+          '[role="combobox"], [role="listbox"], [role="option"]',
+        )
+      )
+        return;
+      event.preventDefault();
+      event.stopPropagation();
+      void print();
+    }
+    const previewDocument = frame.current?.contentDocument;
+    window.addEventListener("keydown", onKeyDown, true);
+    previewDocument?.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+      previewDocument?.removeEventListener("keydown", onKeyDown, true);
+    };
+  }, [open, ready, print]);
 
   return (
     <Dialog
@@ -74,14 +114,14 @@ export function OwnerOrderReceipt({
           </Button>
         }
       />
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-2xl flex-col overflow-hidden">
+      <DialogContent
+        initialFocus={title}
+        className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-lg flex-col gap-4 overflow-hidden p-4 sm:p-6"
+      >
         <DialogHeader>
-          <DialogTitle>{t("Sinhala bill preview")}</DialogTitle>
-          <DialogDescription>
-            {t(
-              "The bill is always printed in Sinhala. Choose matching paper size in your printer settings.",
-            )}
-          </DialogDescription>
+          <DialogTitle ref={title} tabIndex={-1} className="outline-none">
+            {t("Bill preview")}
+          </DialogTitle>
         </DialogHeader>
         <div className="flex flex-wrap items-center gap-3">
           <Label htmlFor="receipt-paper">{t("Paper size")}</Label>
@@ -127,7 +167,7 @@ export function OwnerOrderReceipt({
           ) : null}
           <iframe
             ref={frame}
-            title={t("Sinhala bill preview")}
+            title={t("Bill preview")}
             srcDoc={html}
             sandbox="allow-same-origin allow-modals"
             className="h-[55dvh] min-h-48 w-full"
@@ -147,7 +187,7 @@ export function OwnerOrderReceipt({
             }}
           />
         </div>
-        <DialogFooter>
+        <DialogFooter className="mt-0">
           <Button
             type="button"
             variant="outline"

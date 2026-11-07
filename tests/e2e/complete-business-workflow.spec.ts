@@ -498,6 +498,10 @@ test.describe.serial("complete retail order and delivery workflow", () => {
       .getByLabel("Cancellation reason (optional)")
       .fill("Workflow cancellation test");
     await page.getByRole("button", { name: "Cancel order" }).click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Cancel order", exact: true })
+      .click();
     await expect(page.getByTestId("customer-order-status")).toHaveText(
       "Cancelled",
     );
@@ -570,6 +574,10 @@ test.describe.serial("complete retail order and delivery workflow", () => {
     await page.getByRole("button", { name: "Start delivery" }).click();
     await expect(page.getByText("IN PROGRESS", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Mark failed" }).click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Mark failed", exact: true })
+      .click();
     await expect(page.getByText("COMPLETED", { exact: true })).toBeVisible();
     await expect(
       prisma.order.findUniqueOrThrow({ where: { id: failedOrderId } }),

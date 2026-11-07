@@ -14,21 +14,35 @@ import { useLocale, useText } from "@/features/i18n/components/locale-provider";
 import { localizeBilingual } from "@/lib/i18n/config";
 import type { ProductFormOptions } from "@/services/product.service";
 
+export interface ProductFilterValues {
+  categoryId: string;
+  inventoryStatus: string;
+}
+
 export function ProductFilterSelects({
   categories,
   initialCategoryId,
   initialInventoryStatus,
+  value,
+  onChange,
 }: {
   categories: ProductFormOptions["categories"];
   initialCategoryId: string;
   initialInventoryStatus: string;
+  value?: ProductFilterValues;
+  onChange?: (value: ProductFilterValues) => void;
 }) {
   const t = useText();
   const locale = useLocale();
-  const [categoryId, setCategoryId] = useState(initialCategoryId);
-  const [inventoryStatus, setInventoryStatus] = useState(
-    initialInventoryStatus,
-  );
+  const [localValue, setLocalValue] = useState({
+    categoryId: initialCategoryId,
+    inventoryStatus: initialInventoryStatus,
+  });
+  const selected = value ?? localValue;
+  function change(next: ProductFilterValues) {
+    if (value === undefined) setLocalValue(next);
+    onChange?.(next);
+  }
   const inventoryLabels: Record<string, string> = {
     OUT_OF_STOCK: t("Out of stock"),
     LOW_STOCK: t("Low stock"),
@@ -41,8 +55,10 @@ export function ProductFilterSelects({
         {t("Category")}
         <Select
           name="categoryId"
-          value={categoryId}
-          onValueChange={(value) => setCategoryId(value ?? "")}
+          value={selected.categoryId}
+          onValueChange={(value) =>
+            change({ ...selected, categoryId: value ?? "" })
+          }
         >
           <SelectTrigger
             id="categoryId"
@@ -57,7 +73,7 @@ export function ProductFilterSelects({
               }}
             </SelectValue>
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent alignItemWithTrigger={false} className="min-w-0">
             <SelectItem value="">{t("All categories")}</SelectItem>
             {categories.map((item) => (
               <SelectItem key={item.id} value={item.id}>
@@ -71,8 +87,10 @@ export function ProductFilterSelects({
         {t("Inventory")}
         <Select
           name="inventoryStatus"
-          value={inventoryStatus}
-          onValueChange={(value) => setInventoryStatus(value ?? "")}
+          value={selected.inventoryStatus}
+          onValueChange={(value) =>
+            change({ ...selected, inventoryStatus: value ?? "" })
+          }
         >
           <SelectTrigger
             id="inventoryStatus"
@@ -84,7 +102,7 @@ export function ProductFilterSelects({
               }
             </SelectValue>
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent alignItemWithTrigger={false} className="min-w-0">
             <SelectItem value="">{t("All stock levels")}</SelectItem>
             <SelectItem value="OUT_OF_STOCK">
               {inventoryLabels.OUT_OF_STOCK}

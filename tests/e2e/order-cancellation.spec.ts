@@ -212,6 +212,10 @@ test.describe.serial("customer order cancellation", () => {
       .getByLabel("Cancellation reason (optional)")
       .fill("Plans changed");
     await page.getByRole("button", { name: "Cancel order" }).click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Cancel order", exact: true })
+      .click();
 
     await expect(page.getByTestId("customer-order-status")).toHaveText(
       "Cancelled",

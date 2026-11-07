@@ -1,4 +1,5 @@
 "use client";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import { useCartQuote } from "@/features/cart/use-cart-quote";
 import { ProductPrice } from "@/features/pricing/price-display";
 import { useLocale, useText } from "@/features/i18n/components/locale-provider";
@@ -199,14 +200,22 @@ export function CartView() {
         >
           <Text value={"Proceed to checkout "} />
         </Link>
-        <Button
-          variant="destructive"
-          type="button"
-          onClick={clear}
-          className="mt-3 w-full text-white no-underline [html.dark_&]:text-black"
+        <ConfirmAction
+          title={t("Clear cart")}
+          description={t(
+            "Remove all items from your cart? You will need to add them again.",
+          )}
+          confirmLabel={t("Clear cart")}
+          onConfirm={clear}
         >
-          <Text value={"Clear cart "} />
-        </Button>
+          <Button
+            variant="destructive"
+            type="button"
+            className="mt-3 w-full text-white no-underline [html.dark_&]:text-black"
+          >
+            <Text value={"Clear cart "} />
+          </Button>
+        </ConfirmAction>
       </Card>
     </div>
   );

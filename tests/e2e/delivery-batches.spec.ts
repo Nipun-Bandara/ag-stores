@@ -205,6 +205,10 @@ test.describe.serial("active delivery batch", () => {
     await expect(page.getByText("IN PROGRESS", { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Mark failed" }).click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Mark failed", exact: true })
+      .click();
     await expect(page.getByText("COMPLETED", { exact: true })).toBeVisible();
     const batch = await prisma.deliveryBatch.findUniqueOrThrow({
       where: { id: batchId },
