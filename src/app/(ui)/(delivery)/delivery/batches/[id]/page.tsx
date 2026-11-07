@@ -1,12 +1,9 @@
+import { BackLink } from "@/components/ui/back-link";
 import { getServerText } from "@/lib/i18n/server";
 import { DateText } from "@/features/i18n/components/date-text";
 import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
 
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { notFound } from "next/navigation";
 
 import { UserRole } from "@/generated/prisma/client";
@@ -61,16 +58,9 @@ export default async function DeliveryBatchDetailPage({
 
   return (
     <section className="min-w-0 w-full">
-      <Link
-        href="/delivery/batches"
-        className={cn(
-          buttonVariants({ variant: null }),
-          "px-0 text-foreground no-underline",
-        )}
-      >
-        <ArrowLeft aria-hidden="true" />
+      <BackLink href="/delivery/batches">
         <Text value="Back to active batches" />
-      </Link>
+      </BackLink>
       <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-sm text-muted-foreground">

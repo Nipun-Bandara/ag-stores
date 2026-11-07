@@ -51,7 +51,7 @@ test.afterAll(async () => {
 test("English route renders English navigation and storefront text", async ({
   page,
 }) => {
-  await page.goto("/en");
+  await page.goto("/en/landing");
 
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(
@@ -68,7 +68,7 @@ test("English route renders English navigation and storefront text", async ({
 test("Sinhala route renders Sinhala text and translated product fields", async ({
   page,
 }) => {
-  await page.goto("/si");
+  await page.goto("/si/landing");
 
   await expect(page.locator("html")).toHaveAttribute("lang", "si");
   await expect(
@@ -90,7 +90,7 @@ test("language switcher changes the locale route", async ({ page }) => {
     .getByLabel("Password", { exact: true })
     .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/products$/);
 
   await page.goto("/en/products");
   await page.getByRole("combobox", { name: "Language" }).click();
@@ -140,8 +140,10 @@ test("signed-in customer language preference is remembered", async ({
     .fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
 
-  await expect(page).toHaveURL(/\/account$/);
-  await expect(page.getByRole("heading", { name: "ඔබේ ගිණුම" })).toBeVisible();
+  await expect(page).toHaveURL(/\/products$/);
+  await expect(
+    page.getByRole("heading", { name: "සියලු නිෂ්පාදන" }),
+  ).toBeVisible();
   await expect
     .poll(async () => {
       const customer = await prisma.user.findUniqueOrThrow({
@@ -164,7 +166,7 @@ test("Sinhala storefront falls back to English for missing product text", async 
     .getByLabel("Password", { exact: true })
     .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/products$/);
 
   await page.goto(`/si/products?search=${encodeURIComponent(fallbackName)}`);
 

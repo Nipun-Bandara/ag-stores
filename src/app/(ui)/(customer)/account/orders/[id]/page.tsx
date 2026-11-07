@@ -1,3 +1,4 @@
+import { BackLink } from "@/components/ui/back-link";
 import { getLocaleContext as getPriceLocaleContext } from "@/lib/i18n/server";
 import { PriceSummary } from "@/features/pricing/price-display";
 import { BilingualText } from "@/features/i18n/components/bilingual-text";
@@ -6,11 +7,7 @@ import { DateText } from "@/features/i18n/components/date-text";
 import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
 
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
 import { CustomerOrderTimeline } from "@/features/account/components/customer-order-timeline";
-import { cn } from "@/lib/utils";
 import { notFound } from "next/navigation";
 
 import { UserRole } from "@/generated/prisma/client";
@@ -56,13 +53,9 @@ export default async function CustomerOrderDetailsPage({
   const { locale: priceLocale } = await getPriceLocaleContext();
   return (
     <section className="min-w-0 w-full">
-      <Link
-        href="/account/orders"
-        className={cn(buttonVariants({ variant: null }), "px-0 no-underline")}
-      >
-        <ArrowLeft aria-hidden="true" />
+      <BackLink href="/account/orders">
         <Text value="Back to your orders" />
-      </Link>
+      </BackLink>
       <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-sm text-muted-foreground">

@@ -9,14 +9,14 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getDictionary } from "@/lib/i18n/config";
 
-import HomePage from "@/app/page";
+import LandingPage from "@/app/landing/page";
 vi.mock("next/image", () => ({
   default: ({ alt }: { alt: string }) => <span>{alt}</span>,
 }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
-  usePathname: () => "/",
+  usePathname: () => "/landing",
 }));
 afterEach(cleanup);
 
@@ -39,7 +39,7 @@ vi.mock("@/features/i18n/components/language-switcher", () => ({
 
 describe("application", () => {
   it("renders the application landing page", async () => {
-    render(await HomePage());
+    render(await LandingPage());
 
     expect(
       screen.getByRole("heading", {
@@ -71,7 +71,7 @@ describe("application", () => {
 
   it("opens the shared mobile sheet and closes it after choosing a destination", async () => {
     const copy = getDictionary("en").landing;
-    render(await HomePage());
+    render(await LandingPage());
     fireEvent.click(screen.getByRole("button", { name: copy.openMenu }));
     const menu = await screen.findByRole("dialog");
     expect(

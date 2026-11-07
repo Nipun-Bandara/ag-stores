@@ -18,7 +18,7 @@ test("customer creates, edits, defaults, and deletes delivery addresses", async 
     .locator("form:visible")
     .getByRole("button", { name: "Register", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/products$/);
 
   await page.getByRole("link", { name: "Addresses", exact: true }).click();
   await expect(

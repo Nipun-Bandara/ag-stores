@@ -38,7 +38,7 @@ test("customer changes mobile and optional email without losing identity, then c
     .locator("form:visible")
     .getByRole("button", { name: "Register", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/products$/);
   userId = (
     await prisma.user.findUniqueOrThrow({ where: { phone: initialPhone } })
   ).id;
@@ -91,7 +91,7 @@ test("customer changes mobile and optional email without losing identity, then c
   await page.locator("#login-identifier").fill(changedPhone);
   await page.locator("#login-password").fill(newPassword);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/products$/);
   await expect(
     page.getByText("Updated Customer", { exact: true }).first(),
   ).toBeVisible();

@@ -60,7 +60,7 @@ test.describe.serial("owner order management", () => {
       .locator("form:visible")
       .getByRole("button", { name: "Register", exact: true })
       .click();
-    await expect(page).toHaveURL(/\/account$/);
+    await expect(page).toHaveURL(/\/products$/);
 
     await page.goto("/account/addresses");
     await page.getByLabel("Label").fill("Owner Order E2E");
@@ -127,7 +127,7 @@ test.describe.serial("owner order management", () => {
       .getByLabel("Password", { exact: true })
       .fill("SecurePassword123!");
     await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(page).toHaveURL(/\/account$/);
+    await expect(page).toHaveURL(/\/products$/);
 
     const apiStatus = await page.evaluate(async () =>
       fetch("/api/owner/orders").then((response) => response.status),

@@ -205,7 +205,8 @@ export async function createProduct(
       repository.create(
         {
           ...input,
-          minimumOrderQuantity: input.sellingUnit === "KG" ? 0.002 : 1,
+          minimumOrderQuantity:
+            input.sellingUnit === "KG" ? input.minimumOrderQuantity : 1,
           orderingIncrement: input.sellingUnit === "KG" ? 0.001 : 1,
         },
         user.id,

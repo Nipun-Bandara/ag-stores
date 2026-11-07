@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
     .getByLabel("Password", { exact: true })
     .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/products$/);
 });
 
 test("customer catalog uses the shared workspace and lists available products", async ({
@@ -34,16 +34,17 @@ test("customer catalog uses the shared workspace and lists available products", 
 test("customer searches products and filters by category", async ({ page }) => {
   await page.goto("/products");
   await page.getByLabel("Search products").fill("ceylon black");
-  await page.getByRole("button", { name: "Apply filters" }).click();
+  await expect(page).toHaveURL(/search=ceylon/);
 
   await expect(page.getByText("Ceylon Tea", { exact: true })).toBeVisible();
   await expect(page.getByText("Red Rice 1kg", { exact: true })).toHaveCount(0);
 
   await page.getByLabel("Search products").fill("");
+  await page.getByRole("combobox", { name: "Category" }).click();
   await page
-    .getByLabel("Category")
-    .selectOption({ label: "Groceries · Colombo Fresh Market" });
-  await page.getByRole("button", { name: "Apply filters" }).click();
+    .getByRole("option", { name: "Groceries · Colombo Fresh Market" })
+    .click();
+  await expect(page).toHaveURL(/categoryId=/);
 
   await expect(page.getByText("Red Rice 1kg", { exact: true })).toBeVisible();
   await expect(page.getByText("Coconut Milk", { exact: true })).toBeVisible();
@@ -88,7 +89,12 @@ test("catalog and detail pages fit a mobile viewport", async ({ page }) => {
     ),
   ).toBe(true);
 
-  await page.getByTestId("product-card").first().getByRole("link").click();
+  await page
+    .getByTestId("product-card")
+    .first()
+    .getByRole("link")
+    .first()
+    .click();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   expect(
     await page.evaluate(

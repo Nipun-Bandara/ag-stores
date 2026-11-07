@@ -106,7 +106,7 @@ test.describe.serial("notification center", () => {
       .getByLabel("Password", { exact: true })
       .fill("ChangeMe123!");
     await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(page).toHaveURL(/\/account$/);
+    await expect(page).toHaveURL(/\/products$/);
     await expect(
       page.getByRole("link", { name: "Notifications (2)" }),
     ).toBeVisible();

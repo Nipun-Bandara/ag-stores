@@ -1,7 +1,7 @@
+import { BackLink } from "@/components/ui/back-link";
 import type { ComponentProps, ReactNode } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft,
   ArrowUpRight,
   Download,
   CalendarDays,
@@ -654,13 +654,9 @@ export function OwnerOrdersSkeleton() {
 export function OwnerOrderDetailSkeleton() {
   return (
     <LoadingPage>
-      <Link
-        href="/owner/orders"
-        className={buttonVariants({ variant: null, className: "px-0" })}
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
+      <BackLink href="/owner/orders">
         <Text value="Back to orders" />
-      </Link>
+      </BackLink>
       <div className="mt-5 flex flex-wrap justify-between gap-4">
         <div className="min-w-0 w-full max-w-lg">
           <p className="text-sm text-muted-foreground">

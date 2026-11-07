@@ -25,7 +25,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   DELIVERY_PERSON: "Delivery person",
 };
 export const DASHBOARD_BY_ROLE: Record<Role, string> = {
-  CUSTOMER: "/account",
+  CUSTOMER: "/products",
   SHOP_OWNER: "/owner",
   ADMIN: "/admin",
   DELIVERY_PERSON: "/delivery",

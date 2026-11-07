@@ -121,30 +121,40 @@ it("preserves scanner text and prevents Enter from accidentally submitting ident
   expect(mocks.fetch).not.toHaveBeenCalled();
 });
 
-it("submits automatic KG quantity rules without an editable increment", async () => {
-  mocks.fetch.mockResolvedValue({
-    ok: true,
-    json: async () => ({ data: { id: "rice" } }),
-  });
-  const { container } = render(<ProductForm options={options} />);
-  fireEvent.change(screen.getByLabelText("English name"), {
-    target: { value: "Rice" },
-  });
-  fireEvent.change(screen.getByLabelText("Item code"), {
-    target: { value: "RICE-001" },
-  });
-  fireEvent.click(screen.getByRole("combobox", { name: "Selling unit" }));
-  const option = await screen.findByRole("option", { name: "Kilograms (kg)" });
-  fireEvent.pointerDown(option, { pointerType: "mouse" });
-  fireEvent.click(option);
-  fireEvent.submit(container.querySelector("form")!);
-  await waitFor(() => expect(mocks.fetch).toHaveBeenCalled());
-  expect(JSON.parse(mocks.fetch.mock.calls[0]![1].body)).toMatchObject({
-    sellingUnit: "KG",
-    minimumOrderQuantity: 0.002,
-    orderingIncrement: 0.001,
-  });
-});
+it.each(["0.010", "0.025"])(
+  "submits the selected KG minimum %s without an editable increment",
+  async (minimum) => {
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { id: "rice" } }),
+    });
+    const { container } = render(<ProductForm options={options} />);
+    fireEvent.change(screen.getByLabelText("English name"), {
+      target: { value: "Rice" },
+    });
+    fireEvent.change(screen.getByLabelText("Item code"), {
+      target: { value: "RICE-001" },
+    });
+    fireEvent.click(screen.getByRole("combobox", { name: "Selling unit" }));
+    const option = await screen.findByRole("option", {
+      name: "Kilograms (kg)",
+    });
+    fireEvent.pointerDown(option, { pointerType: "mouse" });
+    fireEvent.click(option);
+    expect(screen.getByLabelText("Minimum order quantity")).toHaveValue(0.01);
+    if (minimum !== "0.010")
+      fireEvent.change(screen.getByLabelText("Minimum order quantity"), {
+        target: { value: minimum },
+      });
+    fireEvent.submit(container.querySelector("form")!);
+    await waitFor(() => expect(mocks.fetch).toHaveBeenCalled());
+    expect(JSON.parse(mocks.fetch.mock.calls[0]![1].body)).toMatchObject({
+      sellingUnit: "KG",
+      minimumOrderQuantity: minimum,
+      orderingIncrement: 0.001,
+    });
+  },
+);
 
 it("shows required field errors and prevents invalid product creation", async () => {
   const { container } = render(<ProductForm options={options} />);
@@ -176,6 +186,53 @@ it("rejects fractional unit inventory before uploading or saving", async () => {
     expect(screen.getByLabelText("Stock quantity")).toHaveAttribute(
       "aria-invalid",
       "true",
+    ),
+  );
+  expect(mocks.fetch).not.toHaveBeenCalled();
+});
+
+it("explains that persisted stock must be cleared before changing the selling unit", async () => {
+  const product = {
+    id: "product-id",
+    itemCode: "RICE-001",
+    barcode: null,
+    shopId: "shop-id",
+    shopName: "Test Shop",
+    categoryId: "category-id",
+    categoryName: "Groceries",
+    categoryNameSi: null,
+    categoryStatus: "ACTIVE" as const,
+    nameEn: "Rice",
+    nameSi: null,
+    descriptionEn: null,
+    descriptionSi: null,
+    price: "100.00",
+    discountTiers: [],
+    sellingUnit: "UNIT" as const,
+    minimumOrderQuantity: 1,
+    orderingIncrement: 1,
+    stockQuantity: 5,
+    lowStockThreshold: 1,
+    inventoryStatus: "AVAILABLE" as const,
+    imageUrl: null,
+    isAvailable: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  const { container } = render(
+    <ProductForm options={options} product={product} />,
+  );
+  fireEvent.click(screen.getByRole("combobox", { name: "Selling unit" }));
+  const option = await screen.findByRole("option", { name: "Kilograms (kg)" });
+  fireEvent.pointerDown(option, { pointerType: "mouse" });
+  fireEvent.click(option);
+  fireEvent.change(screen.getByLabelText("Stock quantity"), {
+    target: { value: "0" },
+  });
+  fireEvent.submit(container.querySelector("form")!);
+  await waitFor(() =>
+    expect(mocks.error).toHaveBeenCalledWith(
+      "First save stock as 0, then change the selling unit with stock still at 0. Active orders must also be completed or cancelled.",
     ),
   );
   expect(mocks.fetch).not.toHaveBeenCalled();

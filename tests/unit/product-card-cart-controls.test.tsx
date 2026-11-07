@@ -24,28 +24,29 @@ it("adds up to available stock and removes the item when reduced to zero", () =>
     </TooltipProvider>,
   );
 
-  const add = screen.getByRole("button", { name: "Add Tea to cart" });
-  const reduce = screen.getByRole("button", {
-    name: "Reduce quantity of Tea",
-  });
-  expect(reduce).toBeDisabled();
-  fireEvent.click(add);
+  const add = () => screen.getByRole("button", { name: "Add Tea to cart" });
+  expect(
+    screen.queryByRole("button", { name: "Reduce quantity of Tea" }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(add());
+  const reduce = screen.getByRole("button", { name: "Reduce quantity of Tea" });
   expect(screen.getByText("1", { exact: true })).toBeVisible();
-  fireEvent.click(add);
-  expect(add).toBeDisabled();
+  fireEvent.click(add());
+  expect(add()).toBeDisabled();
   expect(screen.getByText("2", { exact: true })).toBeVisible();
   fireEvent.click(reduce);
-  expect(add).toBeEnabled();
+  expect(add()).toBeEnabled();
   fireEvent.click(reduce);
-  expect(screen.getByText("0", { exact: true })).toBeVisible();
-  expect(reduce).toBeDisabled();
+  expect(
+    screen.queryByRole("button", { name: "Reduce quantity of Tea" }),
+  ).not.toBeInTheDocument();
+  expect(add()).toBeEnabled();
 });
 
 it("lets customers type weights and rejects too little, excess precision, and excess stock", () => {
   render(
     <TooltipProvider>
       <AddToCartButton
-        compact
         product={{
           id: "rice",
           name: "Rice",
@@ -104,7 +105,7 @@ it("converts between grams and kilograms without changing the selected weight or
   };
   render(
     <TooltipProvider>
-      <AddToCartButton compact product={product} />
+      <AddToCartButton product={product} />
       <CataloguePricing product={product} locale="en" />
     </TooltipProvider>,
   );
@@ -145,4 +146,65 @@ it("converts between grams and kilograms without changing the selected weight or
     screen.getByRole("spinbutton", { name: "Weight in kg for Rice" }),
   ).toHaveValue(0.25);
   expect(screen.getByText(/Line total.*22.50/)).toBeVisible();
+});
+
+it("opens a compact KG editor with a live total and only changes the cart on confirmation", async () => {
+  render(
+    <TooltipProvider>
+      <AddToCartButton
+        compact
+        product={{
+          id: "dialog-rice",
+          name: "Rice",
+          price: "100.00",
+          sellingUnit: "KG",
+          minimumOrderQuantity: 0.01,
+          orderingIncrement: 0.001,
+          stockQuantity: 2,
+          imageUrl: null,
+          discountTiers: [{ minimumQuantity: 0.25, discountAmount: "10.00" }],
+        }}
+      />
+    </TooltipProvider>,
+  );
+  expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Add Rice to cart" }));
+  expect(screen.getByRole("dialog", { name: "Rice" })).toBeVisible();
+  const input = screen.getByRole("spinbutton", {
+    name: "Weight in kg for Rice",
+  });
+  expect(input).toHaveValue(0.01);
+  fireEvent.change(input, { target: { value: "0.001" } });
+  fireEvent.click(screen.getByRole("button", { name: "Add to cart" }));
+  expect(screen.getByRole("alert")).toBeVisible();
+  fireEvent.change(input, { target: { value: "0.25" } });
+  expect(screen.getByText("LKR 22.50")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Add to cart" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Edit weight for Rice" }),
+  ).toHaveTextContent("0.25 kg");
+  fireEvent.click(screen.getByRole("button", { name: "Edit weight for Rice" }));
+  fireEvent.click(
+    screen.getByRole("combobox", { name: "Weight unit for Rice" }),
+  );
+  const grams = await screen.findByRole("option", { name: "g" });
+  fireEvent.pointerDown(grams, { pointerType: "mouse" });
+  fireEvent.click(grams);
+  expect(
+    screen.getByRole("spinbutton", { name: "Weight in g for Rice" }),
+  ).toHaveValue(250);
+  fireEvent.change(screen.getByRole("spinbutton"), {
+    target: { value: "500" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  fireEvent.click(screen.getByRole("button", { name: "Edit weight for Rice" }));
+  expect(screen.getByRole("spinbutton")).toHaveValue(250);
+  fireEvent.change(screen.getByRole("spinbutton"), {
+    target: { value: "500" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Update cart" }));
+  expect(
+    screen.getByRole("button", { name: "Edit weight for Rice" }),
+  ).toHaveTextContent("500 g");
 });

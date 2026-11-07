@@ -12,16 +12,7 @@ import {
   productCategoryFilterSchema,
   productSearchSchema,
 } from "@/validations/product";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+import { StorefrontFilters } from "@/features/storefront/components/storefront-filters";
 import { Card } from "@/components/ui/card";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -73,64 +64,27 @@ export default async function ProductsPage({
   ];
 
   return (
-    <section className="min-w-0 w-full">
-      <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
+    <section className="min-w-0 w-full pb-28 md:pb-0">
+      <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
         {copy.allProducts}
       </h1>
-      <p className="mt-3 max-w-2xl text-muted-foreground">
+      <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
         {copy.searchDescription}
       </p>
-      <Card className="gap-0 mt-8 p-4 sm:p-5">
-        <form className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-          <Label
-            htmlFor="search"
-            className="min-w-0 text-sm font-semibold text-foreground"
-          >
-            {copy.searchProducts}
-            <Input
-              id="search"
-              name="search"
-              defaultValue={search?.success ? search.data : ""}
-              placeholder={copy.searchPlaceholder}
-              className="mt-1.5 h-10 w-full"
-            />
-          </Label>
-          <Label
-            htmlFor="categoryId"
-            className="min-w-0 text-sm font-semibold text-foreground"
-          >
-            {copy.category}
-            <Select
-              name="categoryId"
-              items={categoryOptions}
-              defaultValue={category?.success ? category.data : ""}
-            >
-              <SelectTrigger
-                id="categoryId"
-                className="mt-1.5 h-10 w-full data-[size=default]:h-10"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false} className="min-w-0">
-                {categoryOptions.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Label>
-          <Button type="submit" className="h-10 self-end">
-            {copy.applyFilters}
-          </Button>
-        </form>
+      <Card className="mt-5 gap-0 border-0 bg-transparent p-0 shadow-none ring-0">
+        <StorefrontFilters
+          categoryOptions={categoryOptions}
+          initialSearch={search?.success ? search.data : ""}
+          initialCategoryId={category?.success ? category.data : ""}
+          copy={copy}
+        />
       </Card>
       <StorefrontCartSummary locale={locale} localizedRoute={localizedRoute} />
-      <p className="mt-6 text-sm font-semibold text-muted-foreground">
+      <p className="mt-5 text-xs text-muted-foreground">
         {products.length}{" "}
         {products.length === 1 ? copy.product : copy.productPlural}
       </p>
-      <div className="mt-4">
+      <div className="mt-1">
         <ProductGrid
           products={products}
           locale={locale}

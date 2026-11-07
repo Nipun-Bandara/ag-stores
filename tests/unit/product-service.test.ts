@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  Prisma,
   PreferredLanguage,
   UserRole,
   UserStatus,
@@ -91,3 +92,38 @@ describe("product service authorization", () => {
     expect(fake.update).not.toHaveBeenCalled();
   });
 });
+
+it.each([0.01, 0.025])(
+  "persists the owner's KG minimum %s without replacing it",
+  async (minimumOrderQuantity) => {
+    const fake = repository();
+    vi.mocked(fake.ownerHasCategory).mockResolvedValue(true);
+    const input = {
+      ...productInput,
+      sellingUnit: "KG" as const,
+      minimumOrderQuantity,
+      orderingIncrement: 0.001,
+    };
+    vi.mocked(fake.create).mockResolvedValue({
+      ...input,
+      id: "product-id",
+      price: new Prisma.Decimal(input.price),
+      minimumOrderQuantity: new Prisma.Decimal(minimumOrderQuantity),
+      orderingIncrement: new Prisma.Decimal(0.001),
+      stockQuantity: new Prisma.Decimal(1),
+      lowStockThreshold: new Prisma.Decimal(5),
+      imageStorageKey: null,
+      discountTiers: [],
+      shop: { name: "Test shop" },
+      category: { nameEn: "Groceries", nameSi: null, status: "ACTIVE" },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const saved = await createProduct(owner, input, fake);
+    expect(fake.create).toHaveBeenCalledWith(
+      expect.objectContaining({ minimumOrderQuantity }),
+      owner.id,
+    );
+    expect(saved.minimumOrderQuantity).toBe(minimumOrderQuantity);
+  },
+);

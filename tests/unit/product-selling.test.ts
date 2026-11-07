@@ -170,9 +170,9 @@ describe("stage 1 selling quantities", () => {
       }).items[0]?.quantity,
     ).toBe(0.501);
   });
-  it("automatically sets new-product rules for each selling unit", () => {
+  it("preserves manual KG minimums and sets automatic whole-unit rules", () => {
     expect(productCreateSchema.parse(input)).toMatchObject({
-      minimumOrderQuantity: 0.002,
+      minimumOrderQuantity: 0.25,
       orderingIncrement: 0.001,
     });
     expect(
@@ -184,6 +184,24 @@ describe("stage 1 selling quantities", () => {
         orderingIncrement: 2,
       }),
     ).toMatchObject({ minimumOrderQuantity: 1, orderingIncrement: 1 });
+  });
+  it("defaults new KG minimums to 10 g and validates manual values", () => {
+    const withoutMinimum = { ...input, minimumOrderQuantity: undefined };
+    expect(productCreateSchema.parse(withoutMinimum).minimumOrderQuantity).toBe(
+      0.01,
+    );
+    expect(
+      productCreateSchema.parse({ ...input, minimumOrderQuantity: "0.025" })
+        .minimumOrderQuantity,
+    ).toBe(0.025);
+    for (const minimum of [0, 0.001, 0.0101]) {
+      expect(
+        productCreateSchema.safeParse({
+          ...input,
+          minimumOrderQuantity: minimum,
+        }).success,
+      ).toBe(false);
+    }
   });
   it("enforces the 0.002 kg floor and three-decimal precision", () => {
     const weightSetup = {

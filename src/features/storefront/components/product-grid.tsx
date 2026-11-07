@@ -25,15 +25,17 @@ export function ProductGrid({
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-      {products.map((product) => (
-        <ProductCard
-          key={product.id}
-          product={product}
-          locale={locale}
-          localizedRoute={localizedRoute}
-        />
-      ))}
+    <div className="@container/catalogue">
+      <div className="grid gap-x-6 @min-[40rem]/catalogue:grid-cols-2 @min-[70rem]/catalogue:grid-cols-3 @min-[70rem]/catalogue:gap-x-8">
+        {products.map((product) => (
+          <ProductCard
+            key={product.id}
+            product={product}
+            locale={locale}
+            localizedRoute={localizedRoute}
+          />
+        ))}
+      </div>
     </div>
   );
 }

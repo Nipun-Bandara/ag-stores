@@ -944,5 +944,11 @@
   "Mark the delivery for {name} as failed? This records the delivery as unsuccessful.": "{name} සඳහා බෙදාහැරීම අසාර්ථක ලෙස සලකුණු කරන්නද? මෙය අසාර්ථක බෙදාහැරීමක් ලෙස සටහන් වේ.",
   "Reject this order? This cannot be undone.": "මෙම ඇණවුම ප්‍රතික්ෂේප කරන්නද? මෙම ක්‍රියාව ආපසු හැරවිය නොහැක.",
   "Product availability updated.": "භාණ්ඩය ලබා ගත හැකි තත්ත්වය යාවත්කාලීන කරන ලදී.",
-  "Category status updated.": "කාණ්ඩයේ තත්ත්වය යාවත්කාලීන කරන ලදී."
+  "Category status updated.": "කාණ්ඩයේ තත්ත්වය යාවත්කාලීන කරන ලදී.",
+  "First save stock as 0, then change the selling unit with stock still at 0. Active orders must also be completed or cancelled.": "පළමුව තොගය 0 ලෙස සුරකින්න. ඉන්පසු තොගය 0 ලෙසම තබා විකුණුම් ඒකකය වෙනස් කරන්න. ක්‍රියාත්මක ඇණවුම් ද සම්පූර්ණ කිරීම හෝ අවලංගු කිරීම අවශ්‍ය වේ.",
+  "Choose your weight": "අවශ්‍ය බර තෝරන්න",
+  "Edit weight for {name}": "{name} සඳහා බර වෙනස් කරන්න",
+  "Update cart": "කරත්තය යාවත්කාලීන කරන්න",
+  "Review cart": "කරත්තය පරීක්ෂා කරන්න",
+  "Back to products": "නිෂ්පාදන වෙත ආපසු"
 }

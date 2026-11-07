@@ -341,7 +341,9 @@ export function ProductList({
 
               <p className="text-xs text-muted-foreground">
                 <Text value="Minimum order quantity" />:{" "}
-                {product.minimumOrderQuantity}{" "}
+                {product.sellingUnit === "KG"
+                  ? product.minimumOrderQuantity.toFixed(3)
+                  : product.minimumOrderQuantity}{" "}
                 <Text value={product.sellingUnit === "KG" ? "kg" : "units"} />
               </p>
             </div>

@@ -1,5 +1,6 @@
 import { validatePricing, type DiscountTier } from "@/lib/pricing";
 import { z } from "zod";
+import { DEFAULT_KG_MINIMUM_ORDER_QUANTITY } from "@/lib/quantity";
 
 const nullableText = (maximum: number) =>
   z
@@ -70,6 +71,13 @@ function validateSetup(
         message: "Minimum and increment must be positive.",
       });
   }
+  if (value.sellingUnit === "KG" && value.minimumOrderQuantity < 0.002) {
+    context.addIssue({
+      code: "custom",
+      path: ["minimumOrderQuantity"],
+      message: "Minimum order quantity must be at least 0.002 kg.",
+    });
+  }
   if (value.sellingUnit === "UNIT") {
     for (const field of [
       "stockQuantity",
@@ -130,15 +138,28 @@ export const productCreateSchema = z
   .object({
     shopId: z.uuid(),
     ...productFields,
+    minimumOrderQuantity: stockQuantitySchema.optional(),
     lowStockThreshold: lowStockThresholdSchema.optional().default(5),
   })
   .strict()
   .superRefine((value, context) =>
-    validateSetup({ ...value, discountTiers: undefined }, context),
+    validateSetup(
+      {
+        ...value,
+        minimumOrderQuantity:
+          value.minimumOrderQuantity ??
+          (value.sellingUnit === "KG" ? DEFAULT_KG_MINIMUM_ORDER_QUANTITY : 1),
+        discountTiers: undefined,
+      },
+      context,
+    ),
   )
   .transform((value) => ({
     ...value,
-    minimumOrderQuantity: value.sellingUnit === "KG" ? 0.002 : 1,
+    minimumOrderQuantity:
+      value.sellingUnit === "KG"
+        ? (value.minimumOrderQuantity ?? DEFAULT_KG_MINIMUM_ORDER_QUANTITY)
+        : 1,
     // Database precision for weight, not a customer ordering increment.
     orderingIncrement: value.sellingUnit === "KG" ? 0.001 : 1,
   }))

@@ -22,19 +22,20 @@ afterEach(() => {
 
 it("updates the count and subtotal when products are added, reduced, and removed", () => {
   render(<StorefrontCartSummary locale="en" localizedRoute={false} />);
-  const summary = within(
-    screen.getByRole("complementary", { name: "Cart summary" }),
-  );
-  expect(summary.getByRole("status")).toHaveTextContent("0 items");
-  expect(summary.getByRole("link", { name: "View cart" })).toHaveAttribute(
-    "href",
-    "/cart",
-  );
-
+  expect(
+    screen.queryByRole("complementary", { name: "Cart summary" }),
+  ).not.toBeInTheDocument();
   act(() => {
     cartStore.add(product);
     cartStore.add(product);
   });
+  const summary = within(
+    screen.getByRole("complementary", { name: "Cart summary" }),
+  );
+  expect(summary.getByRole("link", { name: "View cart" })).toHaveAttribute(
+    "href",
+    "/cart",
+  );
   expect(summary.getByRole("status")).toHaveTextContent("1 item");
   expect(summary.getByRole("status")).toHaveTextContent("LKR 200.00");
 
@@ -47,8 +48,9 @@ it("updates the count and subtotal when products are added, reduced, and removed
   act(() => {
     cartStore.remove(product.id);
   });
-  expect(summary.getByRole("status")).toHaveTextContent("0 items");
-  expect(summary.getByRole("status")).toHaveTextContent("LKR 0.00");
+  expect(
+    screen.queryByRole("complementary", { name: "Cart summary" }),
+  ).not.toBeInTheDocument();
 });
 
 it("includes a previously saved cart and uses Sinhala copy and the localized cart route", () => {

@@ -77,7 +77,14 @@ it("uses the selling-unit select and updates automatic new-product quantity rule
   expect(
     screen.getByRole("combobox", { name: "Selling unit" }),
   ).toHaveTextContent("Kilograms (kg)");
-  expect(screen.getByLabelText("Minimum order quantity")).toHaveValue(0.002);
+  expect(screen.getByLabelText("Minimum order quantity")).toHaveValue(0.01);
+  expect(screen.getByLabelText("Minimum order quantity")).not.toHaveAttribute(
+    "readonly",
+  );
+  fireEvent.change(screen.getByLabelText("Minimum order quantity"), {
+    target: { value: "0.025" },
+  });
+  expect(screen.getByLabelText("Minimum order quantity")).toHaveValue(0.025);
   expect(screen.getByText("Not applicable")).toBeVisible();
   expect(container.querySelector('input[name="orderingIncrement"]')).toBeNull();
   fireEvent.click(screen.getByRole("combobox", { name: "Selling unit" }));

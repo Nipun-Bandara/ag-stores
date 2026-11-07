@@ -1,8 +1,6 @@
-import { CataloguePricing } from "@/features/pricing/catalogue-pricing";
-import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-
 import { AddToCartButton } from "@/features/cart/components/add-to-cart-button";
+import { CompactProductPrice } from "./compact-product-price";
 import {
   getDictionary,
   localizeBilingual,
@@ -24,78 +22,60 @@ export function ProductCard({
 }) {
   const copy = getDictionary(locale).storefront;
   const name = localizeBilingual(product.nameEn, product.nameSi, locale);
-
+  const href = routePath(`/products/${product.id}`, locale, localizedRoute);
+  const cartProduct = { ...product, name };
   return (
     <Card
       as="article"
-      className="gap-0 overflow-hidden py-0"
+      className="min-w-0 flex-row items-start justify-between gap-4 rounded-none border-b border-border bg-transparent px-0 py-5 shadow-none ring-0"
       data-testid="product-card"
     >
-      <div className="relative">
-        <ImageWithFallback
-          src={product.imageUrl}
-          alt={name}
-          fallback={copy.noImage}
-          className="aspect-[16/10] w-full"
-        />
-        <Badge
-          variant={product.isOutOfStock ? "destructive" : "success"}
-          className="absolute left-3 top-3"
-        >
-          {product.isOutOfStock ? copy.outOfStock : copy.inStock}
-        </Badge>
-      </div>
-      <div className="flex flex-1 flex-col gap-3 p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-28 flex-1">
-            <p className="break-words text-xs font-medium text-muted-foreground">
-              {localizeBilingual(
-                product.categoryNameEn,
-                product.categoryNameSi,
-                locale,
-              )}
-            </p>
-            <h3 className="mt-1 break-words text-base font-semibold leading-snug">
-              <Link
-                href={routePath(
-                  `/products/${product.id}`,
-                  locale,
-                  localizedRoute,
-                )}
-                className="text-foreground hover:text-primary"
-                title={copy.viewProduct}
-              >
-                {name}
-              </Link>
-            </h3>
-            <p className="mt-1 break-words text-xs text-muted-foreground">
-              {product.shopName}
-            </p>
-          </div>
-          <div className="max-w-full min-w-0 shrink-0">
-            <AddToCartButton
-              compact
-              locale={locale}
-              product={{
-                id: product.id,
-                name,
-                nameEn: product.nameEn,
-                nameSi: product.nameSi,
-                price: product.price,
-                discountTiers: product.discountTiers,
-                sellingUnit: product.sellingUnit,
-                minimumOrderQuantity: product.minimumOrderQuantity,
-                orderingIncrement: product.orderingIncrement,
-                stockQuantity: product.stockQuantity,
-                imageUrl: product.imageUrl,
-              }}
-            />
-          </div>
+      <div className="min-w-0 flex-1 py-1">
+        <h3 className="break-words text-base font-semibold leading-snug">
+          <Link
+            href={href}
+            className="text-foreground no-underline hover:text-primary"
+            title={copy.viewProduct}
+          >
+            {name}
+          </Link>
+        </h3>
+        <p className="mt-1 break-words text-xs leading-relaxed text-muted-foreground">
+          {localizeBilingual(
+            product.categoryNameEn,
+            product.categoryNameSi,
+            locale,
+          )}
+        </p>
+        <div className="mt-3">
+          <CompactProductPrice product={cartProduct} locale={locale} />
         </div>
-        <div className="mt-auto min-w-0 pt-1">
-          <CataloguePricing
-            product={{ ...product, name: product.nameEn }}
+        {product.isOutOfStock ? (
+          <p className="mt-2 text-xs text-muted-foreground">
+            {copy.outOfStock}
+          </p>
+        ) : null}
+      </div>
+      <div className="relative mb-3 w-28 shrink-0">
+        <Link
+          href={href}
+          aria-label={`${copy.viewProduct}: ${name}`}
+          className="block overflow-hidden rounded-xl"
+        >
+          <ImageWithFallback
+            src={product.imageUrl}
+            alt={name}
+            fallback={copy.noImage}
+            sizes="112px"
+            className="size-28 rounded-xl text-xs"
+          />
+        </Link>
+        <div className="absolute -bottom-3 right-0 max-w-full rounded-lg bg-background shadow-sm">
+          <AddToCartButton
+            compact
             locale={locale}
+            localizedRoute={localizedRoute}
+            product={cartProduct}
           />
         </div>
       </div>

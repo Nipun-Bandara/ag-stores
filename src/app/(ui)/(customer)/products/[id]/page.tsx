@@ -1,3 +1,4 @@
+import { BackLink } from "@/components/ui/back-link";
 import { CataloguePricing } from "@/features/pricing/catalogue-pricing";
 import { getServerText } from "@/lib/i18n/server";
 import { Badge } from "@/components/ui/badge";
@@ -5,6 +6,9 @@ import type { Metadata } from "next";
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { translate } from "@/lib/i18n/text";
 
 import { AddToCartButton } from "@/features/cart/components/add-to-cart-button";
 import { Card } from "@/components/ui/card";
@@ -47,72 +51,66 @@ export default async function ProductDetailPage({
   );
 
   return (
-    <section className="min-w-0 w-full">
-      <Link
-        href={routePath(
-          `/categories/${product.categoryId}`,
-          locale,
-          localizedRoute,
-        )}
-        className={buttonVariants({
-          variant: "ghost",
-          className: "-ml-3 max-w-full whitespace-normal break-words",
-        })}
-      >
-        {categoryName}
-      </Link>
-      <div className="mt-6 grid min-w-0 gap-8 lg:grid-cols-2 lg:gap-14">
-        <Card className="gap-0 overflow-hidden rounded-[2rem] py-0 shadow-sm">
+    <section className="min-w-0 w-full max-w-5xl">
+      <div className="mb-4 flex min-w-0 items-center justify-between gap-3">
+        <BackLink
+          href={routePath("/products", locale, localizedRoute)}
+          className="max-w-[55%]"
+        >
+          {translate(locale, "Back to products")}
+        </BackLink>
+        <Link
+          href={routePath(
+            `/categories/${product.categoryId}`,
+            locale,
+            localizedRoute,
+          )}
+          className={cn(
+            buttonVariants({
+              variant: "outline",
+              className:
+                "ml-auto h-auto min-h-9 min-w-0 max-w-[45%] justify-start whitespace-normal break-words px-3 py-2 no-underline",
+            }),
+          )}
+        >
+          {categoryName}
+          <ChevronRight aria-hidden="true" className="size-4 shrink-0" />
+        </Link>
+      </div>
+      <div className="mt-4 grid min-w-0 items-start gap-5 sm:grid-cols-[12rem_minmax(0,1fr)] sm:gap-6 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-8">
+        <Card className="mx-auto w-40 gap-0 overflow-hidden rounded-xl border border-border py-0 shadow-none ring-0 sm:mx-0 sm:w-48 lg:w-56">
           <ImageWithFallback
             src={product.imageUrl}
             alt={name}
             fallback={copy.noImage}
-            sizes="(min-width: 1024px) 50vw, 100vw"
+            sizes="(min-width: 1024px) 224px, (min-width: 640px) 192px, 160px"
             className="aspect-square w-full"
           />
         </Card>
-        <section className="min-w-0 self-center">
+        <section className="min-w-0">
           <p className="break-words text-sm font-medium text-muted-foreground">
             {product.shopName}
           </p>
-          <h1 className="mt-3 break-words text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+          <h1 className="mt-2 break-words text-2xl font-semibold leading-snug tracking-tight text-foreground sm:text-3xl">
             {name}
           </h1>
-          <CataloguePricing
-            product={{ ...product, name: product.nameEn }}
-            locale={locale}
-          />
-          <p className="mt-2 text-sm">
-            {locale === "si" ? "අවම ප්‍රමාණය" : "Minimum"}:{" "}
-            {product.minimumOrderQuantity}{" "}
-            {product.sellingUnit === "KG"
-              ? "kg"
-              : locale === "si"
-                ? "ඒකක"
-                : "units"}
-            {product.sellingUnit !== "KG" ? (
-              <>
-                {" · "}
-                {locale === "si" ? "වැඩිවන ප්‍රමාණය" : "Increment"}:{" "}
-                {product.orderingIncrement}
-              </>
-            ) : null}
-          </p>
-          <div className="mt-5">
+          <div className="mt-3">
             <Badge variant={product.isOutOfStock ? "destructive" : "success"}>
-              {product.isOutOfStock
-                ? copy.outOfStock
-                : `${product.stockQuantity}${product.sellingUnit === "KG" ? " kg" : ""} ${copy.inStockCount}`}
+              {product.isOutOfStock ? copy.outOfStock : copy.inStock}
             </Badge>
           </div>
+          <div className="mt-5 border-y border-border py-4 [&_p]:leading-6 [&_ul]:mt-2 [&_li]:py-1">
+            <CataloguePricing product={{ ...product, name }} locale={locale} />
+          </div>
           {description ? (
-            <p className="mt-8 break-words leading-7 text-muted-foreground">
+            <p className="mt-5 whitespace-pre-line break-words text-sm leading-7 text-muted-foreground">
               {description}
             </p>
           ) : null}
-          <div className="mt-10">
+          <div className="mt-6">
             <AddToCartButton
               locale={locale}
+              localizedRoute={localizedRoute}
               product={{
                 id: product.id,
                 name,

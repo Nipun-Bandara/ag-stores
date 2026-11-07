@@ -293,7 +293,7 @@ test.describe.serial("complete retail order and delivery workflow", () => {
       .locator("form:visible")
       .getByRole("button", { name: "Register", exact: true })
       .click();
-    await expect(page).toHaveURL(/\/account$/);
+    await expect(page).toHaveURL(/\/products$/);
     await page.locator('[data-slot="sidebar-footer"] button').click();
     await page.getByRole("menuitem", { name: "Sign out" }).click();
 
@@ -321,18 +321,24 @@ test.describe.serial("complete retail order and delivery workflow", () => {
 
     await page.goto("/products");
     await page.getByLabel("Search products").fill(mainProductName);
-    await page.getByRole("button", { name: "Apply filters" }).click();
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get("search"))
+      .toBe(mainProductName);
     const productCard = page
       .getByTestId("product-card")
       .filter({ hasText: mainProductName });
     await expect(productCard).toBeVisible();
-    await productCard.getByRole("link", { name: "View product" }).click();
+    await productCard
+      .getByRole("link", { name: mainProductName, exact: true })
+      .click();
     await expect(
       page.getByRole("heading", { level: 1, name: mainProductName }),
     ).toBeVisible();
     await page.goto("/products");
     await page.getByLabel("Search products").fill(mainProductName);
-    await page.getByRole("button", { name: "Apply filters" }).click();
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get("search"))
+      .toBe(mainProductName);
     await page
       .getByTestId("product-card")
       .filter({ hasText: mainProductName })

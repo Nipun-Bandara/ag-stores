@@ -12,7 +12,7 @@ test("customer manages a cart and continues to checkout", async ({ page }) => {
     .getByLabel("Password", { exact: true })
     .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/products$/);
 
   await page.goto("/products");
   const rice = page
@@ -73,7 +73,7 @@ test("zero-stock products cannot be added", async ({ page }) => {
     .getByLabel("Password", { exact: true })
     .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/products$/);
   await page.goto("/products");
   const product = page
     .getByTestId("product-card")

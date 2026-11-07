@@ -1,6 +1,7 @@
 /** Quantities are represented as thousandths for all arithmetic and validation. */
 export type SellingUnit = "UNIT" | "KG";
 export const MAX_QUANTITY = 2147483647;
+export const DEFAULT_KG_MINIMUM_ORDER_QUANTITY = 0.01;
 
 export function quantityMilli(
   value: string | number | { toString(): string },

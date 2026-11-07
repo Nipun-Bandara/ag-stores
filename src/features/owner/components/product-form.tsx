@@ -1,5 +1,6 @@
 "use client";
 import { useLocale, useText } from "@/features/i18n/components/locale-provider";
+import { DEFAULT_KG_MINIMUM_ORDER_QUANTITY } from "@/lib/quantity";
 import { Text } from "@/features/i18n/components/text";
 
 import {
@@ -148,11 +149,7 @@ export function ProductForm({
     ) : null;
   const pricingSetup = {
     sellingUnit,
-    minimumOrderQuantity: product
-      ? Number(minimumQuantity)
-      : sellingUnit === "KG"
-        ? 0.002
-        : 1,
+    minimumOrderQuantity: Number(minimumQuantity),
     orderingIncrement:
       sellingUnit === "KG" ? 0.001 : product ? Number(increment) : 1,
   };
@@ -212,6 +209,18 @@ export function ProductForm({
 
   async function saveProduct(values: ProductFormValues) {
     if (submissionRef.current) return;
+    if (
+      product &&
+      values.sellingUnit !== product.sellingUnit &&
+      (product.stockQuantity !== 0 || Number(values.stockQuantity) !== 0)
+    ) {
+      toast.error(
+        t(
+          "First save stock as 0, then change the selling unit with stock still at 0. Active orders must also be completed or cancelled.",
+        ),
+      );
+      return;
+    }
     if (photoError) {
       toast.error(photoError);
       return;
@@ -274,11 +283,7 @@ export function ProductForm({
           itemCode: values.itemCode,
           barcode: values.barcode,
           sellingUnit,
-          minimumOrderQuantity: product
-            ? values.minimumOrderQuantity
-            : sellingUnit === "KG"
-              ? 0.002
-              : 1,
+          minimumOrderQuantity: values.minimumOrderQuantity,
           orderingIncrement:
             sellingUnit === "KG"
               ? 0.001
@@ -511,13 +516,12 @@ export function ProductForm({
               void formik.setValues((current) => ({
                 ...current,
                 sellingUnit: value,
-                minimumOrderQuantity: String(
+                minimumOrderQuantity:
                   product?.sellingUnit === value
-                    ? product.minimumOrderQuantity
+                    ? String(product.minimumOrderQuantity)
                     : value === "KG"
-                      ? 0.002
-                      : 1,
-                ),
+                      ? DEFAULT_KG_MINIMUM_ORDER_QUANTITY.toFixed(3)
+                      : "1",
                 orderingIncrement: String(
                   product?.sellingUnit === value
                     ? product.orderingIncrement
@@ -556,7 +560,7 @@ export function ProductForm({
         {fieldError("sellingUnit")}
         {product ? (
           <p className="mt-1 text-xs text-muted-foreground">
-            <Text value="Selling unit can only change with zero stock and no active orders." />
+            <Text value="First save stock as 0, then change the selling unit with stock still at 0. Active orders must also be completed or cancelled." />
           </p>
         ) : null}
       </div>
@@ -570,7 +574,7 @@ export function ProductForm({
           type="number"
           min={sellingUnit === "KG" ? "0.002" : "1"}
           step={sellingUnit === "KG" ? "0.001" : "1"}
-          readOnly={!product}
+          readOnly={!product && sellingUnit === "UNIT"}
           required
         />
       </div>

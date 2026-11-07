@@ -1,12 +1,14 @@
 "use client";
 
 import { stepQuantity, firstOrderQuantity } from "@/lib/quantity";
+import Link from "next/link";
+import { WeightCartDialog } from "./weight-cart-dialog";
 import { useState } from "react";
 import { Minus, Plus } from "lucide-react";
 
 import { useCart } from "@/features/cart/cart-store";
 import type { CartProduct } from "@/features/cart/cart-state";
-import { getDictionary, type Locale } from "@/lib/i18n/config";
+import { getDictionary, routePath, type Locale } from "@/lib/i18n/config";
 import { Button } from "@/components/ui/button";
 import { IconActionButton } from "@/components/ui/icon-action-button";
 import { translate } from "@/lib/i18n/text";
@@ -17,11 +19,13 @@ export function AddToCartButton({
   locale = "en",
   className = "",
   compact = false,
+  localizedRoute = false,
 }: {
   product: CartProduct;
   locale?: Locale;
   className?: string;
   compact?: boolean;
+  localizedRoute?: boolean;
 }) {
   const { items, add, updateQuantity, remove } = useCart();
   const [message, setMessage] = useState<string>();
@@ -35,12 +39,17 @@ export function AddToCartButton({
     (cartItem.sellingUnit ?? "UNIT") !== (product.sellingUnit ?? "UNIT");
   if (setupChanged)
     return (
-      <a className="text-sm underline" href="/cart">
+      <Link
+        className="inline-flex min-h-9 items-center rounded-lg bg-background px-2 text-xs text-primary underline-offset-4 hover:underline"
+        href={routePath("/cart", locale, localizedRoute)}
+      >
         {translate(
           locale,
-          "Product selling setup changed. Review your cart quantity and unit.",
+          compact
+            ? "Review cart"
+            : "Product selling setup changed. Review your cart quantity and unit.",
         )}
-      </a>
+      </Link>
     );
 
   function handleAdd() {
@@ -49,6 +58,14 @@ export function AddToCartButton({
   }
 
   if (product.sellingUnit === "KG") {
+    if (compact)
+      return (
+        <WeightCartDialog
+          product={product}
+          quantity={quantity}
+          locale={locale}
+        />
+      );
     return (
       <WeightCartControl
         key={`${product.id}:${quantity}`}
@@ -62,9 +79,24 @@ export function AddToCartButton({
   }
 
   if (compact) {
-    return (
-      <div className="flex shrink-0 items-center gap-1 rounded-lg bg-muted/50 p-1">
+    if (quantity === 0)
+      return (
         <IconActionButton
+          type="button"
+          variant="outline"
+          label={translate(locale, "Add {name} to cart", {
+            name: product.name,
+          })}
+          disabled={outOfStock}
+          onClick={handleAdd}
+        >
+          <Plus aria-hidden="true" />
+        </IconActionButton>
+      );
+    return (
+      <div className="flex shrink-0 items-center gap-0 rounded-lg border border-border bg-background p-0.5">
+        <IconActionButton
+          size="icon-sm"
           type="button"
           variant="ghost"
           label={translate(locale, "Reduce quantity of {name}", {
@@ -83,12 +115,13 @@ export function AddToCartButton({
           <Minus aria-hidden="true" />
         </IconActionButton>
         <span
-          className="min-w-6 text-center font-semibold tabular-nums"
+          className="min-w-6 text-center text-sm font-semibold tabular-nums"
           aria-live="polite"
         >
           {quantity}
         </span>
         <IconActionButton
+          size="icon-sm"
           type="button"
           variant="success"
           label={

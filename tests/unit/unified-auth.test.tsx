@@ -59,7 +59,7 @@ describe("unified authentication page", () => {
     expect(screen.getByText("Create Account")).not.toBeVisible();
     expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute(
       "href",
-      "/si",
+      "/si/landing",
     );
   });
 

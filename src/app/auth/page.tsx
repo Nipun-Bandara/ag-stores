@@ -28,7 +28,7 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
     <AuthContainer
       key={query.mode === "register" ? "register" : "login"}
       initialMode={query.mode === "register" ? "register" : "login"}
-      homeHref={routePath("/", locale, localizedRoute)}
+      homeHref={routePath("/landing", locale, localizedRoute)}
       returnTo={
         safeAuthReturnTo(query.returnTo) ??
         routePath("/dashboard", locale, localizedRoute)
