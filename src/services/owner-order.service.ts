@@ -54,7 +54,10 @@ function repository(): OwnerOrderRepository {
 }
 
 function assertOwner(user: AuthenticatedUser): void {
-  if (user.role !== UserRole.SHOP_OWNER) {
+  if (
+    user.role !== UserRole.SHOP_OWNER &&
+    !(user.role === UserRole.ORDER_STAFF && user.assignedShopId)
+  ) {
     throw new OwnerOrderError(
       "OWNER_ONLY",
       "Shop owner access is required.",
@@ -149,8 +152,15 @@ export async function getOwnerOrderDashboard(
 ) {
   assertOwner(user);
   const [records, counts] = await Promise.all([
-    orders.findManyOwned(user.id, mapFilters(filters)),
-    orders.countOwnedByStatus(user.id),
+    orders.findManyOwned(
+      user.id,
+      mapFilters(filters),
+      ...(user.role === UserRole.ORDER_STAFF ? [user.assignedShopId!] : []),
+    ),
+    orders.countOwnedByStatus(
+      user.id,
+      ...(user.role === UserRole.ORDER_STAFF ? [user.assignedShopId!] : []),
+    ),
   ]);
   const countMap = new Map(counts.map(({ status, count }) => [status, count]));
   return {
@@ -172,7 +182,11 @@ export async function getOwnerOrder(
   orders: OwnerOrderRepository = repository(),
 ) {
   assertOwner(user);
-  const order = await orders.findOwnedById(user.id, orderId);
+  const order = await orders.findOwnedById(
+    user.id,
+    orderId,
+    ...(user.role === UserRole.ORDER_STAFF ? [user.assignedShopId!] : []),
+  );
   if (!order) {
     throw new OwnerOrderError("ORDER_NOT_FOUND", "Order not found.", 404);
   }

@@ -50,6 +50,10 @@ function actorCanAccessOrder(
   order: OrderTransitionRecord,
 ): boolean {
   switch (actor.role) {
+    case UserRole.ORDER_STAFF:
+      return Boolean(
+        actor.assignedShopId && actor.assignedShopId === order.shopId,
+      );
     case UserRole.ADMIN:
       return true;
     case UserRole.CUSTOMER:

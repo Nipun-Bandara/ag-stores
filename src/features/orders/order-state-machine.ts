@@ -31,18 +31,27 @@ export const ORDER_TRANSITION_ROLES: Readonly<
   >
 > = {
   [OrderStatus.PLACED]: {
-    [OrderStatus.CONFIRMED]: [UserRole.SHOP_OWNER],
-    [OrderStatus.PREPARING]: [UserRole.SHOP_OWNER],
-    [OrderStatus.READY_FOR_DELIVERY]: [UserRole.SHOP_OWNER],
-    [OrderStatus.REJECTED]: [UserRole.SHOP_OWNER],
+    [OrderStatus.CONFIRMED]: [UserRole.SHOP_OWNER, UserRole.ORDER_STAFF],
+    [OrderStatus.PREPARING]: [UserRole.SHOP_OWNER, UserRole.ORDER_STAFF],
+    [OrderStatus.READY_FOR_DELIVERY]: [
+      UserRole.SHOP_OWNER,
+      UserRole.ORDER_STAFF,
+    ],
+    [OrderStatus.REJECTED]: [UserRole.SHOP_OWNER, UserRole.ORDER_STAFF],
     [OrderStatus.CANCELLED]: [UserRole.CUSTOMER],
   },
   [OrderStatus.CONFIRMED]: {
-    [OrderStatus.PREPARING]: [UserRole.SHOP_OWNER],
-    [OrderStatus.READY_FOR_DELIVERY]: [UserRole.SHOP_OWNER],
+    [OrderStatus.PREPARING]: [UserRole.SHOP_OWNER, UserRole.ORDER_STAFF],
+    [OrderStatus.READY_FOR_DELIVERY]: [
+      UserRole.SHOP_OWNER,
+      UserRole.ORDER_STAFF,
+    ],
   },
   [OrderStatus.PREPARING]: {
-    [OrderStatus.READY_FOR_DELIVERY]: [UserRole.SHOP_OWNER],
+    [OrderStatus.READY_FOR_DELIVERY]: [
+      UserRole.SHOP_OWNER,
+      UserRole.ORDER_STAFF,
+    ],
   },
   [OrderStatus.READY_FOR_DELIVERY]: {
     [OrderStatus.ASSIGNED]: [UserRole.DELIVERY_PERSON],

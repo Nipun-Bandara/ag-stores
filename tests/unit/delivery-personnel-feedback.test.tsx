@@ -60,8 +60,11 @@ it("shows readable initial selections and reports account creation", async () =>
   });
   const { container } = renderManager();
   expect(
-    screen.getByRole("combobox", { name: "Assigned shop" }),
-  ).toHaveTextContent("Colombo Shop");
+    screen.queryByRole("combobox", { name: "Assigned shop" }),
+  ).not.toBeInTheDocument();
+  expect(container.querySelector('input[name="assignedShopId"]')).toHaveValue(
+    "shop-id",
+  );
   expect(screen.getByRole("combobox", { name: "Status" })).toHaveTextContent(
     "Active",
   );

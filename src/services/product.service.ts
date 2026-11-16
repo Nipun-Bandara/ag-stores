@@ -1,3 +1,7 @@
+import {
+  productPageInfo,
+  type ProductPageRequest,
+} from "@/lib/product-pagination";
 import { tierViews, type DiscountTier } from "@/lib/pricing";
 import { firstOrderQuantity } from "@/lib/quantity";
 import { getDb } from "@/db";
@@ -297,4 +301,23 @@ export async function updateProductStock(
     throw new ProductError("PRODUCT_NOT_FOUND", "Product not found.", 404);
   }
   return toProductView(product);
+}
+
+export async function getOwnerProductPage(
+  user: AuthenticatedUser,
+  filters: ProductFilters,
+  request: ProductPageRequest,
+  repository: ProductRepository = getProductRepository(),
+) {
+  assertOwner(user);
+  const pagination = productPageInfo(
+    await repository.countOwned(user.id, filters),
+    request,
+  );
+  const products = await repository.findManyOwned(user.id, {
+    ...filters,
+    page: pagination.page,
+    pageSize: pagination.pageSize,
+  });
+  return { products: products.map(toProductView), ...pagination };
 }

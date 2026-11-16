@@ -27,6 +27,7 @@ const props = {
   initialInventoryStatus: "",
 };
 beforeEach(() => {
+  window.history.replaceState({}, "", "/?page=9&pageSize=48");
   vi.useFakeTimers();
   mocks.replace.mockClear();
 });
@@ -59,7 +60,7 @@ it("automatically searches after a short typing pause with no apply button", () 
   tick();
   expect(mocks.replace).toHaveBeenCalledTimes(1);
   expect(mocks.replace).toHaveBeenLastCalledWith(
-    "/en/owner/products?search=tea+leaf",
+    "/en/owner/products?pageSize=48&search=tea+leaf",
     { scroll: false },
   );
   expect(

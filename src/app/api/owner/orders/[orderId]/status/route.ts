@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 
 import { UserRole } from "@/generated/prisma/client";
 import { errorResponse, successResponse } from "@/lib/api-response";
-import { requireApiRole } from "@/lib/auth/request";
+import { requireApiAnyRole } from "@/lib/auth/request";
 import { orderStatusErrorResponse } from "@/lib/order-status-http";
 import { transitionOrderStatus } from "@/services/order-status.service";
 import {
@@ -14,7 +14,10 @@ export async function PATCH(
   request: NextRequest,
   context: RouteContext<"/api/owner/orders/[orderId]/status">,
 ) {
-  const authorization = await requireApiRole(request, UserRole.SHOP_OWNER);
+  const authorization = await requireApiAnyRole(request, [
+    UserRole.SHOP_OWNER,
+    UserRole.ORDER_STAFF,
+  ]);
   if (!authorization.authorized) return authorization.response;
 
   const orderId = orderIdSchema.safeParse((await context.params).orderId);

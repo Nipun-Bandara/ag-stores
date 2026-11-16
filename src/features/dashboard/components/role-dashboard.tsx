@@ -30,6 +30,7 @@ export function RoleDashboard({
           {translate(
             locale,
             {
+              ORDER_STAFF: "Orders",
               CUSTOMER: "Dashboard",
               SHOP_OWNER: "Owner dashboard",
               ADMIN: "Admin dashboard",

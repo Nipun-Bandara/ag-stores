@@ -106,11 +106,16 @@ export interface OwnerOrderRepository {
   findManyOwned(
     ownerId: string,
     filters: OwnerOrderFilters,
+    assignedShopId?: string,
   ): Promise<OwnerOrderListRecord[]>;
-  countOwnedByStatus(ownerId: string): Promise<OwnerOrderStatusCount[]>;
+  countOwnedByStatus(
+    ownerId: string,
+    assignedShopId?: string,
+  ): Promise<OwnerOrderStatusCount[]>;
   findOwnedById(
     ownerId: string,
     orderId: string,
+    assignedShopId?: string,
   ): Promise<OwnerOrderDetailRecord | null>;
 }
 
@@ -120,11 +125,14 @@ export class PrismaOwnerOrderRepository implements OwnerOrderRepository {
   findManyOwned(
     ownerId: string,
     filters: OwnerOrderFilters,
+    assignedShopId?: string,
   ): Promise<OwnerOrderListRecord[]> {
     const customer = filters.customer;
     return this.prisma.order.findMany({
       where: {
-        shop: { ownerId },
+        ...(assignedShopId
+          ? { shopId: assignedShopId }
+          : { shop: { ownerId } }),
         ...(filters.status ? { status: filters.status } : {}),
         ...(filters.orderId ? { id: filters.orderId } : {}),
         ...(filters.createdFrom && filters.createdTo
@@ -157,10 +165,15 @@ export class PrismaOwnerOrderRepository implements OwnerOrderRepository {
     });
   }
 
-  async countOwnedByStatus(ownerId: string): Promise<OwnerOrderStatusCount[]> {
+  async countOwnedByStatus(
+    ownerId: string,
+    assignedShopId?: string,
+  ): Promise<OwnerOrderStatusCount[]> {
     const counts = await this.prisma.order.groupBy({
       by: ["status"],
-      where: { shop: { ownerId } },
+      where: assignedShopId
+        ? { shopId: assignedShopId }
+        : { shop: { ownerId } },
       _count: { _all: true },
     });
     return counts.map(({ status, _count }) => ({
@@ -172,9 +185,15 @@ export class PrismaOwnerOrderRepository implements OwnerOrderRepository {
   findOwnedById(
     ownerId: string,
     orderId: string,
+    assignedShopId?: string,
   ): Promise<OwnerOrderDetailRecord | null> {
     return this.prisma.order.findFirst({
-      where: { id: orderId, shop: { ownerId } },
+      where: {
+        id: orderId,
+        ...(assignedShopId
+          ? { shopId: assignedShopId }
+          : { shop: { ownerId } }),
+      },
       select: ownerOrderDetailSelect,
     });
   }

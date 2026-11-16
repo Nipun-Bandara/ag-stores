@@ -78,6 +78,7 @@ export function ProductFilters({
       if (normalized) params.set(name, normalized);
       else params.delete(name);
     }
+    params.delete("page");
     const query = params.toString();
     setState((current) => ({ ...current, requestedKey: key }));
     startTransition(() =>

@@ -1,3 +1,5 @@
+import { parseProductPage } from "@/lib/product-pagination";
+import { ProductPagination } from "@/features/products/components/product-pagination";
 import { getServerText } from "@/lib/i18n/server";
 import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
@@ -10,7 +12,7 @@ import { ProductFilters } from "@/features/owner/components/product-filters";
 import { requireRole } from "@/lib/auth/server";
 import {
   getProductFormOptions,
-  listOwnerProducts,
+  getOwnerProductPage,
 } from "@/services/product.service";
 import {
   productCategoryFilterSchema,
@@ -30,6 +32,8 @@ interface ProductsPageProps {
     categoryId?: string | string[];
     search?: string | string[];
     inventoryStatus?: string | string[];
+    page?: string | string[];
+    pageSize?: string | string[];
   }>;
 }
 
@@ -62,7 +66,7 @@ export default async function OwnerProductsPage({
     ...(inventory?.success ? { inventoryStatus: inventory.data } : {}),
   };
   const [products, options] = await Promise.all([
-    listOwnerProducts(user, filters),
+    getOwnerProductPage(user, filters, parseProductPage(query)),
     getProductFormOptions(user),
   ]);
 
@@ -96,7 +100,12 @@ export default async function OwnerProductsPage({
           initialInventoryStatus={inventory?.success ? inventory.data : ""}
         />
       </Card>
-      <ProductList key={JSON.stringify(filters)} initialProducts={products} />
+      <ProductPagination {...products} />
+      <ProductList
+        key={JSON.stringify([filters, products.page, products.pageSize])}
+        initialProducts={products.products}
+      />
+      {products.total > 0 ? <ProductPagination {...products} compact /> : null}
     </section>
   );
 }

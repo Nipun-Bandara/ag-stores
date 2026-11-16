@@ -348,7 +348,7 @@ export function ProductForm({
             {product.shopName}
           </p>
         </div>
-      ) : (
+      ) : options.shops.length > 1 ? (
         <div className="min-w-0 sm:col-span-3 lg:col-span-6">
           <Label htmlFor="shopId" className="block text-sm font-medium">
             <Text value={"Shop"} />
@@ -401,7 +401,7 @@ export function ProductForm({
           </Select>
           {fieldError("shopId")}
         </div>
-      )}
+      ) : null}
       <div className="min-w-0 sm:col-span-3 lg:col-span-6">
         <Label htmlFor="categoryId" className="block text-sm font-medium">
           <Text value={"Category"} />

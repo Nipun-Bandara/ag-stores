@@ -88,7 +88,8 @@ describe("authenticated layout", () => {
       expect(screen.getByText("Private content")).toBeVisible();
       expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
         "href",
-        DASHBOARD_BY_ROLE[role],
+        getNavItemsForRole(role).find((item) => item.label === "Dashboard")!
+          .href,
       );
       const hrefs = screen
         .getAllByRole("link")

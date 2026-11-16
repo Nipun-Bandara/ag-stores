@@ -98,6 +98,7 @@ export async function login(
   await repository.createSession(user.id, session);
 
   const safeUser: AuthenticatedUser = {
+    assignedShopId: user.assignedShopId ?? null,
     id: user.id,
     name: user.name,
     firstName: user.firstName,

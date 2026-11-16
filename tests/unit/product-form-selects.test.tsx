@@ -33,6 +33,17 @@ const options = {
 afterEach(cleanup);
 
 describe("product form selects", () => {
+  it("automatically uses the only shop without displaying a shop selector", () => {
+    render(
+      <ProductForm options={{ ...options, shops: [options.shops[0]!] }} />,
+    );
+    expect(
+      screen.queryByRole("combobox", { name: "Shop" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Category" }),
+    ).toHaveTextContent("Groceries");
+  });
   it("shows readable default shop and category labels", () => {
     const { container } = render(<ProductForm options={options} />);
 

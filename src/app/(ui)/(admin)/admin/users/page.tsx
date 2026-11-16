@@ -38,6 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 const roleLabels: Record<UserRole, string> = {
+  ORDER_STAFF: "Order staff",
   CUSTOMER: "Customer",
   SHOP_OWNER: "Shop owner",
   DELIVERY_PERSON: "Delivery person",

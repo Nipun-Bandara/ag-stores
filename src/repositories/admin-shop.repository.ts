@@ -37,7 +37,7 @@ const adminShopSelect = {
       categories: true,
       products: true,
       orders: true,
-      deliveryPersonnel: true,
+      deliveryPersonnel: { where: { role: UserRole.DELIVERY_PERSON } },
     },
   },
 } satisfies Prisma.ShopSelect;

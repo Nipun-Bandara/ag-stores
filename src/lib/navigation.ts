@@ -19,12 +19,14 @@ import type { UserRole } from "@/generated/prisma/client";
 
 export type Role = UserRole;
 export const ROLE_LABELS: Record<Role, string> = {
+  ORDER_STAFF: "Order staff",
   CUSTOMER: "Customer",
   SHOP_OWNER: "Shop owner",
   ADMIN: "Administrator",
   DELIVERY_PERSON: "Delivery person",
 };
 export const DASHBOARD_BY_ROLE: Record<Role, string> = {
+  ORDER_STAFF: "/staff/orders",
   CUSTOMER: "/products",
   SHOP_OWNER: "/owner",
   ADMIN: "/admin",
@@ -46,6 +48,7 @@ export interface NavGroup {
   items: NavItem[];
 }
 const ALL_ROLES: Role[] = [
+  "ORDER_STAFF",
   "CUSTOMER",
   "SHOP_OWNER",
   "ADMIN",
@@ -92,6 +95,42 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["DELIVERY_PERSON"],
     exact: true,
   },
+
+  {
+    id: "ownerReturns",
+    label: "Returns and refunds",
+    href: "/owner/returns",
+    group: "shop",
+    roles: ["SHOP_OWNER"],
+  },
+  {
+    id: "staffReturns",
+    label: "Returns and refunds",
+    href: "/staff/returns",
+    group: "shop",
+    roles: ["ORDER_STAFF"],
+  },
+  {
+    id: "staffOrders",
+    label: "Orders",
+    href: "/staff/orders",
+    group: "shop",
+    roles: ["ORDER_STAFF"],
+  },
+  {
+    id: "ownerStaff",
+    label: "Order staff",
+    href: "/owner/staff",
+    group: "shop",
+    roles: ["SHOP_OWNER"],
+  },
+  {
+    id: "adminStaff",
+    label: "Order staff",
+    href: "/admin/staff",
+    group: "administration",
+    roles: ["ADMIN"],
+  },
   {
     id: "products",
     label: "Browse products",
@@ -133,6 +172,20 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/owner/categories",
     group: "shop",
     roles: ["SHOP_OWNER"],
+  },
+  {
+    id: "ownerStocks",
+    label: "Stocks",
+    href: "/owner/stocks",
+    group: "shop",
+    roles: ["SHOP_OWNER"],
+  },
+  {
+    id: "adminStocks",
+    label: "Stocks",
+    href: "/admin/stocks",
+    group: "administration",
+    roles: ["ADMIN"],
   },
   {
     id: "ownerDelivery",
@@ -269,6 +322,7 @@ export function canAccessWorkspace(
   const path = navigationPath(pathname);
   if (["/dashboard", "/profile", "/notifications"].includes(path)) return true;
   const roots: Record<Role, string[]> = {
+    ORDER_STAFF: ["/staff"],
     CUSTOMER: [
       "/account",
       "/orders",
@@ -287,6 +341,11 @@ export const ICONS_MAP: Record<
   string,
   ComponentType<SVGProps<SVGSVGElement>>
 > = {
+  ownerReturns: ClipboardList,
+  staffReturns: ClipboardList,
+  staffOrders: ClipboardList,
+  ownerStaff: Users,
+  adminStaff: Users,
   customerDashboard: House,
   ownerDashboard: House,
   adminDashboard: House,
@@ -296,6 +355,8 @@ export const ICONS_MAP: Record<
   customerOrders: ClipboardList,
   ownerOrders: ClipboardList,
   ownerProducts: Package,
+  ownerStocks: Package,
+  adminStocks: Package,
   categories: Layers,
   ownerDelivery: Truck,
   reports: ChartNoAxesCombined,

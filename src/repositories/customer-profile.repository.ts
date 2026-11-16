@@ -7,6 +7,7 @@ import { verifyPassword } from "@/lib/auth/password";
 import type { AuthenticatedUser } from "@/types/auth";
 
 const profileSelect = {
+  assignedShopId: true,
   id: true,
   name: true,
   firstName: true,

@@ -151,42 +151,52 @@ function PersonnelForm({
         </div>
         <div
           className={`grid gap-4 md:grid-cols-2 xl:items-end ${
-            person ? "xl:grid-cols-2" : "xl:grid-cols-3"
+            shops.length > 1
+              ? person
+                ? "xl:grid-cols-2"
+                : "xl:grid-cols-3"
+              : person
+                ? "xl:grid-cols-1"
+                : "xl:grid-cols-2"
           }`}
         >
-          <div className="min-w-0">
-            <Label
-              htmlFor={`delivery-shop-${suffix}`}
-              className="block text-sm font-medium"
-            >
-              <Text value="Assigned shop" />
-            </Label>
-            <Select
-              name="assignedShopId"
-              value={assignedShopId}
-              onValueChange={(value) => setAssignedShopId(value ?? "")}
-              required
-            >
-              <SelectTrigger
-                id={`delivery-shop-${suffix}`}
-                className="mt-1.5 h-10 w-full data-[size=default]:h-10"
+          {shops.length > 1 ? (
+            <div className="min-w-0">
+              <Label
+                htmlFor={`delivery-shop-${suffix}`}
+                className="block text-sm font-medium"
               >
-                <SelectValue>
-                  {(value) =>
-                    shops.find((shop) => shop.id === value)?.name ??
-                    t("Select a shop")
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false} className="min-w-0">
-                {shops.map((shop) => (
-                  <SelectItem key={shop.id} value={shop.id}>
-                    {shop.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                <Text value="Assigned shop" />
+              </Label>
+              <Select
+                name="assignedShopId"
+                value={assignedShopId}
+                onValueChange={(value) => setAssignedShopId(value ?? "")}
+                required
+              >
+                <SelectTrigger
+                  id={`delivery-shop-${suffix}`}
+                  className="mt-1.5 h-10 w-full data-[size=default]:h-10"
+                >
+                  <SelectValue>
+                    {(value) =>
+                      shops.find((shop) => shop.id === value)?.name ??
+                      t("Select a shop")
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false} className="min-w-0">
+                  {shops.map((shop) => (
+                    <SelectItem key={shop.id} value={shop.id}>
+                      {shop.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <input type="hidden" name="assignedShopId" value={assignedShopId} />
+          )}
           {!person ? (
             <div className="min-w-0">
               <Label

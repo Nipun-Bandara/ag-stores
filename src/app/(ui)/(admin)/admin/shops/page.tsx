@@ -28,20 +28,18 @@ export default async function AdminShopsPage() {
         <Text value={"Shop management"} />
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        <Text
-          value={
-            "Create shops, assign owners, and control customer availability. "
-          }
-        />
+        <Text value={"Manage shop details and customer availability."} />
       </p>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <section aria-labelledby="create-shop-heading">
-          <h2 id="create-shop-heading" className="mb-4 text-lg font-semibold">
-            <Text value={"Create shop "} />
-          </h2>
-          <AdminShopForm owners={management.owners} />
-        </section>
+      <div className="mt-8 space-y-8">
+        {management.shops.length === 0 ? (
+          <section aria-labelledby="create-shop-heading">
+            <h2 id="create-shop-heading" className="mb-4 text-lg font-semibold">
+              <Text value={"Create shop "} />
+            </h2>
+            <AdminShopForm owners={management.owners} />
+          </section>
+        ) : null}
 
         <section aria-labelledby="shops-heading">
           <div className="flex items-center justify-between gap-4">

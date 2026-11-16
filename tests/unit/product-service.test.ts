@@ -20,6 +20,7 @@ function repository(): ProductRepository {
     findOwnerCategories: vi.fn(),
     ownerHasCategory: vi.fn(),
     findManyOwned: vi.fn(),
+    countOwned: vi.fn(),
     findOwnedById: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),

@@ -20,6 +20,7 @@ const protectedRoots = [
   "/products",
   "/categories",
   "/owner",
+  "/staff",
   "/delivery",
   "/admin",
 ];

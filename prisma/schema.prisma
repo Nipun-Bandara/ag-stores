@@ -10,6 +10,7 @@ datasource db {
 enum UserRole {
   CUSTOMER
   SHOP_OWNER
+  ORDER_STAFF
   DELIVERY_PERSON
   ADMIN
 }
@@ -74,6 +75,10 @@ enum AuditAction {
   SHOP_CREATED
   SHOP_UPDATED
   SHOP_STATUS_UPDATED
+  ORDER_RETURN_RECORDED
+  ORDER_RETURN_REVIEWED
+  ORDER_REFUND_RECORDED
+  STAFF_ACCOUNT_UPDATED
 }
 
 enum AuditEntityType {
@@ -81,6 +86,12 @@ enum AuditEntityType {
   ORDER
   USER
   SHOP
+}
+
+enum ReturnStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 model User {
@@ -312,6 +323,7 @@ model Order {
   batchAssignment DeliveryBatchOrder?
   statusHistory   OrderStatusHistory[]
   notifications   Notification[]
+  returns         OrderReturn[]
 
   @@index([customerId, createdAt])
   @@index([shopId, status, createdAt])
@@ -354,6 +366,8 @@ model OrderItem {
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  returns OrderReturn[]
 
   @@unique([orderId, productId])
   @@index([productId])
@@ -405,4 +419,29 @@ model Notification {
   @@index([userId, readAt, createdAt])
   @@index([orderId, type])
   @@map("notifications")
+}
+
+model OrderReturn {
+  id             String       @id @default(uuid()) @db.Uuid
+  orderId        String       @db.Uuid
+  orderItemId    String       @db.Uuid
+  quantity       Decimal      @db.Decimal(13, 3)
+  refundAmount   Decimal      @db.Decimal(12, 2)
+  reason         String       @db.VarChar(500)
+  status         ReturnStatus @default(PENDING)
+  restock        Boolean      @default(false)
+  recordedById   String       @db.Uuid
+  reviewedById   String?      @db.Uuid
+  reviewNote     String?      @db.VarChar(500)
+  reviewedAt     DateTime?    @db.Timestamptz(3)
+  refundPaidAt   DateTime?    @db.Timestamptz(3)
+  refundPaidById String?      @db.Uuid
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([orderId, createdAt])
+  @@index([orderItemId, status])
+  @@map("order_returns")
 }

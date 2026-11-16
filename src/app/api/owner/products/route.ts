@@ -1,10 +1,11 @@
+import { parseProductPage } from "@/lib/product-pagination";
 import type { NextRequest } from "next/server";
 
 import { UserRole } from "@/generated/prisma/client";
 import { errorResponse, successResponse } from "@/lib/api-response";
 import { requireApiRole } from "@/lib/auth/request";
 import { productErrorResponse } from "@/lib/product-http";
-import { createProduct, listOwnerProducts } from "@/services/product.service";
+import { createProduct, getOwnerProductPage } from "@/services/product.service";
 import {
   productCategoryFilterSchema,
   productCreateSchema,
@@ -40,13 +41,25 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    return successResponse(
-      await listOwnerProducts(authorization.user, {
+    const result = await getOwnerProductPage(
+      authorization.user,
+      {
         ...(category?.success ? { categoryId: category.data } : {}),
         ...(search?.success ? { search: search.data } : {}),
         ...(inventory?.success ? { inventoryStatus: inventory.data } : {}),
+      },
+      parseProductPage({
+        page: request.nextUrl.searchParams.get("page"),
+        pageSize: request.nextUrl.searchParams.get("pageSize"),
       }),
     );
+    return successResponse(result.products, {
+      headers: {
+        "X-Total-Count": String(result.total),
+        "X-Page": String(result.page),
+        "X-Page-Size": String(result.pageSize),
+      },
+    });
   } catch (error) {
     return productErrorResponse(error);
   }

@@ -1,5 +1,6 @@
+import { DEFAULT_PRODUCT_PAGE_SIZE } from "@/lib/product-pagination";
 import { validatePricing, tierViews } from "@/lib/pricing";
-import { SellingSetupError, firstOrderQuantity } from "@/lib/quantity";
+import { SellingSetupError } from "@/lib/quantity";
 import {
   AuditAction,
   AuditEntityType,
@@ -71,6 +72,8 @@ export interface ProductFilters {
   categoryId?: string;
   search?: string;
   inventoryStatus?: ProductInventoryStatus;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface ProductRepository {
@@ -85,6 +88,7 @@ export interface ProductRepository {
     ownerId: string,
     filters: ProductFilters,
   ): Promise<ProductRecord[]>;
+  countOwned(ownerId: string, filters: ProductFilters): Promise<number>;
   findOwnedById(
     ownerId: string,
     productId: string,
@@ -106,6 +110,50 @@ export interface ProductRepository {
     productId: string,
     input: ProductStockInput,
   ): Promise<ProductRecord | null>;
+}
+
+function ownerProductWhere(
+  ownerId: string,
+  filters: ProductFilters,
+): Prisma.ProductWhereInput {
+  const search = filters.search;
+  return {
+    shop: { ownerId },
+    ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
+    ...(search
+      ? {
+          OR: [
+            { itemCode: { contains: search, mode: "insensitive" } },
+            { barcode: { contains: search, mode: "insensitive" } },
+            { nameEn: { contains: search, mode: "insensitive" } },
+            { nameSi: { contains: search, mode: "insensitive" } },
+            { descriptionEn: { contains: search, mode: "insensitive" } },
+            { descriptionSi: { contains: search, mode: "insensitive" } },
+          ],
+        }
+      : {}),
+  };
+}
+
+function ownerInventoryWhere(
+  ownerId: string,
+  filters: ProductFilters,
+): Prisma.Sql {
+  const minimum = Prisma.sql`CASE WHEN p."sellingUnit" = 'KG' THEN GREATEST(p."minimumOrderQuantity", 0.002) ELSE CEIL(p."minimumOrderQuantity" / NULLIF(p."orderingIncrement", 0)) * p."orderingIncrement" END`;
+  const available = Prisma.sql`p."stockQuantity" >= (${minimum})`;
+  const inventory =
+    filters.inventoryStatus === "OUT_OF_STOCK"
+      ? Prisma.sql`p."stockQuantity" < (${minimum})`
+      : filters.inventoryStatus === "LOW_STOCK"
+        ? Prisma.sql`${available} AND p."stockQuantity" <= p."lowStockThreshold"`
+        : Prisma.sql`${available} AND p."stockQuantity" > p."lowStockThreshold"`;
+  const search = filters.search
+    ? `%${filters.search.replace(/[\\%_]/g, "\\$&")}%`
+    : undefined;
+  return Prisma.sql`s."ownerId" = ${ownerId}::uuid
+    ${filters.categoryId ? Prisma.sql`AND p."categoryId" = ${filters.categoryId}::uuid` : Prisma.empty}
+    ${search ? Prisma.sql`AND (p."itemCode" ILIKE ${search} OR p.barcode ILIKE ${search} OR p."nameEn" ILIKE ${search} OR p."nameSi" ILIKE ${search} OR p."descriptionEn" ILIKE ${search} OR p."descriptionSi" ILIKE ${search})` : Prisma.empty}
+    AND (${inventory})`;
 }
 
 export class PrismaProductRepository implements ProductRepository {
@@ -149,37 +197,44 @@ export class PrismaProductRepository implements ProductRepository {
     ownerId: string,
     filters: ProductFilters,
   ): Promise<ProductRecord[]> {
-    const search = filters.search;
-    const products = await this.prisma.product.findMany({
-      where: {
-        shop: { ownerId },
-        ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
-        ...(search
-          ? {
-              OR: [
-                { itemCode: { contains: search, mode: "insensitive" } },
-                { barcode: { contains: search, mode: "insensitive" } },
-                { nameEn: { contains: search, mode: "insensitive" } },
-                { nameSi: { contains: search, mode: "insensitive" } },
-                { descriptionEn: { contains: search, mode: "insensitive" } },
-                { descriptionSi: { contains: search, mode: "insensitive" } },
-              ],
-            }
-          : {}),
-      },
-      orderBy: [{ shop: { name: "asc" } }, { nameEn: "asc" }],
+    const take = Math.min(filters.pageSize ?? DEFAULT_PRODUCT_PAGE_SIZE, 48);
+    const skip = ((filters.page ?? 1) - 1) * take;
+    if (filters.inventoryStatus) {
+      const ids = await this.prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+        SELECT p.id FROM products p JOIN shops s ON s.id = p."shopId"
+        WHERE ${ownerInventoryWhere(ownerId, filters)}
+        ORDER BY s.name ASC, p."nameEn" ASC, p.id ASC LIMIT ${take} OFFSET ${skip}
+      `);
+      if (!ids.length) return [];
+      const products = await this.prisma.product.findMany({
+        where: { id: { in: ids.map((item) => item.id) }, shop: { ownerId } },
+        select: productSelect,
+      });
+      const byId = new Map(products.map((product) => [product.id, product]));
+      return ids.flatMap((item) => {
+        const product = byId.get(item.id);
+        return product ? [product] : [];
+      });
+    }
+    return this.prisma.product.findMany({
+      where: ownerProductWhere(ownerId, filters),
+      orderBy: [{ shop: { name: "asc" } }, { nameEn: "asc" }, { id: "asc" }],
+      skip,
+      take,
       select: productSelect,
     });
-    // The first purchasable quantity may be above an unaligned minimum.
-    return products.filter((product) => {
-      const status =
-        Number(product.stockQuantity) < firstOrderQuantity(product)
-          ? "OUT_OF_STOCK"
-          : product.stockQuantity.lte(product.lowStockThreshold)
-            ? "LOW_STOCK"
-            : "AVAILABLE";
-      return !filters.inventoryStatus || status === filters.inventoryStatus;
-    });
+  }
+
+  async countOwned(ownerId: string, filters: ProductFilters): Promise<number> {
+    if (!filters.inventoryStatus)
+      return this.prisma.product.count({
+        where: ownerProductWhere(ownerId, filters),
+      });
+    const result = await this.prisma.$queryRaw<{ total: bigint }[]>(Prisma.sql`
+      SELECT COUNT(*) AS total FROM products p JOIN shops s ON s.id = p."shopId"
+      WHERE ${ownerInventoryWhere(ownerId, filters)}
+    `);
+    return Number(result[0]?.total ?? 0);
   }
 
   findOwnedById(

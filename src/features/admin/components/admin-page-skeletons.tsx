@@ -530,13 +530,9 @@ export function AdminShopsSkeleton() {
     <LoadingPage>
       <Heading
         title="Shop management"
-        description="Create shops, assign owners, and control customer availability."
+        description="Manage shop details and customer availability."
       />
-      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <div className="min-w-0 space-y-4">
-          <SectionTitle>Create shop</SectionTitle>
-          <ShopFormPlaceholder />
-        </div>
+      <div className="mt-8">
         <div className="min-w-0 space-y-4">
           <SectionTitle>Shops</SectionTitle>
           {Array.from({ length: 4 }, (_, index) => (

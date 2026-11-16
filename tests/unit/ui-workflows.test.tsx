@@ -196,9 +196,10 @@ describe("shared UI form workflows", () => {
         }}
       />,
     );
-    fireEvent.change(screen.getByLabelText("Preferred language"), {
-      target: { value: "SI" },
-    });
+    fireEvent.click(screen.getByRole("combobox", { name: "Preferred language" }));
+    const sinhala = await screen.findByRole("option", { name: "සිංහල" });
+    fireEvent.pointerDown(sinhala, { pointerType: "mouse" });
+    fireEvent.click(sinhala);
     fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
     await waitFor(() => expect(fetcher).toHaveBeenCalled());
     expect(JSON.parse(fetcher.mock.calls[0]![1].body)).toMatchObject({

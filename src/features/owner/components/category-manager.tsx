@@ -97,10 +97,12 @@ function CategoryForm({
   return (
     <Card className="gap-0 p-5">
       <form
-        className="grid gap-4 md:grid-cols-2 lg:grid-cols-[repeat(3,minmax(0,1fr))_auto] lg:items-end"
+        className={`grid gap-4 md:grid-cols-2 lg:items-end ${category || shops.length > 1 ? "lg:grid-cols-[repeat(3,minmax(0,1fr))_auto]" : "lg:grid-cols-[repeat(2,minmax(0,1fr))_auto]"}`}
         onSubmit={handleSubmit}
       >
-        <h2 className="text-lg font-semibold md:col-span-2 lg:col-span-4">
+        <h2
+          className={`text-lg font-semibold md:col-span-2 ${category || shops.length > 1 ? "lg:col-span-4" : "lg:col-span-3"}`}
+        >
           {category ? (
             <>
               <Text value="Edit" />{" "}
@@ -113,7 +115,7 @@ function CategoryForm({
             t("Create a category")
           )}
         </h2>
-        {!category ? (
+        {!category && shops.length > 1 ? (
           <div className="min-w-0">
             <Label htmlFor="shopId" className="block text-sm font-medium">
               <Text value="Shop" />
@@ -144,12 +146,12 @@ function CategoryForm({
               </SelectContent>
             </Select>
           </div>
-        ) : (
+        ) : category ? (
           <p className="min-w-0 text-sm text-muted-foreground">
             <Text value={"Shop: "} />
             {category.shopName}
           </p>
-        )}
+        ) : null}
         <FormField
           id={category ? `nameEn-${category.id}` : "nameEn"}
           name="nameEn"

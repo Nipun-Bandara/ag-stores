@@ -2,13 +2,16 @@ import type { NextRequest } from "next/server";
 
 import { UserRole } from "@/generated/prisma/client";
 import { errorResponse, successResponse } from "@/lib/api-response";
-import { requireApiRole } from "@/lib/auth/request";
+import { requireApiAnyRole } from "@/lib/auth/request";
 import { ownerOrderErrorResponse } from "@/lib/owner-order-http";
 import { getOwnerOrderDashboard } from "@/services/owner-order.service";
 import { ownerOrderFiltersSchema } from "@/validations/owner-order";
 
 export async function GET(request: NextRequest) {
-  const authorization = await requireApiRole(request, UserRole.SHOP_OWNER);
+  const authorization = await requireApiAnyRole(request, [
+    UserRole.SHOP_OWNER,
+    UserRole.ORDER_STAFF,
+  ]);
   if (!authorization.authorized) return authorization.response;
 
   const parsed = ownerOrderFiltersSchema.safeParse({

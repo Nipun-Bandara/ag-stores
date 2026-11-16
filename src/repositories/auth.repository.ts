@@ -9,6 +9,7 @@ import type { AuthenticatedUser, SessionCredentials } from "@/types/auth";
 import { normalizeMobile } from "@/lib/account-identity";
 
 const authenticatedUserSelect = {
+  assignedShopId: true,
   id: true,
   name: true,
   firstName: true,

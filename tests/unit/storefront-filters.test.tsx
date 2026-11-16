@@ -27,6 +27,7 @@ const props = {
   },
 };
 beforeEach(() => {
+  window.history.replaceState({}, "", "/?page=9&pageSize=48");
   vi.useFakeTimers();
   nav.replace.mockClear();
 });
@@ -52,7 +53,7 @@ it("debounces typing, uses theme placeholders, and has no apply button", () => {
   expect(nav.replace).not.toHaveBeenCalled();
   tick();
   expect(nav.replace).toHaveBeenCalledExactlyOnceWith(
-    "/si/products?search=tea",
+    "/si/products?pageSize=48&search=tea",
     { scroll: false },
   );
   expect(
@@ -71,7 +72,7 @@ it("changes category immediately, keeps readable labels, and combines unfinished
   });
   choose("Beverages · Test Shop");
   expect(nav.replace).toHaveBeenCalledExactlyOnceWith(
-    "/si/products?search=tea&categoryId=beverages-id",
+    "/si/products?pageSize=48&search=tea&categoryId=beverages-id",
     { scroll: false },
   );
   tick();
@@ -80,9 +81,12 @@ it("changes category immediately, keeps readable labels, and combines unfinished
     "Beverages · Test Shop",
   );
   choose("All categories");
-  expect(nav.replace).toHaveBeenLastCalledWith("/si/products?search=tea", {
-    scroll: false,
-  });
+  expect(nav.replace).toHaveBeenLastCalledWith(
+    "/si/products?pageSize=48&search=tea",
+    {
+      scroll: false,
+    },
+  );
 });
 it("keeps newer text and focus when an earlier filter response arrives", () => {
   const view = render(<StorefrontFilters {...props} />);
@@ -95,9 +99,12 @@ it("keeps newer text and focus when an earlier filter response arrives", () => {
   expect(input).toHaveValue("teapot");
   expect(input).toHaveFocus();
   tick();
-  expect(nav.replace).toHaveBeenLastCalledWith("/si/products?search=teapot", {
-    scroll: false,
-  });
+  expect(nav.replace).toHaveBeenLastCalledWith(
+    "/si/products?pageSize=48&search=teapot",
+    {
+      scroll: false,
+    },
+  );
 });
 it("restores filters after external navigation and clears timers on unmount", () => {
   const view = render(<StorefrontFilters {...props} />);

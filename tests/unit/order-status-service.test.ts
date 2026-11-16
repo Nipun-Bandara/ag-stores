@@ -85,6 +85,44 @@ function repositoryFor(record: OrderTransitionRecord | null) {
   return { repository, transaction };
 }
 
+it("allows assigned order staff to prepare orders and denies other shops and delivery dispatch", async () => {
+  const staff = {
+    ...user("staff", UserRole.ORDER_STAFF),
+    assignedShopId: shopId,
+  };
+  const allowed = repositoryFor(order());
+  await transitionOrderStatus(
+    staff,
+    orderId,
+    OrderStatus.READY_FOR_DELIVERY,
+    undefined,
+    allowed.repository,
+  );
+  expect(allowed.transaction.updateStatus).toHaveBeenCalled();
+  const wrongShop = repositoryFor(order());
+  await expect(
+    transitionOrderStatus(
+      { ...staff, assignedShopId: "other-shop" },
+      orderId,
+      OrderStatus.CONFIRMED,
+      undefined,
+      wrongShop.repository,
+    ),
+  ).rejects.toMatchObject({ status: 403 });
+  expect(wrongShop.transaction.updateStatus).not.toHaveBeenCalled();
+  const dispatch = repositoryFor(order(OrderStatus.READY_FOR_DELIVERY));
+  await expect(
+    transitionOrderStatus(
+      staff,
+      orderId,
+      OrderStatus.ASSIGNED,
+      undefined,
+      dispatch.repository,
+    ),
+  ).rejects.toMatchObject({ status: 403 });
+  expect(dispatch.transaction.updateStatus).not.toHaveBeenCalled();
+});
+
 describe("order status service", () => {
   it("updates status and records timestamped history atomically", async () => {
     const { repository, transaction } = repositoryFor(order());

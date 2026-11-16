@@ -1,3 +1,6 @@
+import { parseProductPage } from "@/lib/product-pagination";
+import { Text } from "@/features/i18n/components/text";
+import { ProductPagination } from "@/features/products/components/product-pagination";
 import type { Metadata } from "next";
 
 import { ProductGrid } from "@/features/storefront/components/product-grid";
@@ -6,7 +9,7 @@ import { getDictionary, localizeBilingual } from "@/lib/i18n/config";
 import { getLocaleContext, getServerText } from "@/lib/i18n/server";
 import {
   listStorefrontCategories,
-  listStorefrontProducts,
+  getStorefrontProductPage,
 } from "@/services/storefront.service";
 import {
   productCategoryFilterSchema,
@@ -29,6 +32,8 @@ export default async function ProductsPage({
   searchParams: Promise<{
     search?: string | string[];
     categoryId?: string | string[];
+    page?: string | string[];
+    pageSize?: string | string[];
   }>;
 }) {
   const query = await searchParams;
@@ -50,7 +55,7 @@ export default async function ProductsPage({
   };
   const [localeContext, products, categories] = await Promise.all([
     getLocaleContext(),
-    listStorefrontProducts(filters),
+    getStorefrontProductPage(filters, parseProductPage(query)),
     listStorefrontCategories(),
   ]);
   const { locale, localizedRoute } = localeContext;
@@ -80,18 +85,21 @@ export default async function ProductsPage({
         />
       </Card>
       <StorefrontCartSummary locale={locale} localizedRoute={localizedRoute} />
-      <p className="mt-5 text-xs text-muted-foreground">
-        {products.length}{" "}
-        {products.length === 1 ? copy.product : copy.productPlural}
-      </p>
+      {filters.categoryId ? (
+        <p className="mt-4 text-sm text-muted-foreground">
+          <Text value="Highest discounts first, based on the minimum order quantity." />
+        </p>
+      ) : null}
+      <ProductPagination {...products} />
       <div className="mt-1">
         <ProductGrid
-          products={products}
+          products={products.products}
           locale={locale}
           localizedRoute={localizedRoute}
           emptyMessage={copy.noMatches}
         />
       </div>
+      {products.total > 0 ? <ProductPagination {...products} compact /> : null}
     </section>
   );
 }

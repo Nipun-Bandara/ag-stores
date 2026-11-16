@@ -14,6 +14,7 @@ describe("environment validation", () => {
     ).toEqual({
       NODE_ENV: "test",
       DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/ag_stores",
+      DATABASE_PREFER_IPV4: "false",
       NEXT_PUBLIC_APP_URL: "http://localhost:3000",
       AUTH_RATE_LIMIT_MAX_ATTEMPTS: 10,
       AUTH_RATE_LIMIT_MAX_ATTEMPTS_PER_IP: 50,

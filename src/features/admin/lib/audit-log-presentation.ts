@@ -2,6 +2,10 @@ import type { AuditAction, AuditEntityType } from "@/generated/prisma/client";
 import type { AuditLogView } from "@/services/audit-log.service";
 
 const actions: Record<AuditAction, string> = {
+  ORDER_RETURN_RECORDED: "Order return recorded",
+  ORDER_RETURN_REVIEWED: "Order return reviewed",
+  ORDER_REFUND_RECORDED: "Cash refund recorded",
+  STAFF_ACCOUNT_UPDATED: "Staff account updated",
   PRODUCT_PRICE_UPDATED: "Product price updated",
   PRODUCT_STOCK_UPDATED: "Product stock updated",
   ORDER_PACKING_UPDATED: "Order packed weight updated",
@@ -105,6 +109,24 @@ export function presentAuditLog(log: AuditLogView, t: Translate) {
   } else if (log.action === "SHOP_CREATED") {
     summary = t("Shop account created.");
   }
+  if (log.action === "ORDER_RETURN_RECORDED")
+    summary = `${t("Returned quantity")}: ${String(metadata.quantity ?? "")} · ${t("Refund")}: LKR ${String(metadata.refundAmount ?? "")}`;
+  if (log.action === "ORDER_RETURN_REVIEWED")
+    summary = t(
+      metadata.action === "reject"
+        ? "Return rejected."
+        : metadata.restock
+          ? "Return approved and stock restored."
+          : "Return approved without restocking.",
+    );
+  if (log.action === "ORDER_REFUND_RECORDED")
+    summary = `${t("Cash refund paid")}: LKR ${String(metadata.refundAmount ?? "")}`;
+  if (log.action === "STAFF_ACCOUNT_UPDATED")
+    summary = t(
+      metadata.operation === "created"
+        ? "Staff account created."
+        : "Staff account saved.",
+    );
   const entityName =
     log.entityName ??
     (log.action === "SHOP_CREATED" && typeof metadata.name === "string"
