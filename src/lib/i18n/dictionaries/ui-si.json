@@ -1044,5 +1044,14 @@
   "Manage shop details and customer availability.": "වෙළඳසැලේ තොරතුරු සහ පාරිභෝගිකයන් සඳහා ලබාගත හැකි බව කළමනාකරණය කරන්න.",
   "Reason": "හේතුව",
   "Refund": "ආපසු ගෙවීම",
-  "Remaining": "ඉතිරි ප්‍රමාණය"
+  "Remaining": "ඉතිරි ප්‍රමාණය",
+  "Sign in to check out": "ඇණවුම් කිරීමට පිවිසෙන්න",
+  "Home": "මුල් පිටුව",
+  "See all": "සියල්ල බලන්න",
+  "Main navigation": "ප්‍රධාන සංචාලනය",
+  "{count} items in cart": "කරත්තයේ අයිතම {count}",
+  "Loading more products…": "තවත් නිෂ්පාදන පූරණය වෙමින්…",
+  "Couldn't load more products.": "තවත් නිෂ්පාදන පූරණය කළ නොහැකි විය.",
+  "Load more": "තවත් පෙන්වන්න",
+  "You've reached the end of the list.": "ලැයිස්තුවේ අවසානයට ඔබ පැමිණ ඇත."
 }

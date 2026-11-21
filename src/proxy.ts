@@ -14,16 +14,14 @@ import {
   NONCE_HEADER_NAME,
 } from "@/lib/security/content-security-policy";
 
+// Products, categories and the cart are public storefront pages.
 const protectedRoots = [
   "/dashboard",
   "/profile",
   "/notifications",
   "/account",
   "/orders",
-  "/cart",
   "/checkout",
-  "/products",
-  "/categories",
   "/owner",
   "/staff",
   "/delivery",

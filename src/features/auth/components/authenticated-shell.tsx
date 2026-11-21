@@ -17,27 +17,44 @@ import { useAuth } from "@/context/AuthContext";
 import { routePath, type Locale } from "@/lib/i18n/config";
 import { LocaleDocument } from "@/features/i18n/components/locale-document";
 import { LanguageSwitcher } from "@/features/i18n/components/language-switcher";
-import { canAccessWorkspace } from "@/lib/navigation";
+import Link from "next/link";
+
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import {
+  canAccessWorkspace,
+  getMobileTabs,
+  isPublicStorefrontPath,
+} from "@/lib/navigation";
+import { cn } from "@/lib/utils";
 
 export function AuthenticatedShell({
   children,
   locale,
   localizedRoute,
+  allowGuests = false,
 }: {
   children: ReactNode;
   locale: Locale;
   localizedRoute: boolean;
+  /** Public storefront pages render for visitors who have not signed in. */
+  allowGuests?: boolean;
 }) {
   const t = useText();
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const allowed = Boolean(
-    user && user.status === "ACTIVE" && canAccessWorkspace(user.role, pathname),
-  );
+  const guestView = allowGuests && !user && isPublicStorefrontPath(pathname);
+  const allowed =
+    guestView ||
+    Boolean(
+      user &&
+      user.status === "ACTIVE" &&
+      canAccessWorkspace(user.role, pathname),
+    );
 
   useEffect(() => {
     if (isLoading) return;
+    if (guestView) return;
     if (!user) {
       const returnTo = `${pathname}${window.location.search}`;
       router.replace(
@@ -46,9 +63,20 @@ export function AuthenticatedShell({
     } else if (!allowed) {
       router.replace(routePath("/forbidden", locale, localizedRoute));
     }
-  }, [user, isLoading, allowed, pathname, router, locale, localizedRoute]);
+  }, [
+    user,
+    isLoading,
+    allowed,
+    guestView,
+    pathname,
+    router,
+    locale,
+    localizedRoute,
+  ]);
 
-  if (isLoading) {
+  // Public pages render straight away (server-rendered for guests and search
+  // engines); the sidebar switches to the signed-in menu once the session loads.
+  if (isLoading && !allowGuests) {
     return (
       <div className="flex h-full w-full items-center justify-center min-h-screen">
         <Loader />
@@ -56,6 +84,10 @@ export function AuthenticatedShell({
     );
   }
   if (!allowed) return null;
+
+  // Phones get bottom tabs instead of the sidebar where a role has them.
+  const mobileTabs = getMobileTabs(user?.role ?? null, { guest: guestView });
+  const hasMobileTabs = mobileTabs.length > 0;
 
   return (
     <TooltipProvider>
@@ -65,7 +97,21 @@ export function AuthenticatedShell({
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b border-sidebar-border">
             <div className="flex min-w-0 w-full items-center gap-2 px-4 lg:px-6">
-              <SidebarTrigger className="-ml-1" />
+              <SidebarTrigger
+                className={cn("-ml-1", hasMobileTabs && "max-md:hidden")}
+              />
+              {hasMobileTabs ? (
+                <Link
+                  href={routePath("/home", locale, localizedRoute)}
+                  data-testid="mobile-brand"
+                  className="flex items-center gap-2 font-bold text-foreground no-underline md:hidden"
+                >
+                  <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-[11px] text-primary-foreground">
+                    AG
+                  </span>
+                  AG Stores
+                </Link>
+              ) : null}
               <div className="ml-auto flex items-center gap-3">
                 <LanguageSwitcher
                   locale={locale}
@@ -76,10 +122,24 @@ export function AuthenticatedShell({
             </div>
           </header>
           {/* Page gutters live here; child pages only manage their internal spacing. */}
-          <div className="flex min-w-0 w-full flex-1 flex-col gap-4 bg-background p-4 text-foreground lg:gap-6 lg:p-6">
+          <div
+            className={cn(
+              "flex min-w-0 w-full flex-1 flex-col gap-4 bg-background p-4 text-foreground lg:gap-6 lg:p-6",
+              // Keep the last content clear of the fixed tab bar and home indicator.
+              hasMobileTabs &&
+                "max-md:pb-[calc(5rem+env(safe-area-inset-bottom))]",
+            )}
+          >
             {children}
           </div>
         </SidebarInset>
+        {hasMobileTabs ? (
+          <MobileBottomNav
+            tabs={mobileTabs}
+            locale={locale}
+            localizedRoute={localizedRoute}
+          />
+        ) : null}
       </SidebarProvider>
     </TooltipProvider>
   );

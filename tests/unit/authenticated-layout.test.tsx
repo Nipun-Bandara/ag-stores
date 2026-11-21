@@ -3,6 +3,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
   fireEvent,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,8 +14,12 @@ import {
   DASHBOARD_BY_ROLE,
   canAccessWorkspace,
   getNavItemsForRole,
+  getGuestNavGroups,
   getNavGroupsForRole,
   isNavItemActive,
+  isPublicStorefrontPath,
+  getMobileTabs,
+  isMobileTabActive,
   NAV_ITEMS,
   type Role,
 } from "@/lib/navigation";
@@ -70,6 +75,22 @@ function session(role: Role): AuthenticatedUser {
     status: "ACTIVE",
   };
 }
+function tabHrefs() {
+  const nav = screen.queryByTestId("mobile-bottom-nav");
+  return nav
+    ? within(nav)
+        .getAllByRole("link")
+        .map((link) => link.getAttribute("href"))
+    : [];
+}
+/** Links outside the phone tab bar: the sidebar menu. */
+function sidebarHrefs() {
+  return screen
+    .getAllByRole("link")
+    .filter((link) => !link.closest('[data-testid="mobile-bottom-nav"]'))
+    .filter((link) => link.dataset.testid !== "mobile-brand")
+    .map((link) => link.getAttribute("href"));
+}
 function shell() {
   return (
     <AuthenticatedShell locale="en" localizedRoute={false}>
@@ -91,10 +112,13 @@ describe("authenticated layout", () => {
         getNavItemsForRole(role).find((item) => item.label === "Dashboard")!
           .href,
       );
-      const hrefs = screen
-        .getAllByRole("link")
-        .map((link) => link.getAttribute("href"));
-      expect(hrefs).toEqual(getNavItemsForRole(role).map((item) => item.href));
+      expect(sidebarHrefs()).toEqual(
+        getNavItemsForRole(role).map((item) => item.href),
+      );
+      // Only customers have phone tabs so far; other roles keep the sidebar.
+      expect(Boolean(screen.queryByTestId("mobile-bottom-nav"))).toBe(
+        role === "CUSTOMER",
+      );
       expect(
         getNavGroupsForRole(role).every((group) => group.items.length > 0),
       ).toBe(true);
@@ -189,5 +213,72 @@ describe("authenticated layout", () => {
       expect(canAccessWorkspace("DELIVERY_PERSON", path)).toBe(false);
     }
     expect(isNavItemActive("/si/categories/example", "/products")).toBe(true);
+  });
+
+  it("shows the storefront to guests with a browsing menu and a sign-in link", () => {
+    state.path = "/products";
+    render(
+      <AuthenticatedShell locale="en" localizedRoute={false} allowGuests>
+        <div>Catalog</div>
+      </AuthenticatedShell>,
+    );
+    expect(screen.getByText("Catalog")).toBeVisible();
+    expect(state.replace).not.toHaveBeenCalled();
+    expect(sidebarHrefs()).toEqual([
+      "/home",
+      "/products",
+      "/cart",
+      "/auth?returnTo=%2Fproducts",
+    ]);
+    expect(tabHrefs()).toEqual(["/home", "/products", "/cart", "/account"]);
+  });
+  it("renders public pages while the session is still loading", () => {
+    state.loading = true;
+    state.path = "/cart";
+    render(
+      <AuthenticatedShell locale="en" localizedRoute={false} allowGuests>
+        <div>Cart page</div>
+      </AuthenticatedShell>,
+    );
+    expect(screen.getByText("Cart page")).toBeVisible();
+  });
+  it("still sends guests to sign in for private pages in a guest-friendly shell", async () => {
+    state.path = "/checkout";
+    render(
+      <AuthenticatedShell locale="en" localizedRoute={false} allowGuests>
+        <div>Checkout</div>
+      </AuthenticatedShell>,
+    );
+    await waitFor(() =>
+      expect(state.replace).toHaveBeenCalledWith("/auth?returnTo=%2Fcheckout"),
+    );
+    expect(screen.queryByText("Checkout")).not.toBeInTheDocument();
+  });
+  it("treats only browsing and the cart as public", () => {
+    for (const path of [
+      "/products",
+      "/si/products/x",
+      "/categories/x",
+      "/cart",
+    ])
+      expect(isPublicStorefrontPath(path), path).toBe(true);
+    for (const path of ["/checkout", "/account", "/orders/x", "/productsx"])
+      expect(isPublicStorefrontPath(path), path).toBe(false);
+    expect(
+      getGuestNavGroups().flatMap((group) => group.items.map((i) => i.href)),
+    ).toEqual(["/home", "/products", "/cart"]);
+  });
+
+  it("highlights the tab for nested and related pages", () => {
+    const [home, shop, cart, account] = getMobileTabs("CUSTOMER");
+    expect(isMobileTabActive("/si/home", home!)).toBe(true);
+    expect(isMobileTabActive("/categories/x", shop!)).toBe(true);
+    expect(isMobileTabActive("/checkout", cart!)).toBe(true);
+    expect(isMobileTabActive("/orders/x", account!)).toBe(true);
+    expect(isMobileTabActive("/account/orders", account!)).toBe(true);
+    expect(isMobileTabActive("/products", account!)).toBe(false);
+    expect(getMobileTabs("SHOP_OWNER")).toEqual([]);
+    expect(getMobileTabs(null)).toEqual([]);
+    expect(getMobileTabs(null, { guest: true })).toHaveLength(4);
   });
 });

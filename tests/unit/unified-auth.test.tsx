@@ -145,9 +145,8 @@ describe("unified authentication page", () => {
     for (const path of [
       "/account",
       "/si/account",
-      "/products",
-      "/si/products",
-      "/categories/example",
+      "/checkout",
+      "/si/account/orders",
     ]) {
       const response = proxy(new NextRequest(`http://localhost${path}`));
       const destination = new URL(response.headers.get("location")!);
@@ -158,17 +157,24 @@ describe("unified authentication page", () => {
     }
   });
 
-  it("keeps catalog filters when asking a guest to sign in", () => {
-    const response = proxy(
-      new NextRequest(
-        "http://localhost/si/products?search=tea&categoryId=beverages",
-      ),
-    );
+  it("lets guests browse the storefront and cart without signing in", () => {
+    for (const path of [
+      "/products",
+      "/si/products?search=tea&categoryId=beverages",
+      "/products/example",
+      "/categories/example",
+      "/cart",
+    ]) {
+      const response = proxy(new NextRequest(`http://localhost${path}`));
+      expect(response.headers.get("location")).toBeNull();
+    }
+  });
+
+  it("keeps the checkout destination when asking a guest to sign in", () => {
+    const response = proxy(new NextRequest("http://localhost/si/checkout"));
     const destination = new URL(response.headers.get("location")!);
     expect(destination.pathname).toBe("/si/auth");
-    expect(destination.searchParams.get("returnTo")).toBe(
-      "/si/products?search=tea&categoryId=beverages",
-    );
+    expect(destination.searchParams.get("returnTo")).toBe("/si/checkout");
   });
 
   it("rejects external and authentication-loop return destinations", () => {

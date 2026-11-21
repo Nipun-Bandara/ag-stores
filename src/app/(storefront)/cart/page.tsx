@@ -3,13 +3,15 @@ import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
 
 import { CartView } from "@/features/cart/components/cart-view";
+import { getAuthenticatedUser } from "@/lib/auth/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getServerText();
   return { title: `${t("Cart")} | AG Stores` };
 }
 
-export default function CartPage() {
+export default async function CartPage() {
+  const user = await getAuthenticatedUser();
   return (
     <section className="min-w-0 w-full">
       <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
@@ -19,7 +21,7 @@ export default function CartPage() {
         <Text value="Review the items in your cart and continue to checkout." />
       </p>
       <div className="mt-8">
-        <CartView />
+        <CartView signedIn={user !== null} />
       </div>
     </section>
   );

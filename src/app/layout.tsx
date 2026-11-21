@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 
 import { getCurrentLocale } from "@/lib/i18n/server";
@@ -10,6 +10,9 @@ import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "@/components/ui/sonner";
 import { LocaleProvider } from "@/features/i18n/components/locale-provider";
 import { NONCE_HEADER_NAME } from "@/lib/security/content-security-policy";
+
+// Lets the phone tab bar pad itself for the iPhone home indicator.
+export const viewport: Viewport = { viewportFit: "cover" };
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getCurrentLocale();

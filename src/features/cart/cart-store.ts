@@ -10,26 +10,46 @@ import {
   emptyCartState,
   getCartItemCount,
   getCartSubtotal,
+  type CartItem,
   type CartProduct,
   type CartState,
 } from "@/features/cart/cart-state";
 
 const LEGACY_STORAGE_KEY = "ag-stores-cart-v1";
 const STORAGE_PREFIX = "ag-stores-cart-v2:";
+/** Signed-out visitors keep one cart on this device until they sign in. */
+const GUEST_STORAGE_KEY = `${STORAGE_PREFIX}guest`;
 const listeners = new Set<() => void>();
 let state = emptyCartState;
 let loaded = false;
 let ownerId: string | null = null;
 
-function storageKey(): string | null {
-  return ownerId ? `${STORAGE_PREFIX}${ownerId}` : null;
+function storageKey(): string {
+  return ownerId ? `${STORAGE_PREFIX}${ownerId}` : GUEST_STORAGE_KEY;
+}
+
+/**
+ * Guest lines join the account's saved cart on sign-in. A product in both
+ * keeps the guest's line, since it is the most recent choice; the reducer's
+ * hydrate step drops anything invalid and checkout re-prices every line.
+ */
+function mergeCarts(saved: CartItem[], guest: CartItem[]): CartItem[] {
+  const guestIds = new Set(guest.map((item) => item.id));
+  return [...saved.filter((item) => !guestIds.has(item.id)), ...guest];
+}
+
+function removeStoredCart(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Storage may be unavailable; the in-memory cart still works.
+  }
 }
 
 function loadState(): void {
   if (loaded || typeof window === "undefined") return;
   loaded = true;
   const key = storageKey();
-  if (!key) return;
   try {
     const stored: unknown = JSON.parse(localStorage.getItem(key) ?? "null");
     if (
@@ -52,7 +72,7 @@ function loadState(): void {
 function commit(nextState: CartState): void {
   state = nextState;
   const key = storageKey();
-  if (typeof window !== "undefined" && key) {
+  if (typeof window !== "undefined") {
     try {
       localStorage.setItem(key, JSON.stringify(state));
     } catch {
@@ -114,16 +134,28 @@ export const cartStore = {
   },
   setOwner(userId: string | null) {
     if (ownerId === userId) return;
+    // Signing in from a guest session carries the guest cart into the account.
+    let guestItems: CartItem[] = [];
+    if (ownerId === null && userId !== null) {
+      loadState();
+      guestItems = state.items;
+    }
     ownerId = userId;
     state = emptyCartState;
     loaded = false;
     if (typeof window !== "undefined") {
-      try {
-        localStorage.removeItem(LEGACY_STORAGE_KEY);
-      } catch {
-        // Storage may be unavailable; the in-memory cart still works.
-      }
+      removeStoredCart(LEGACY_STORAGE_KEY);
       loadState();
+      if (guestItems.length > 0) {
+        removeStoredCart(GUEST_STORAGE_KEY);
+        commit(
+          cartReducer(state, {
+            type: "hydrate",
+            items: mergeCarts(state.items, guestItems),
+          }),
+        );
+        return;
+      }
     }
     listeners.forEach((listener) => listener());
   },

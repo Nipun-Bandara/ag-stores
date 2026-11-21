@@ -5,6 +5,7 @@ import { cartStore, useCart } from "@/features/cart/cart-store";
 
 afterEach(() => {
   cartStore.setOwner(null);
+  cartStore.clear();
   localStorage.clear();
   cleanup();
 });
@@ -92,4 +93,55 @@ it("refreshes persisted pricing without changing selected quantities and rejects
   });
   expect(cartStore.updateFromQuote(key, quote)).toBe(false);
   expect(result.current.items[0]?.quantity).toBe(4);
+});
+
+const guestProduct = {
+  id: "guest-tea",
+  name: "Guest tea",
+  price: "100.00",
+  stockQuantity: 5,
+  imageUrl: null,
+};
+
+it("keeps a guest cart on this device before sign-in", () => {
+  const { result } = renderHook(() => useCart());
+  act(() => {
+    cartStore.add(guestProduct);
+  });
+
+  expect(result.current.items).toHaveLength(1);
+  expect(
+    JSON.parse(localStorage.getItem("ag-stores-cart-v2:guest")!).items,
+  ).toHaveLength(1);
+});
+
+it("merges the guest cart into the account cart on sign-in and clears it on sign-out", () => {
+  localStorage.setItem(
+    "ag-stores-cart-v2:merge-customer",
+    JSON.stringify({
+      items: [
+        { ...guestProduct, id: "saved-rice", name: "Saved rice", quantity: 1 },
+        { ...guestProduct, quantity: 1 },
+      ],
+    }),
+  );
+  const { result } = renderHook(() => useCart());
+  act(() => {
+    cartStore.add(guestProduct);
+    cartStore.add(guestProduct);
+  });
+
+  act(() => cartStore.setOwner("merge-customer"));
+  expect(result.current.items.map((item) => [item.id, item.quantity])).toEqual([
+    ["saved-rice", 1],
+    // The guest's newer line wins over the saved one for the same product.
+    ["guest-tea", 2],
+  ]);
+  expect(localStorage.getItem("ag-stores-cart-v2:guest")).toBeNull();
+
+  // Signing out must not leave the customer's cart for the next visitor.
+  act(() => cartStore.setOwner(null));
+  expect(result.current.items).toEqual([]);
+  act(() => cartStore.setOwner("merge-customer"));
+  expect(result.current.items).toHaveLength(2);
 });

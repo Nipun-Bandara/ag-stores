@@ -4,6 +4,7 @@ import { ProductPagination } from "@/features/products/components/product-pagina
 import type { Metadata } from "next";
 
 import { ProductGrid } from "@/features/storefront/components/product-grid";
+import { InfiniteProductList } from "@/features/storefront/components/infinite-product-list";
 import { StorefrontCartSummary } from "@/features/cart/components/storefront-cart-summary";
 import { getDictionary, localizeBilingual } from "@/lib/i18n/config";
 import { getLocaleContext, getServerText } from "@/lib/i18n/server";
@@ -90,7 +91,10 @@ export default async function ProductsPage({
           <Text value="Highest discounts first, based on the minimum order quantity." />
         </p>
       ) : null}
-      <ProductPagination {...products} />
+      {/* Phones scroll through pages instead of using numbered pagination. */}
+      <div className="max-md:hidden">
+        <ProductPagination {...products} />
+      </div>
       <div className="mt-1">
         <ProductGrid
           products={products.products}
@@ -99,7 +103,22 @@ export default async function ProductsPage({
           emptyMessage={copy.noMatches}
         />
       </div>
-      {products.total > 0 ? <ProductPagination {...products} compact /> : null}
+      <InfiniteProductList
+        key={`${filters.search ?? ""}|${filters.categoryId ?? ""}|${products.pageSize}|${products.page}`}
+        initialPage={products.page}
+        pageCount={products.pageCount}
+        pageSize={products.pageSize}
+        initialProductIds={products.products.map((product) => product.id)}
+        search={filters.search}
+        categoryId={filters.categoryId}
+        locale={locale}
+        localizedRoute={localizedRoute}
+      />
+      {products.total > 0 ? (
+        <div className="max-md:hidden">
+          <ProductPagination {...products} compact />
+        </div>
+      ) : null}
     </section>
   );
 }

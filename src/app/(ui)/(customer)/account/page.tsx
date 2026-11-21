@@ -29,6 +29,7 @@ import {
 } from "@/lib/money";
 import { listCustomerAddresses } from "@/services/customer-address.service";
 import { listCustomerOrders } from "@/services/customer-order.service";
+import { MobileAccountMenu } from "@/features/account/components/mobile-account-menu";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getServerText();
@@ -93,6 +94,7 @@ export default async function AccountPage() {
 
   return (
     <section className="min-w-0 w-full space-y-6">
+      <MobileAccountMenu locale={locale} localizedRoute={localizedRoute} />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">

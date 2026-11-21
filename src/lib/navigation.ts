@@ -132,6 +132,13 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["ADMIN"],
   },
   {
+    id: "storeHome",
+    label: "Home",
+    href: "/home",
+    group: "shopping",
+    roles: ["CUSTOMER"],
+  },
+  {
     id: "products",
     label: "Browse products",
     href: "/products",
@@ -313,6 +320,33 @@ export function getNavGroupsForRole(
     items: items.filter((item) => item.group === group.id),
   })).filter((group) => group.items.length > 0);
 }
+/** Storefront pages anyone may browse; ordering and accounts still need login. */
+export const PUBLIC_STOREFRONT_ROOTS = [
+  "/home",
+  "/products",
+  "/categories",
+  "/cart",
+];
+
+export function isPublicStorefrontPath(pathname: string): boolean {
+  const path = navigationPath(pathname);
+  return PUBLIC_STOREFRONT_ROOTS.some(
+    (root) => path === root || path.startsWith(`${root}/`),
+  );
+}
+
+/** Sidebar for visitors who have not signed in: browsing and the cart. */
+export function getGuestNavGroups(): NavGroup[] {
+  const items = NAV_ITEMS.filter(
+    (item) =>
+      item.roles.includes("CUSTOMER") && isPublicStorefrontPath(item.href),
+  );
+  return NAV_GROUPS.map((group) => ({
+    ...group,
+    items: items.filter((item) => item.group === group.id),
+  })).filter((group) => group.items.length > 0);
+}
+
 /** UI checks complement the server page guards and API authorization. */
 export function canAccessWorkspace(
   role: Role | null,
@@ -324,6 +358,7 @@ export function canAccessWorkspace(
   const roots: Record<Role, string[]> = {
     ORDER_STAFF: ["/staff"],
     CUSTOMER: [
+      "/home",
       "/account",
       "/orders",
       "/cart",
@@ -350,6 +385,7 @@ export const ICONS_MAP: Record<
   ownerDashboard: House,
   adminDashboard: House,
   deliveryDashboard: House,
+  storeHome: House,
   products: Store,
   cart: ShoppingCart,
   customerOrders: ClipboardList,
@@ -373,3 +409,46 @@ export const ICONS_MAP: Record<
   security: ShieldCheck,
 };
 export default NAV_ITEMS;
+
+export interface MobileTab {
+  id: "home" | "shop" | "cart" | "account";
+  label: string;
+  href: string;
+  /** Paths (beyond `href`) that highlight this tab. */
+  activeRoots: string[];
+}
+
+/**
+ * Bottom tabs shown below the md breakpoint in place of the sidebar. Customers
+ * and guests share them; Account sends guests to sign in. Other roles keep the
+ * sidebar until their own tabs exist.
+ */
+export function getMobileTabs(
+  role: Role | null,
+  options: { guest?: boolean } = {},
+): MobileTab[] {
+  if (role !== "CUSTOMER" && !(role === null && options.guest)) return [];
+  return [
+    { id: "home", label: "Home", href: "/home", activeRoots: [] },
+    {
+      id: "shop",
+      label: "Shop",
+      href: "/products",
+      activeRoots: ["/categories"],
+    },
+    { id: "cart", label: "Cart", href: "/cart", activeRoots: ["/checkout"] },
+    {
+      id: "account",
+      label: "Account",
+      href: "/account",
+      activeRoots: ["/orders", "/notifications", "/profile"],
+    },
+  ];
+}
+
+export function isMobileTabActive(pathname: string, tab: MobileTab): boolean {
+  const path = navigationPath(pathname);
+  return [tab.href, ...tab.activeRoots].some(
+    (root) => path === root || path.startsWith(`${root}/`),
+  );
+}

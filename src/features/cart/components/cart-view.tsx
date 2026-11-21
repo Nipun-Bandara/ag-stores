@@ -26,7 +26,8 @@ import {
 } from "@/components/ui/empty";
 import { localizeBilingual } from "@/lib/i18n/config";
 
-export function CartView() {
+/** Guests keep their cart; checkout sends them to sign in and then back. */
+export function CartView({ signedIn = true }: { signedIn?: boolean }) {
   const t = useText();
   const locale = useLocale();
   const { items, updateQuantity, remove, clear } = useCart();
@@ -191,14 +192,22 @@ export function CartView() {
           <Text value={"Delivery fees are calculated at checkout."} />
         </p>
         <Link
-          href="/checkout"
+          href={
+            signedIn
+              ? "/checkout"
+              : `/auth?returnTo=${encodeURIComponent("/checkout")}`
+          }
           className={buttonVariants({
             variant: "success",
             className:
               "mt-3 flex h-auto min-h-9 w-full justify-center whitespace-normal break-words py-2 text-center",
           })}
         >
-          <Text value={"Proceed to checkout "} />
+          {signedIn ? (
+            <Text value={"Proceed to checkout "} />
+          ) : (
+            <Text value="Sign in to check out" />
+          )}
         </Link>
         <ConfirmAction
           title={t("Clear cart")}

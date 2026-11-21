@@ -27,7 +27,7 @@ export function StorefrontCartSummary({
     <Card
       as="aside"
       aria-label={t("Cart summary")}
-      className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+1rem)] z-30 flex-row items-center justify-between gap-3 rounded-xl border border-border p-3 shadow-lg ring-0 md:sticky md:inset-x-auto md:bottom-auto md:top-3 md:z-20 md:mt-5 md:w-full md:shadow-sm"
+      className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-30 flex-row items-center justify-between gap-3 rounded-xl border border-border p-3 shadow-lg ring-0 md:sticky md:inset-x-auto md:bottom-auto md:top-3 md:z-20 md:mt-5 md:w-full md:shadow-sm"
     >
       <div className="flex min-w-0 items-center gap-3">
         <ShoppingCart aria-hidden="true" className="size-5 shrink-0" />

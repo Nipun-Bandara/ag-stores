@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { ProductGrid } from "@/features/storefront/components/product-grid";
+import { InfiniteProductList } from "@/features/storefront/components/infinite-product-list";
 import { getDictionary, localizeBilingual } from "@/lib/i18n/config";
 import { getLocaleContext } from "@/lib/i18n/server";
 import {
@@ -59,7 +60,10 @@ export default async function CategoryPage({
       <p className="mt-2 text-sm text-muted-foreground">
         <Text value="Highest discounts first, based on the minimum order quantity." />
       </p>
-      <ProductPagination {...products} />
+      {/* Phones scroll through pages instead of using numbered pagination. */}
+      <div className="max-md:hidden">
+        <ProductPagination {...products} />
+      </div>
       <div className="mt-4">
         <ProductGrid
           products={products.products}
@@ -68,7 +72,21 @@ export default async function CategoryPage({
           emptyMessage={copy.noCategoryProducts}
         />
       </div>
-      {products.total > 0 ? <ProductPagination {...products} compact /> : null}
+      <InfiniteProductList
+        key={`${category.id}|${products.pageSize}|${products.page}`}
+        initialPage={products.page}
+        pageCount={products.pageCount}
+        pageSize={products.pageSize}
+        initialProductIds={products.products.map((product) => product.id)}
+        categoryId={category.id}
+        locale={locale}
+        localizedRoute={localizedRoute}
+      />
+      {products.total > 0 ? (
+        <div className="max-md:hidden">
+          <ProductPagination {...products} compact />
+        </div>
+      ) : null}
     </section>
   );
 }
