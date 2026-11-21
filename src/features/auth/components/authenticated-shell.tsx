@@ -21,6 +21,7 @@ import Link from "next/link";
 
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import {
+  DASHBOARD_BY_ROLE,
   canAccessWorkspace,
   getMobileTabs,
   isPublicStorefrontPath,
@@ -61,12 +62,22 @@ export function AuthenticatedShell({
         `${routePath("/auth", locale, localizedRoute)}?returnTo=${encodeURIComponent(returnTo)}`,
       );
     } else if (!allowed) {
-      router.replace(routePath("/forbidden", locale, localizedRoute));
+      // Owners and staff who open the storefront go to their own workspace.
+      router.replace(
+        routePath(
+          allowGuests && isPublicStorefrontPath(pathname)
+            ? DASHBOARD_BY_ROLE[user.role]
+            : "/forbidden",
+          locale,
+          localizedRoute,
+        ),
+      );
     }
   }, [
     user,
     isLoading,
     allowed,
+    allowGuests,
     guestView,
     pathname,
     router,
@@ -102,7 +113,13 @@ export function AuthenticatedShell({
               />
               {hasMobileTabs ? (
                 <Link
-                  href={routePath("/home", locale, localizedRoute)}
+                  href={routePath(
+                    user && user.role !== "CUSTOMER"
+                      ? DASHBOARD_BY_ROLE[user.role]
+                      : "/home",
+                    locale,
+                    localizedRoute,
+                  )}
                   data-testid="mobile-brand"
                   className="flex items-center gap-2 font-bold text-foreground no-underline md:hidden"
                 >

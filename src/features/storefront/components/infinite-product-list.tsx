@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -9,12 +10,12 @@ import { ProductCard } from "@/features/storefront/components/product-card";
 import {
   appendUnique,
   arrivedByHistoryNavigation,
-  catalogKey,
-  clearCatalogSnapshot,
-  readCatalogSnapshot,
-  writeCatalogSnapshot,
+  readCatalogScroll,
+  saveCatalogScroll,
+  urlWithLoadedPages,
 } from "@/features/storefront/catalog-session";
 import type { Locale } from "@/lib/i18n/config";
+import { LOADED_PAGES_PARAM, parseLoadedPages } from "@/lib/product-pagination";
 import type { StorefrontProductView } from "@/services/storefront.service";
 
 interface ProductPagePayload {
@@ -25,16 +26,36 @@ interface ProductPagePayload {
   };
 }
 
-type Status = "idle" | "loading" | "error";
+type Status = "idle" | "loading" | "error" | "restoring";
+
+/** Scrolls to a remembered offset once the restored cards have laid out. */
+function applyPendingScroll(pending: { current: number | null }): void {
+  const target = pending.current;
+  if (target === null) return;
+  pending.current = null;
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => window.scrollTo({ top: target })),
+  );
+}
+
+function currentPathAndQuery(): string {
+  return `${window.location.pathname}${window.location.search}`;
+}
 
 /**
  * Phone-only continuation of a server-rendered catalogue page: as the shopper
  * nears the end of the list, the next page is fetched and appended. Larger
  * screens hide this and keep the numbered pagination. A "Load more" button
- * stays available for keyboard and screen-reader users.
+ * stays available for screen readers, keyboards and slow connections.
+ *
+ * The number of pages shown is written to the URL (`?loaded=N`). The server
+ * renders those pages again on Back, refresh or a shared link and passes them
+ * in as `initialProducts`; the scroll offset is restored on Back.
  */
 export function InfiniteProductList({
   initialPage,
+  initialLastPage = initialPage,
+  initialProducts = [],
   pageCount,
   pageSize,
   initialProductIds,
@@ -44,6 +65,10 @@ export function InfiniteProductList({
   localizedRoute,
 }: {
   initialPage: number;
+  /** Last page already rendered by the server (from `?loaded=`). */
+  initialLastPage?: number;
+  /** Products on pages initialPage+1..initialLastPage. */
+  initialProducts?: StorefrontProductView[];
   pageCount: number;
   pageSize: number;
   initialProductIds: string[];
@@ -53,67 +78,98 @@ export function InfiniteProductList({
   localizedRoute: boolean;
 }) {
   const t = useText();
-  const key = catalogKey({ search, categoryId, pageSize });
-  const [products, setProducts] = useState<StorefrontProductView[]>([]);
-  const [lastPage, setLastPage] = useState(initialPage);
+  const searchParams = useSearchParams();
+  // `loaded` counts pages from the first; a deep link to ?page=3 keeps its page.
+  const recordsInUrl = initialPage === 1;
+  // Back can reuse the router's cached render from before more pages loaded,
+  // so the URL may ask for more pages than the server rendered this time.
+  const [wantedPages] = useState(() =>
+    recordsInUrl
+      ? parseLoadedPages(
+          searchParams.get(LOADED_PAGES_PARAM) ?? undefined,
+          initialPage,
+          pageCount,
+        )
+      : initialLastPage,
+  );
+  const [products, setProducts] = useState(initialProducts);
+  const [lastPage, setLastPage] = useState(initialLastPage);
   const [totalPages, setTotalPages] = useState(pageCount);
-  const [status, setStatus] = useState<Status>("idle");
-  const [restored, setRestored] = useState(false);
+  const [status, setStatus] = useState<Status>(
+    wantedPages > initialLastPage ? "restoring" : "idle",
+  );
   const sentinel = useRef<HTMLDivElement>(null);
   const pendingScroll = useRef<number | null>(null);
   const hasMore = lastPage < totalPages;
-  // Snapshots continue from the first page only; a deep link keeps its page.
-  const resumable = initialPage === 1;
 
-  // Back from a product page: put the earlier pages and scroll position back.
-  // sessionStorage only exists in the browser, so this must run after
-  // hydration; reading it during render would mismatch the server HTML.
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    if (!resumable) return;
-    const snapshot = arrivedByHistoryNavigation()
-      ? readCatalogSnapshot(key)
-      : null;
-    if (snapshot && snapshot.lastPage > initialPage) {
-      setProducts(
-        appendUnique([], snapshot.products, new Set(initialProductIds)),
-      );
-      setLastPage(Math.min(snapshot.lastPage, pageCount));
-      pendingScroll.current = snapshot.scrollY;
-    } else {
-      clearCatalogSnapshot(key);
-    }
-    setRestored(true);
-    // Only on arrival; later prop changes come with a new key and remount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-  /* eslint-enable react-hooks/set-state-in-effect */
-
-  useEffect(() => {
-    if (pendingScroll.current === null) return;
-    const target = pendingScroll.current;
-    pendingScroll.current = null;
-    // Wait for the restored cards to lay out before scrolling to them.
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => window.scrollTo({ top: target })),
-    );
-  }, [products]);
-
-  // Keep the snapshot current with what is shown and how far down we are.
-  useEffect(() => {
-    if (!restored || !resumable || products.length === 0) return;
-    const save = () =>
-      writeCatalogSnapshot(key, {
-        products,
-        lastPage,
-        scrollY: window.scrollY,
-        savedAt: Date.now(),
+  const fetchPage = useCallback(
+    async (page: number) => {
+      const query = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
       });
-    save();
+      if (search) query.set("search", search);
+      if (categoryId) query.set("categoryId", categoryId);
+      const response = await fetch(`/api/storefront/products?${query}`);
+      const payload = (await response.json()) as ProductPagePayload;
+      if (!response.ok || !payload.data) throw new Error("load failed");
+      return payload.data;
+    },
+    [pageSize, search, categoryId],
+  );
+
+  // On arrival: fetch any pages the URL lists but this render lacks, then put
+  // the scroll offset back if the shopper came here with Back.
+  useEffect(() => {
+    if (recordsInUrl && arrivedByHistoryNavigation()) {
+      pendingScroll.current = readCatalogScroll(currentPathAndQuery());
+    }
+    if (wantedPages <= initialLastPage) {
+      applyPendingScroll(pendingScroll);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const pages = await Promise.all(
+          Array.from({ length: wantedPages - initialLastPage }, (_, index) =>
+            fetchPage(initialLastPage + index + 1),
+          ),
+        );
+        if (cancelled) return;
+        const exclude = new Set(initialProductIds);
+        setProducts((current) =>
+          pages.reduce(
+            (shown, page) => appendUnique(shown, page.products, exclude),
+            current,
+          ),
+        );
+        setTotalPages(pages.at(-1)?.pageCount ?? pageCount);
+        setLastPage(wantedPages);
+        setStatus("idle");
+      } catch {
+        if (!cancelled) setStatus("error");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Runs once per mount; a new filter or count remounts via the parent key.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (status === "idle") applyPendingScroll(pendingScroll);
+  }, [status]);
+
+  // Remember how far down this URL was scrolled, for the next Back.
+  useEffect(() => {
+    if (!recordsInUrl) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    const save = () => saveCatalogScroll(currentPathAndQuery(), window.scrollY);
     const onScroll = () => {
       clearTimeout(timer);
-      timer = setTimeout(save, 200);
+      timer = setTimeout(save, 150);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("pagehide", save);
@@ -123,46 +179,38 @@ export function InfiniteProductList({
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("pagehide", save);
     };
-  }, [key, products, lastPage, restored, resumable]);
+  }, [recordsInUrl]);
 
   const loadMore = useCallback(async () => {
-    if (status === "loading" || !hasMore) return;
+    if (status === "loading" || status === "restoring" || !hasMore) return;
     setStatus("loading");
-    const query = new URLSearchParams({
-      page: String(lastPage + 1),
-      pageSize: String(pageSize),
-    });
-    if (search) query.set("search", search);
-    if (categoryId) query.set("categoryId", categoryId);
     try {
-      const response = await fetch(`/api/storefront/products?${query}`);
-      const payload = (await response.json()) as ProductPagePayload;
-      if (!response.ok || !payload.data) throw new Error("load failed");
-      const { data } = payload;
+      const data = await fetchPage(lastPage + 1);
+      // The API clamps past-the-end requests to the last page.
+      const nextLastPage = data.page > lastPage ? data.page : data.pageCount;
       setProducts((current) =>
         appendUnique(current, data.products, new Set(initialProductIds)),
       );
       setTotalPages(data.pageCount);
-      // The API clamps past-the-end requests to the last page.
-      setLastPage(data.page > lastPage ? data.page : data.pageCount);
+      setLastPage(nextLastPage);
       setStatus("idle");
+      if (recordsInUrl) {
+        // Native history integrates with the Next.js router without a refetch.
+        window.history.replaceState(
+          null,
+          "",
+          urlWithLoadedPages(window.location.href, nextLastPage),
+        );
+      }
     } catch {
       setStatus("error");
     }
-  }, [
-    status,
-    hasMore,
-    lastPage,
-    pageSize,
-    search,
-    categoryId,
-    initialProductIds,
-  ]);
+  }, [status, hasMore, lastPage, fetchPage, initialProductIds, recordsInUrl]);
 
   // Start loading a little before the shopper reaches the end of the list.
   useEffect(() => {
     const node = sentinel.current;
-    if (!node || !restored || !hasMore || status !== "idle") return;
+    if (!node || !hasMore || status !== "idle") return;
     if (typeof IntersectionObserver === "undefined") return;
     const observer = new IntersectionObserver(
       (entries) => {
@@ -172,7 +220,7 @@ export function InfiniteProductList({
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [restored, hasMore, status, loadMore]);
+  }, [hasMore, status, loadMore]);
 
   if (pageCount <= initialPage && products.length === 0) return null;
 
@@ -195,7 +243,7 @@ export function InfiniteProductList({
         className="flex min-h-16 flex-col items-center justify-center gap-2 py-4 text-sm text-muted-foreground"
         aria-live="polite"
       >
-        {status === "loading" ? (
+        {status === "loading" || status === "restoring" ? (
           <span className="inline-flex items-center gap-2">
             <Spinner className="size-4" />
             {t("Loading more products…")}

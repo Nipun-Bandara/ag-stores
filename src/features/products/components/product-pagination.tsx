@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useText } from "@/features/i18n/components/locale-provider";
 import {
+  LOADED_PAGES_PARAM,
   PRODUCT_PAGE_SIZES,
   type ProductPageInfo,
 } from "@/lib/product-pagination";
@@ -45,6 +46,8 @@ export function ProductPagination({
   function pageHref(nextPage: number, nextSize = pageSize) {
     const query = new URLSearchParams(searchParams.toString());
     query.set("page", String(nextPage));
+    // Numbered pages replace the phone's scroll-loaded pages.
+    query.delete(LOADED_PAGES_PARAM);
     query.set("pageSize", String(nextSize));
     return `${pathname}?${query}`;
   }

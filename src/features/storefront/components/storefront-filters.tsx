@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { LOADED_PAGES_PARAM } from "@/lib/product-pagination";
 
 type Filters = { search: string; categoryId: string };
 function filterKey(values: Filters): string {
@@ -79,6 +80,7 @@ export function StorefrontFilters({
       else params.delete(name);
     }
     params.delete("page");
+    params.delete(LOADED_PAGES_PARAM);
     const query = params.toString();
     setState((current) => ({ ...current, requestedKey: key }));
     startTransition(() =>

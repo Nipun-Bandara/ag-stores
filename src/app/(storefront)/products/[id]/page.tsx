@@ -88,10 +88,7 @@ export default async function ProductDetailPage({
           />
         </Card>
         <section className="min-w-0">
-          <p className="break-words text-sm font-medium text-muted-foreground">
-            {product.shopName}
-          </p>
-          <h1 className="mt-2 break-words text-2xl font-semibold leading-snug tracking-tight text-foreground sm:text-3xl">
+          <h1 className="break-words text-2xl font-semibold leading-snug tracking-tight text-foreground sm:text-3xl">
             {name}
           </h1>
           <div className="mt-3">

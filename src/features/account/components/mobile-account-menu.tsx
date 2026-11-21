@@ -10,30 +10,32 @@ import { useText } from "@/features/i18n/components/locale-provider";
 import { routePath, type Locale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/text";
 import {
-  getMobileTabs,
-  getNavItemsForRole,
+  getRoleMenuItems,
   ICONS_MAP,
   type NavItem,
+  type Role,
 } from "@/lib/navigation";
 
-/**
- * Sidebar destinations that have no bottom tab of their own (orders,
- * addresses, profile, security, notifications) plus sign-out, listed on the
- * Account tab for phones. Hidden from md upwards, where the sidebar shows them.
- */
+/** Customer destinations without a tab, listed on the phone Account tab. */
 export function customerAccountMenuItems(): NavItem[] {
-  const tabHrefs = new Set(getMobileTabs("CUSTOMER").map((tab) => tab.href));
-  return getNavItemsForRole("CUSTOMER").filter(
-    (item) => !tabHrefs.has(item.href),
-  );
+  return getRoleMenuItems("CUSTOMER");
 }
 
-export function MobileAccountMenu({
+/**
+ * Every destination the bottom tabs leave out, plus sign-out. Staff roles see
+ * it on /menu (their More/Account tab); customers see it at the top of
+ * /account on phones only (`className="md:hidden"`).
+ */
+export function RoleMenu({
+  role,
   locale,
   localizedRoute,
+  className,
 }: {
+  role: Role;
   locale: Locale;
   localizedRoute: boolean;
+  className?: string;
 }) {
   const t = useText();
   const { logout } = useAuth();
@@ -54,11 +56,11 @@ export function MobileAccountMenu({
   return (
     <nav
       aria-label={translate(locale, "Account")}
-      data-testid="mobile-account-menu"
-      className="md:hidden"
+      data-testid="role-menu"
+      className={className}
     >
       <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
-        {customerAccountMenuItems().map((item) => {
+        {getRoleMenuItems(role).map((item) => {
           const Icon = ICONS_MAP[item.id] ?? SquareTerminal;
           return (
             <li key={item.id}>
@@ -94,5 +96,22 @@ export function MobileAccountMenu({
         </Alert>
       ) : null}
     </nav>
+  );
+}
+
+export function MobileAccountMenu({
+  locale,
+  localizedRoute,
+}: {
+  locale: Locale;
+  localizedRoute: boolean;
+}) {
+  return (
+    <RoleMenu
+      role="CUSTOMER"
+      locale={locale}
+      localizedRoute={localizedRoute}
+      className="md:hidden"
+    />
   );
 }

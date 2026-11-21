@@ -1,22 +1,12 @@
+import { LOADED_PAGES_PARAM } from "@/lib/product-pagination";
 import type { StorefrontProductView } from "@/services/storefront.service";
 
 /**
- * Remembers what the phone catalogue loaded while scrolling, so pressing Back
- * from a product page returns to the same spot instead of only the first page.
- * Stored per filter combination in sessionStorage (this tab only).
+ * Phone catalogue restore. How many pages were loaded lives in the URL
+ * (`?loaded=N`, rendered again by the server); only the scroll offset, which
+ * depends on this device's layout, is kept in sessionStorage for this tab.
  */
-export interface CatalogSnapshot {
-  /** Products appended after the server-rendered page. */
-  products: StorefrontProductView[];
-  /** Last page loaded so far. */
-  lastPage: number;
-  scrollY: number;
-  savedAt: number;
-}
-
-const PREFIX = "ag-stores-catalog:";
-/** Older snapshots are ignored: prices and stock may have moved on. */
-export const CATALOG_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
+const SCROLL_PREFIX = "ag-stores-catalog-scroll:";
 
 let lastHistoryNavigationAt = 0;
 if (typeof window !== "undefined") {
@@ -41,56 +31,38 @@ export function arrivedByHistoryNavigation(now = Date.now()): boolean {
   }
 }
 
-export function catalogKey(filters: {
-  search?: string | undefined;
-  categoryId?: string | undefined;
-  pageSize: number;
-}): string {
-  return `${PREFIX}${JSON.stringify([
-    filters.search ?? "",
-    filters.categoryId ?? "",
-    filters.pageSize,
-  ])}`;
+/** The current URL with `loaded` set to the number of pages now shown. */
+export function urlWithLoadedPages(href: string, loadedPages: number): string {
+  const url = new URL(href);
+  if (loadedPages > 1) {
+    url.searchParams.set(LOADED_PAGES_PARAM, String(loadedPages));
+  } else {
+    url.searchParams.delete(LOADED_PAGES_PARAM);
+  }
+  return `${url.pathname}${url.search}${url.hash}`;
 }
 
-export function readCatalogSnapshot(
-  key: string,
-  now = Date.now(),
-): CatalogSnapshot | null {
+function scrollKey(pathAndQuery: string): string {
+  return `${SCROLL_PREFIX}${pathAndQuery}`;
+}
+
+export function saveCatalogScroll(pathAndQuery: string, scrollY: number): void {
   try {
-    const value: unknown = JSON.parse(sessionStorage.getItem(key) ?? "null");
-    if (
-      !value ||
-      typeof value !== "object" ||
-      !Array.isArray((value as CatalogSnapshot).products) ||
-      typeof (value as CatalogSnapshot).lastPage !== "number" ||
-      typeof (value as CatalogSnapshot).savedAt !== "number" ||
-      now - (value as CatalogSnapshot).savedAt > CATALOG_SNAPSHOT_MAX_AGE_MS
-    ) {
-      return null;
-    }
-    return value as CatalogSnapshot;
+    sessionStorage.setItem(
+      scrollKey(pathAndQuery),
+      String(Math.round(scrollY)),
+    );
+  } catch {
+    // Storage blocked: Back still shows the pages, just from the top.
+  }
+}
+
+export function readCatalogScroll(pathAndQuery: string): number | null {
+  try {
+    const value = Number(sessionStorage.getItem(scrollKey(pathAndQuery)));
+    return Number.isFinite(value) && value > 0 ? value : null;
   } catch {
     return null;
-  }
-}
-
-export function writeCatalogSnapshot(
-  key: string,
-  snapshot: CatalogSnapshot,
-): void {
-  try {
-    sessionStorage.setItem(key, JSON.stringify(snapshot));
-  } catch {
-    // Storage full or blocked: Back simply starts from the first page again.
-  }
-}
-
-export function clearCatalogSnapshot(key: string): void {
-  try {
-    sessionStorage.removeItem(key);
-  } catch {
-    // Nothing to clear when storage is unavailable.
   }
 }
 

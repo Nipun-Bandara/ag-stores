@@ -19,6 +19,7 @@ const protectedRoots = [
   "/dashboard",
   "/profile",
   "/notifications",
+  "/menu",
   "/account",
   "/orders",
   "/checkout",

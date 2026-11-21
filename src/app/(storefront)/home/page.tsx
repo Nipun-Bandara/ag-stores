@@ -10,18 +10,12 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { ProductTile } from "@/features/storefront/components/product-tile";
-import {
-  getDictionary,
-  localizeBilingual,
-  routePath,
-  type Locale,
-} from "@/lib/i18n/config";
+import { getDictionary, localizeBilingual, routePath } from "@/lib/i18n/config";
 import { getLocaleContext, getServerText } from "@/lib/i18n/server";
 import { translate } from "@/lib/i18n/text";
 import {
   listStorefrontCategories,
   listStorefrontProducts,
-  type StorefrontCategoryView,
 } from "@/services/storefront.service";
 
 /** Category rows on the home page, and products shown in each row. */
@@ -34,18 +28,6 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `${t("Home")} | AG Stores`,
     description: t("Browse available products from local shops."),
   };
-}
-
-/** Category names repeat across shops, so repeated names carry the shop name. */
-function categoryLabel(
-  category: StorefrontCategoryView,
-  all: StorefrontCategoryView[],
-  locale: Locale,
-): string {
-  const name = localizeBilingual(category.nameEn, category.nameSi, locale);
-  const repeated =
-    all.filter((other) => other.nameEn === category.nameEn).length > 1;
-  return repeated ? `${name} · ${category.shopName}` : name;
 }
 
 export default async function StoreHomePage() {
@@ -117,7 +99,7 @@ export default async function StoreHomePage() {
                   href={href(`/categories/${category.id}`)}
                   className="inline-flex h-9 items-center rounded-full border border-border bg-card px-4 text-sm font-medium text-foreground no-underline transition-colors hover:border-primary hover:text-primary dark:hover:text-indigo-300"
                 >
-                  {categoryLabel(category, categories, locale)}
+                  {localizeBilingual(category.nameEn, category.nameSi, locale)}
                 </Link>
               </li>
             ))}
@@ -138,7 +120,11 @@ export default async function StoreHomePage() {
         </Empty>
       ) : (
         rows.map(({ category, products }) => {
-          const label = categoryLabel(category, categories, locale);
+          const label = localizeBilingual(
+            category.nameEn,
+            category.nameSi,
+            locale,
+          );
           return (
             <section
               key={category.id}

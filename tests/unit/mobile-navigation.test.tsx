@@ -11,6 +11,7 @@ import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import {
   customerAccountMenuItems,
   MobileAccountMenu,
+  RoleMenu,
 } from "@/features/account/components/mobile-account-menu";
 import { cartStore } from "@/features/cart/cart-store";
 import { getMobileTabs } from "@/lib/navigation";
@@ -94,4 +95,38 @@ it("lists account destinations that have no tab, then signs out", () => {
   render(<MobileAccountMenu locale="en" localizedRoute={false} />);
   fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
   expect(state.logout).toHaveBeenCalledOnce();
+});
+
+it("gives a delivery person tabs for their work and a menu for the rest", () => {
+  state.path = "/delivery/batches/42";
+  render(
+    <MobileBottomNav
+      tabs={getMobileTabs("DELIVERY_PERSON")}
+      locale="en"
+      localizedRoute={false}
+    />,
+  );
+  const links = screen.getAllByRole("link");
+  expect(links.map((link) => link.textContent)).toEqual([
+    "Home",
+    "Available",
+    "Batches",
+    "Account",
+  ]);
+  expect(screen.getByRole("link", { name: "Batches" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  expect(screen.getByRole("link", { name: "Home" })).not.toHaveAttribute(
+    "aria-current",
+  );
+  cleanup();
+
+  render(
+    <RoleMenu role="DELIVERY_PERSON" locale="en" localizedRoute={false} />,
+  );
+  expect(
+    screen.getAllByRole("link").map((link) => link.getAttribute("href")),
+  ).toEqual(["/notifications", "/profile"]);
+  expect(screen.getByRole("button", { name: "Sign out" })).toBeVisible();
 });

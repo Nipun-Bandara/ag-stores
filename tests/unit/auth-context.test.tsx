@@ -83,7 +83,7 @@ describe("session-backed auth context", () => {
       fireEvent.click(screen.getByRole("button", { name: "Login" }));
       await waitFor(() =>
         expect(nav.replace).toHaveBeenCalledWith(
-          role === "CUSTOMER" ? "/products" : DASHBOARD_BY_ROLE[role],
+          role === "CUSTOMER" ? "/home" : DASHBOARD_BY_ROLE[role],
         ),
       );
       expect(fetchMock).toHaveBeenLastCalledWith(
@@ -139,7 +139,7 @@ describe("session-backed auth context", () => {
     );
     await screen.findByText("Guest");
     fireEvent.click(screen.getByText("Login"));
-    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/products"));
+    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/home"));
   });
   it("revokes the server session when signing out", async () => {
     nav.path = "/si/owner";

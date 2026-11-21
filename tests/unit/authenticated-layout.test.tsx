@@ -20,6 +20,8 @@ import {
   isPublicStorefrontPath,
   getMobileTabs,
   isMobileTabActive,
+  activeMobileTabId,
+  getRoleMenuItems,
   NAV_ITEMS,
   type Role,
 } from "@/lib/navigation";
@@ -115,10 +117,8 @@ describe("authenticated layout", () => {
       expect(sidebarHrefs()).toEqual(
         getNavItemsForRole(role).map((item) => item.href),
       );
-      // Only customers have phone tabs so far; other roles keep the sidebar.
-      expect(Boolean(screen.queryByTestId("mobile-bottom-nav"))).toBe(
-        role === "CUSTOMER",
-      );
+      // Every role gets phone tabs; their links mirror the role's tab config.
+      expect(tabHrefs()).toEqual(getMobileTabs(role).map((tab) => tab.href));
       expect(
         getNavGroupsForRole(role).every((group) => group.items.length > 0),
       ).toBe(true);
@@ -162,17 +162,17 @@ describe("authenticated layout", () => {
         Orders
       </AuthenticatedShell>,
     );
-    expect(screen.getByRole("link", { name: "ඇණවුම්" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-    expect(
-      screen.getByRole("link", { name: "පාලක පුවරුව" }),
-    ).not.toHaveAttribute("aria-current");
-    expect(screen.getByRole("link", { name: "ඇණවුම්" })).toHaveAttribute(
-      "href",
-      "/si/owner/orders",
-    );
+    // The sidebar and the phone tab bar both mark Orders as current.
+    const orders = screen.getAllByRole("link", { name: "ඇණවුම්" });
+    expect(orders).toHaveLength(2);
+    for (const link of orders) {
+      expect(link).toHaveAttribute("aria-current", "page");
+      expect(link).toHaveAttribute("href", "/si/owner/orders");
+    }
+    for (const link of screen.getAllByRole("link", {
+      name: /පාලක පුවරුව|මුල් පිටුව/,
+    }))
+      expect(link).not.toHaveAttribute("aria-current");
     expect(isNavItemActive("/owner/orders-history", "/owner/orders")).toBe(
       false,
     );
@@ -277,8 +277,67 @@ describe("authenticated layout", () => {
     expect(isMobileTabActive("/orders/x", account!)).toBe(true);
     expect(isMobileTabActive("/account/orders", account!)).toBe(true);
     expect(isMobileTabActive("/products", account!)).toBe(false);
-    expect(getMobileTabs("SHOP_OWNER")).toEqual([]);
     expect(getMobileTabs(null)).toEqual([]);
     expect(getMobileTabs(null, { guest: true })).toHaveLength(4);
+  });
+  it("gives every role at most five tabs, ending with a menu for staff", () => {
+    for (const role of [
+      "SHOP_OWNER",
+      "ORDER_STAFF",
+      "DELIVERY_PERSON",
+      "ADMIN",
+    ] as const) {
+      const tabs = getMobileTabs(role);
+      expect(tabs.length).toBeLessThanOrEqual(5);
+      expect(tabs.at(-1)).toMatchObject({ href: "/menu", overflow: true });
+      for (const tab of tabs) {
+        expect(canAccessWorkspace(role, tab.href), `${role} ${tab.href}`).toBe(
+          true,
+        );
+      }
+    }
+  });
+  it("picks the most specific tab and falls back to the menu tab", () => {
+    const owner = getMobileTabs("SHOP_OWNER");
+    expect(activeMobileTabId("/owner", owner)).toBe("ownerDashboard");
+    expect(activeMobileTabId("/si/owner/orders/1", owner)).toBe("ownerOrders");
+    expect(activeMobileTabId("/owner/categories", owner)).toBe("ownerProducts");
+    expect(activeMobileTabId("/owner/reports", owner)).toBe("roleMenu");
+    const staff = getMobileTabs("ORDER_STAFF");
+    expect(activeMobileTabId("/staff/returns", staff)).toBe("staffReturns");
+    expect(activeMobileTabId("/staff", staff)).toBe("staffOrders");
+    expect(activeMobileTabId("/profile", staff)).toBe("roleMenu");
+    expect(
+      activeMobileTabId("/account/orders", getMobileTabs("CUSTOMER")),
+    ).toBe("account");
+  });
+  it("lists only destinations without a tab on the role menu", () => {
+    expect(getRoleMenuItems("SHOP_OWNER").map((item) => item.href)).toEqual([
+      "/owner/returns",
+      "/owner/staff",
+      "/owner/categories",
+      "/owner/delivery-personnel",
+      "/owner/reports",
+      "/owner/settings",
+      "/notifications",
+      "/profile",
+    ]);
+    expect(getRoleMenuItems("ORDER_STAFF").map((item) => item.href)).toEqual([
+      "/profile",
+    ]);
+    expect(canAccessWorkspace("ADMIN", "/menu")).toBe(true);
+  });
+  it("sends owners and staff from the storefront to their own workspace", async () => {
+    state.user = session("SHOP_OWNER");
+    state.path = "/si/products";
+    render(
+      <AuthenticatedShell locale="si" localizedRoute allowGuests>
+        <div>Catalog</div>
+      </AuthenticatedShell>,
+    );
+    await waitFor(() =>
+      expect(state.replace).toHaveBeenCalledWith("/si/owner"),
+    );
+    expect(screen.queryByText("Catalog")).not.toBeInTheDocument();
   });
 });

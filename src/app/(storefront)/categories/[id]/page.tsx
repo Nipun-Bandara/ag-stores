@@ -1,4 +1,4 @@
-import { parseProductPage } from "@/lib/product-pagination";
+import { parseLoadedPages, parseProductPage } from "@/lib/product-pagination";
 import { ProductPagination } from "@/features/products/components/product-pagination";
 import { getServerText } from "@/lib/i18n/server";
 import { Text } from "@/features/i18n/components/text";
@@ -13,6 +13,7 @@ import { getLocaleContext } from "@/lib/i18n/server";
 import {
   getStorefrontCategory,
   getStorefrontProductPage,
+  getStorefrontProductsThroughPage,
 } from "@/services/storefront.service";
 import { categoryIdSchema } from "@/validations/category";
 
@@ -29,9 +30,11 @@ export default async function CategoryPage({
   searchParams: Promise<{
     page?: string | string[];
     pageSize?: string | string[];
+    loaded?: string | string[];
   }>;
 }) {
-  const pagination = parseProductPage(await searchParams);
+  const query = await searchParams;
+  const pagination = parseProductPage(query);
   const categoryId = categoryIdSchema.safeParse((await params).id);
   if (!categoryId.success) notFound();
 
@@ -41,6 +44,17 @@ export default async function CategoryPage({
     getStorefrontProductPage({ categoryId: categoryId.data }, pagination),
   ]);
   if (!category) notFound();
+  // Pages a phone had already loaded by scrolling (Back, refresh, shared link).
+  const loadedPages = parseLoadedPages(
+    query.loaded,
+    products.page,
+    products.pageCount,
+  );
+  const loadedProducts = await getStorefrontProductsThroughPage(
+    { categoryId: category.id },
+    products.pageSize,
+    loadedPages,
+  );
   const { locale, localizedRoute } = localeContext;
   const copy = getDictionary(locale).storefront;
   const categoryName = localizeBilingual(
@@ -51,10 +65,7 @@ export default async function CategoryPage({
 
   return (
     <section className="min-w-0 w-full">
-      <p className="text-sm font-medium text-muted-foreground">
-        {category.shopName}
-      </p>
-      <h1 className="mt-1 break-words text-3xl font-semibold tracking-tight text-foreground">
+      <h1 className="break-words text-3xl font-semibold tracking-tight text-foreground">
         {categoryName}
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
@@ -73,8 +84,10 @@ export default async function CategoryPage({
         />
       </div>
       <InfiniteProductList
-        key={`${category.id}|${products.pageSize}|${products.page}`}
+        key={`${category.id}|${products.pageSize}|${products.page}|${loadedPages}`}
         initialPage={products.page}
+        initialLastPage={loadedPages}
+        initialProducts={loadedProducts}
         pageCount={products.pageCount}
         pageSize={products.pageSize}
         initialProductIds={products.products.map((product) => product.id)}

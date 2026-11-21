@@ -2,24 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { House, ShoppingCart, Store, UserRound } from "lucide-react";
-import type { ComponentType, SVGProps } from "react";
+import { SquareTerminal } from "lucide-react";
 
 import { useCart } from "@/features/cart/cart-store";
 import { routePath, type Locale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/text";
-import { isMobileTabActive, type MobileTab } from "@/lib/navigation";
+import { activeMobileTabId, ICONS_MAP, type MobileTab } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
-
-const TAB_ICONS: Record<
-  MobileTab["id"],
-  ComponentType<SVGProps<SVGSVGElement>>
-> = {
-  home: House,
-  shop: Store,
-  cart: ShoppingCart,
-  account: UserRound,
-};
 
 function CartBadge({ locale }: { locale: Locale }) {
   const { items } = useCart();
@@ -37,7 +26,7 @@ function CartBadge({ locale }: { locale: Locale }) {
 }
 
 /**
- * App-style tab bar for phone-sized screens. Hidden from md upwards, where the
+ * App-style tab bar for phone-sized screens, for every role. Hidden from md upwards, where the
  * sidebar takes over. Pads for the iPhone home indicator via safe-area insets.
  */
 export function MobileBottomNav({
@@ -50,6 +39,7 @@ export function MobileBottomNav({
   localizedRoute: boolean;
 }) {
   const pathname = usePathname();
+  const activeId = activeMobileTabId(pathname, tabs);
   return (
     <nav
       aria-label={translate(locale, "Main navigation")}
@@ -63,8 +53,8 @@ export function MobileBottomNav({
         }}
       >
         {tabs.map((tab) => {
-          const Icon = TAB_ICONS[tab.id];
-          const active = isMobileTabActive(pathname, tab);
+          const Icon = ICONS_MAP[tab.icon] ?? SquareTerminal;
+          const active = tab.id === activeId;
           return (
             <li key={tab.id}>
               <Link

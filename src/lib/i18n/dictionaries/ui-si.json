@@ -1053,5 +1053,12 @@
   "Loading more products…": "තවත් නිෂ්පාදන පූරණය වෙමින්…",
   "Couldn't load more products.": "තවත් නිෂ්පාදන පූරණය කළ නොහැකි විය.",
   "Load more": "තවත් පෙන්වන්න",
-  "You've reached the end of the list.": "ලැයිස්තුවේ අවසානයට ඔබ පැමිණ ඇත."
+  "You've reached the end of the list.": "ලැයිස්තුවේ අවසානයට ඔබ පැමිණ ඇත.",
+  "Menu": "මෙනුව",
+  "More": "තවත්",
+  "Alerts": "දැනුම්දීම්",
+  "Batches": "කාණ්ඩ",
+  "Orders": "ඇණවුම්",
+  "Returns": "ආපසු භාරදීම්",
+  "Products": "නිෂ්පාදන"
 }

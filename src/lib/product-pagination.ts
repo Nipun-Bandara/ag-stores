@@ -43,3 +43,23 @@ export function productPageInfo(
     pageCount,
   };
 }
+
+/**
+ * Phone catalogues record how many pages have been loaded by scrolling in the
+ * `loaded` query parameter, so Back, refresh and shared links show them again.
+ */
+export const LOADED_PAGES_PARAM = "loaded";
+/** Upper bound on pages rendered from `loaded` in one request. */
+export const MAX_LOADED_PAGES = 20;
+
+/** Pages to render from `loaded`; only meaningful when starting at page 1. */
+export function parseLoadedPages(
+  value: unknown,
+  page: number,
+  pageCount: number,
+): number {
+  const first = Array.isArray(value) ? value[0] : value;
+  if (page !== 1 || typeof first !== "string" || !/^\d{1,3}$/.test(first))
+    return 1;
+  return Math.max(1, Math.min(Number(first), pageCount, MAX_LOADED_PAGES));
+}

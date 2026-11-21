@@ -1,4 +1,4 @@
-import { parseProductPage } from "@/lib/product-pagination";
+import { parseLoadedPages, parseProductPage } from "@/lib/product-pagination";
 import { Text } from "@/features/i18n/components/text";
 import { ProductPagination } from "@/features/products/components/product-pagination";
 import type { Metadata } from "next";
@@ -11,6 +11,7 @@ import { getLocaleContext, getServerText } from "@/lib/i18n/server";
 import {
   listStorefrontCategories,
   getStorefrontProductPage,
+  getStorefrontProductsThroughPage,
 } from "@/services/storefront.service";
 import {
   productCategoryFilterSchema,
@@ -35,6 +36,7 @@ export default async function ProductsPage({
     categoryId?: string | string[];
     page?: string | string[];
     pageSize?: string | string[];
+    loaded?: string | string[];
   }>;
 }) {
   const query = await searchParams;
@@ -61,11 +63,22 @@ export default async function ProductsPage({
   ]);
   const { locale, localizedRoute } = localeContext;
   const copy = getDictionary(locale).storefront;
+  // Pages a phone had already loaded by scrolling (Back, refresh, shared link).
+  const loadedPages = parseLoadedPages(
+    query.loaded,
+    products.page,
+    products.pageCount,
+  );
+  const loadedProducts = await getStorefrontProductsThroughPage(
+    filters,
+    products.pageSize,
+    loadedPages,
+  );
   const categoryOptions = [
     { value: "", label: copy.allCategories },
     ...categories.map((item) => ({
       value: item.id,
-      label: `${localizeBilingual(item.nameEn, item.nameSi, locale)} · ${item.shopName}`,
+      label: localizeBilingual(item.nameEn, item.nameSi, locale),
     })),
   ];
 
@@ -104,8 +117,10 @@ export default async function ProductsPage({
         />
       </div>
       <InfiniteProductList
-        key={`${filters.search ?? ""}|${filters.categoryId ?? ""}|${products.pageSize}|${products.page}`}
+        key={`${filters.search ?? ""}|${filters.categoryId ?? ""}|${products.pageSize}|${products.page}|${loadedPages}`}
         initialPage={products.page}
+        initialLastPage={loadedPages}
+        initialProducts={loadedProducts}
         pageCount={products.pageCount}
         pageSize={products.pageSize}
         initialProductIds={products.products.map((product) => product.id)}

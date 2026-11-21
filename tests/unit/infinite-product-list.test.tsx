@@ -1,5 +1,4 @@
 import {
-  act,
   cleanup,
   fireEvent,
   render,
@@ -10,12 +9,11 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import {
   appendUnique,
-  catalogKey,
-  CATALOG_SNAPSHOT_MAX_AGE_MS,
-  readCatalogSnapshot,
-  writeCatalogSnapshot,
+  saveCatalogScroll,
+  urlWithLoadedPages,
 } from "@/features/storefront/catalog-session";
 import { InfiniteProductList } from "@/features/storefront/components/infinite-product-list";
+import { parseLoadedPages } from "@/lib/product-pagination";
 import type { StorefrontProductView } from "@/services/storefront.service";
 
 function product(id: string): StorefrontProductView {
@@ -51,6 +49,9 @@ function pageResponse(ids: string[], page: number, pageCount: number) {
 }
 
 const fetchMock = vi.fn();
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => new URLSearchParams(window.location.search),
+}));
 
 function list(props: Partial<Parameters<typeof InfiniteProductList>[0]> = {}) {
   return (
@@ -71,13 +72,14 @@ beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
   sessionStorage.clear();
+  window.history.replaceState(null, "", "/products?search=tea");
 });
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
 
-it("appends the next pages on demand and stops at the end", async () => {
+it("appends pages on demand, records them in the URL and stops at the end", async () => {
   fetchMock
     .mockResolvedValueOnce(pageResponse(["c", "d"], 2, 3))
     // A shifted offset can repeat a product; it must not appear twice.
@@ -89,10 +91,12 @@ it("appends the next pages on demand and stops at the end", async () => {
   expect(fetchMock).toHaveBeenCalledWith(
     "/api/storefront/products?page=2&pageSize=2&search=tea",
   );
+  expect(window.location.search).toBe("?search=tea&loaded=2");
 
   fireEvent.click(await screen.findByRole("button", { name: "Load more" }));
   expect(await screen.findByText("Product e")).toBeVisible();
   expect(screen.getAllByText("Product d")).toHaveLength(1);
+  expect(window.location.search).toBe("?search=tea&loaded=3");
   expect(screen.getByText("You've reached the end of the list.")).toBeVisible();
   expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
 });
@@ -108,46 +112,66 @@ it("offers a retry when a page fails to load", async () => {
   expect(await screen.findByText("Product c")).toBeVisible();
 });
 
-it("restores loaded pages and scroll position when returning with Back", async () => {
-  const key = catalogKey({ search: "tea", pageSize: 2 });
-  writeCatalogSnapshot(key, {
-    products: [product("c"), product("d")],
-    lastPage: 2,
-    scrollY: 1234,
-    savedAt: Date.now(),
-  });
+it("shows server-restored pages and returns to the saved scroll on Back", async () => {
+  window.history.replaceState(null, "", "/products?search=tea&loaded=2");
+  saveCatalogScroll("/products?search=tea&loaded=2", 1234);
   const scrollTo = vi.fn();
   vi.stubGlobal("scrollTo", scrollTo);
   vi.stubGlobal("requestAnimationFrame", (callback: () => void) => {
     callback();
     return 0;
   });
+  window.dispatchEvent(new PopStateEvent("popstate"));
 
-  act(() => {
-    window.dispatchEvent(new PopStateEvent("popstate"));
-  });
-  render(list());
+  render(
+    list({ initialLastPage: 2, initialProducts: [product("c"), product("d")] }),
+  );
 
-  expect(await screen.findByText("Product d")).toBeVisible();
+  expect(screen.getByText("Product d")).toBeVisible();
   await waitFor(() => expect(scrollTo).toHaveBeenCalledWith({ top: 1234 }));
   expect(fetchMock).not.toHaveBeenCalled();
+  // The next page continues after the restored ones.
+  fetchMock.mockResolvedValueOnce(pageResponse(["e"], 3, 3));
+  fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+  expect(await screen.findByText("Product e")).toBeVisible();
+  expect(fetchMock).toHaveBeenCalledWith(
+    "/api/storefront/products?page=3&pageSize=2&search=tea",
+  );
 });
 
-it("starts fresh when the page is opened from a link", async () => {
-  const key = catalogKey({ search: "tea", pageSize: 2 });
-  writeCatalogSnapshot(key, {
-    products: [product("c")],
-    lastPage: 2,
-    scrollY: 10,
-    savedAt: Date.now() - 10_000,
+it("fetches pages the URL lists but a cached render lacks, then restores scroll", async () => {
+  // Back can reuse the router's render from before `loaded` was written.
+  window.history.replaceState(null, "", "/products?search=tea&loaded=3");
+  saveCatalogScroll("/products?search=tea&loaded=3", 900);
+  const scrollTo = vi.fn();
+  vi.stubGlobal("scrollTo", scrollTo);
+  vi.stubGlobal("requestAnimationFrame", (callback: () => void) => {
+    callback();
+    return 0;
   });
-  // Far enough after any earlier popstate in this test file.
-  vi.setSystemTime(Date.now() + 60_000);
+  window.dispatchEvent(new PopStateEvent("popstate"));
+  fetchMock.mockImplementation(async (url: string) =>
+    url.includes("page=2")
+      ? pageResponse(["c", "d"], 2, 3)
+      : pageResponse(["e"], 3, 3),
+  );
+
   render(list());
-  await screen.findByRole("button", { name: "Load more" });
-  expect(screen.queryByText("Product c")).toBeNull();
-  expect(sessionStorage.getItem(key)).toBeNull();
-  vi.useRealTimers();
+
+  expect(await screen.findByText("Product e")).toBeVisible();
+  expect(screen.getByText("Product c")).toBeVisible();
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  await waitFor(() => expect(scrollTo).toHaveBeenCalledWith({ top: 900 }));
+  expect(screen.getByText("You've reached the end of the list.")).toBeVisible();
+});
+
+it("leaves a deep-linked numbered page out of the URL count", async () => {
+  window.history.replaceState(null, "", "/products?page=2");
+  fetchMock.mockResolvedValueOnce(pageResponse(["e"], 3, 3));
+  render(list({ initialPage: 2 }));
+  fireEvent.click(await screen.findByRole("button", { name: "Load more" }));
+  await screen.findByText("Product e");
+  expect(window.location.search).toBe("?page=2");
 });
 
 it("renders nothing when everything fits on the first page", () => {
@@ -155,16 +179,16 @@ it("renders nothing when everything fits on the first page", () => {
   expect(container).toBeEmptyDOMElement();
 });
 
-it("ignores stale snapshots and de-duplicates appended products", () => {
-  const key = catalogKey({ categoryId: "x", pageSize: 24 });
-  writeCatalogSnapshot(key, {
-    products: [product("a")],
-    lastPage: 2,
-    scrollY: 0,
-    savedAt: 0,
-  });
-  expect(readCatalogSnapshot(key, CATALOG_SNAPSHOT_MAX_AGE_MS + 1)).toBeNull();
-  expect(readCatalogSnapshot(key, 1)).not.toBeNull();
+it("parses the loaded count safely and builds URLs", () => {
+  expect(parseLoadedPages("3", 1, 5)).toBe(3);
+  expect(parseLoadedPages("9", 1, 5)).toBe(5);
+  expect(parseLoadedPages("500", 1, 999)).toBe(20);
+  expect(parseLoadedPages("3", 2, 5)).toBe(1);
+  expect(parseLoadedPages("x", 1, 5)).toBe(1);
+  expect(urlWithLoadedPages("http://h/products?search=t", 2)).toBe(
+    "/products?search=t&loaded=2",
+  );
+  expect(urlWithLoadedPages("http://h/products?loaded=2", 1)).toBe("/products");
   expect(
     appendUnique(
       [product("a")],

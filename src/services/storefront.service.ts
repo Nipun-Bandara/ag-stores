@@ -132,3 +132,27 @@ export async function getStorefrontProductPage(
   });
   return { products: products.map(toProductView), ...pagination };
 }
+
+/**
+ * Products on pages 2..throughPage, in catalogue order, for restoring a phone
+ * catalogue that had already loaded more pages by scrolling.
+ */
+export async function getStorefrontProductsThroughPage(
+  filters: StorefrontProductFilters,
+  pageSize: number,
+  throughPage: number,
+  repository: StorefrontRepository = getStorefrontRepository(),
+): Promise<StorefrontProductView[]> {
+  if (throughPage < 2) return [];
+  const pages = await Promise.all(
+    Array.from({ length: throughPage - 1 }, (_, index) =>
+      repository.findProducts({
+        ...filters,
+        page: index + 2,
+        pageSize,
+        limit: pageSize,
+      }),
+    ),
+  );
+  return pages.flat().map(toProductView);
+}
