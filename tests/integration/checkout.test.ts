@@ -14,12 +14,13 @@ import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const describeWithDatabase = databaseUrl ? describe : describe.skip;
 
-function request(token?: string, body?: unknown) {
+function request(token?: string, body?: unknown, idempotencyKey?: string) {
   return new NextRequest("http://localhost/api/checkout", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Cookie: `${SESSION_COOKIE_NAME}=${token}` } : {}),
+      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
     },
     body: JSON.stringify(body),
   });
@@ -291,5 +292,47 @@ describeWithDatabase("cash on delivery checkout", () => {
     expect(statuses).toEqual([201, 409]);
     expect(storedProduct.stockQuantity.toNumber()).toBe(0);
     expect(orderItemCount).toBe(1);
+  });
+
+  it("returns the original order when a checkout is retried with the same key", async () => {
+    await prisma.product.update({
+      where: { id: availableProductId },
+      data: { stockQuantity: 10, isAvailable: true },
+    });
+    const key = randomUUID();
+
+    const [first, second] = await Promise.all([
+      checkoutRoute(request(token, body(availableProductId, 1), key)),
+      checkoutRoute(request(token, body(availableProductId, 1), key)),
+    ]);
+    const third = await checkoutRoute(
+      request(token, body(availableProductId, 1), key),
+    );
+    const ids = await Promise.all(
+      [first, second, third].map(async (response) => {
+        const payload = await response.json();
+        return payload.data.id as string;
+      }),
+    );
+    const product = await prisma.product.findUniqueOrThrow({
+      where: { id: availableProductId },
+    });
+
+    expect([first.status, second.status].sort()).toEqual([200, 201]);
+    expect(third.status).toBe(200);
+    expect(new Set(ids).size).toBe(1);
+    expect(product.stockQuantity.toNumber()).toBe(9);
+    expect(
+      await prisma.order.count({
+        where: { customerId, idempotencyKey: key },
+      }),
+    ).toBe(1);
+  });
+
+  it("rejects a malformed idempotency key", async () => {
+    const response = await checkoutRoute(
+      request(token, body(availableProductId, 1), "bad key!"),
+    );
+    expect(response.status).toBe(400);
   });
 });

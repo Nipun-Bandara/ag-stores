@@ -1,7 +1,11 @@
 import type { NextRequest } from "next/server";
 
 import { UserRole } from "@/generated/prisma/client";
-import { errorResponse, successResponse } from "@/lib/api-response";
+import {
+  errorResponse,
+  fieldErrors,
+  successResponse,
+} from "@/lib/api-response";
 import { requireApiAnyRole } from "@/lib/auth/request";
 import { ownerOrderErrorResponse } from "@/lib/owner-order-http";
 import { getOwnerOrderDashboard } from "@/services/owner-order.service";
@@ -25,7 +29,7 @@ export async function GET(request: NextRequest) {
       {
         code: "VALIDATION_ERROR",
         message: "Order filters are invalid.",
-        details: parsed.error.flatten().fieldErrors,
+        details: fieldErrors(parsed.error),
       },
       400,
     );

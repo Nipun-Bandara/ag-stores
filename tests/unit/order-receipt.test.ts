@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { describe, expect, it } from "vitest";
 import { buildOrderReceipt } from "@/features/owner/lib/order-receipt";
 import { receiptOrder } from "../fixtures/owner-receipt";

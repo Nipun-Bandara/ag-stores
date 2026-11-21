@@ -1,7 +1,11 @@
 import type { NextRequest } from "next/server";
 
 import { OrderStatus, UserRole } from "@/generated/prisma/client";
-import { errorResponse, successResponse } from "@/lib/api-response";
+import {
+  errorResponse,
+  fieldErrors,
+  successResponse,
+} from "@/lib/api-response";
 import { requireApiRole } from "@/lib/auth/request";
 import { orderStatusErrorResponse } from "@/lib/order-status-http";
 import { transitionOrderStatus } from "@/services/order-status.service";
@@ -26,7 +30,7 @@ export async function POST(
       {
         code: "VALIDATION_ERROR",
         message: "Cancellation details are invalid.",
-        details: body.success ? undefined : body.error.flatten().fieldErrors,
+        details: body.success ? undefined : fieldErrors(body.error),
       },
       400,
     );

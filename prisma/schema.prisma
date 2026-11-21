@@ -1,10 +1,12 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  extensions = [pg_trgm]
 }
 
 enum UserRole {
@@ -155,6 +157,16 @@ model AuthSession {
   @@map("auth_sessions")
 }
 
+/// Fixed-window counters for login/registration abuse protection, shared by every app instance.
+model AuthRateLimit {
+  key     String   @id @db.VarChar(128)
+  count   Int
+  resetAt DateTime @db.Timestamptz(3)
+
+  @@index([resetAt])
+  @@map("auth_rate_limits")
+}
+
 model Shop {
   id                           String   @id @default(uuid()) @db.Uuid
   ownerId                      String   @db.Uuid
@@ -255,6 +267,11 @@ model Product {
   orderItems    OrderItem[]
   photoUploads  ProductPhotoUpload[]
 
+  // Trigram indexes serve the storefront's case-insensitive substring search.
+  @@index([nameEn(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_nameEn_trgm_idx")
+  @@index([nameSi(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_nameSi_trgm_idx")
+  @@index([descriptionEn(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_descriptionEn_trgm_idx")
+  @@index([descriptionSi(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_descriptionSi_trgm_idx")
   @@unique([shopId, nameEn])
   @@unique([shopId, itemCode])
   @@unique([shopId, barcode])
@@ -311,6 +328,8 @@ model Order {
   packingVersion     Int           @default(0)
   packingFinalizedAt DateTime?     @db.Timestamptz(3)
   customerNote       String?
+  /// Client-supplied key that makes checkout retries return the original order.
+  idempotencyKey     String?       @db.VarChar(64)
   cancelledAt        DateTime?     @db.Timestamptz(3)
   cancellationReason String?       @db.VarChar(500)
   createdAt          DateTime      @default(now()) @db.Timestamptz(3)
@@ -325,6 +344,7 @@ model Order {
   notifications   Notification[]
   returns         OrderReturn[]
 
+  @@unique([customerId, idempotencyKey])
   @@index([customerId, createdAt])
   @@index([shopId, status, createdAt])
   @@index([deliveryAddressId, customerId])

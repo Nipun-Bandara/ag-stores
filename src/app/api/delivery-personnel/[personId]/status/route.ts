@@ -1,7 +1,11 @@
 import type { NextRequest } from "next/server";
 
 import { UserRole } from "@/generated/prisma/client";
-import { errorResponse, successResponse } from "@/lib/api-response";
+import {
+  errorResponse,
+  fieldErrors,
+  successResponse,
+} from "@/lib/api-response";
 import { requireApiAnyRole } from "@/lib/auth/request";
 import { deliveryPersonnelErrorResponse } from "@/lib/delivery-personnel-http";
 import {
@@ -34,7 +38,7 @@ export async function PATCH(
       {
         code: "VALIDATION_ERROR",
         message: "Delivery personnel status is invalid.",
-        details: body.error.flatten().fieldErrors,
+        details: fieldErrors(body.error),
       },
       400,
     );

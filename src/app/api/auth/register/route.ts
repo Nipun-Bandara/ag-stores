@@ -1,4 +1,8 @@
-import { errorResponse, successResponse } from "@/lib/api-response";
+import {
+  errorResponse,
+  fieldErrors,
+  successResponse,
+} from "@/lib/api-response";
 import { setSessionCookie } from "@/lib/auth/cookie";
 import { authErrorResponse } from "@/lib/auth/http";
 import { localeFromPreference } from "@/lib/i18n/config";
@@ -24,14 +28,14 @@ export async function POST(request: Request) {
       {
         code: "VALIDATION_ERROR",
         message: "Registration details are invalid.",
-        details: parsed.error.flatten().fieldErrors,
+        details: fieldErrors(parsed.error),
       },
       400,
     );
   }
 
   const registrationIdentifier = parsed.data.phone;
-  const rateLimit = consumeAuthAttempt(
+  const rateLimit = await consumeAuthAttempt(
     request,
     "register",
     registrationIdentifier,
@@ -51,7 +55,7 @@ export async function POST(request: Request) {
 
   try {
     const result = await registerCustomer(parsed.data);
-    clearAuthAttempts(request, "register", registrationIdentifier);
+    await clearAuthAttempts("register", registrationIdentifier);
     const response = successResponse(result.user, { status: 201 });
     response.headers.set("Cache-Control", "no-store");
     setSessionCookie(response, result.session);

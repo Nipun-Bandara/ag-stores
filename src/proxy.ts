@@ -8,6 +8,11 @@ import {
   LOCALE_HEADER_NAME,
   LOCALE_ROUTE_HEADER_NAME,
 } from "@/lib/i18n/config";
+import {
+  buildContentSecurityPolicy,
+  createNonce,
+  NONCE_HEADER_NAME,
+} from "@/lib/security/content-security-policy";
 
 const protectedRoots = [
   "/dashboard",
@@ -56,7 +61,12 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Next.js reads the nonce from the request's CSP header while rendering.
+  const nonce = createNonce();
+  const contentSecurityPolicy = buildContentSecurityPolicy(nonce);
   const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(NONCE_HEADER_NAME, nonce);
+  requestHeaders.set("Content-Security-Policy", contentSecurityPolicy);
   requestHeaders.set(LOCALE_HEADER_NAME, locale);
   if (routeLocale) requestHeaders.set(LOCALE_ROUTE_HEADER_NAME, "1");
 
@@ -75,10 +85,13 @@ export function proxy(request: NextRequest) {
         maxAge: 60 * 60 * 24 * 365,
       });
     }
+    response.headers.set("Content-Security-Policy", contentSecurityPolicy);
     return response;
   }
 
-  return NextResponse.next({ request: { headers: requestHeaders } });
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  response.headers.set("Content-Security-Policy", contentSecurityPolicy);
+  return response;
 }
 
 export const config = {

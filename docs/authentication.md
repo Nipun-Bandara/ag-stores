@@ -82,8 +82,9 @@ does not interrupt the initiating user.
 
 ## Operational follow-ups
 
-Multi-instance production deployments must back authentication rate limits with
-a shared edge, Redis, or database store. They should also provide TLS
-termination, security event monitoring, password reset and email or phone
-verification, session-management UI, and periodic deletion of expired
-sessions. Multi-factor authentication is recommended for privileged roles.
+Authentication rate limits are database-backed and shared across instances
+(see [security decisions](security.md)). Each login deletes that user's expired
+sessions; schedule `npm run db:auth:cleanup` (for example daily) to sweep the
+rest along with expired rate-limit counters. Production deployments should also
+provide TLS termination, security event monitoring, password reset and email or
+phone verification, and session-management UI. Multi-factor authentication is recommended for privileged roles.

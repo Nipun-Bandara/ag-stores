@@ -31,6 +31,13 @@ describe("environment validation", () => {
     ).toThrow(ZodError);
   });
 
+  it("accepts the postgres:// scheme that hosted providers often issue", () => {
+    expect(
+      parseServerEnv({ DATABASE_URL: "postgres://user:pass@db.example/app" })
+        .DATABASE_URL,
+    ).toBe("postgres://user:pass@db.example/app");
+  });
+
   it("rejects unsafe authentication rate-limit configuration", () => {
     expect(() =>
       parseServerEnv({

@@ -113,13 +113,19 @@ export class PrismaAuthRepository implements AuthRepository {
     userId: string,
     session: SessionCredentials,
   ): Promise<void> {
-    await this.prisma.authSession.create({
-      data: {
-        userId,
-        tokenHash: session.tokenHash,
-        expiresAt: session.expiresAt,
-      },
-    });
+    await this.prisma.$transaction([
+      // Each login prunes that user's expired sessions so the table stays bounded.
+      this.prisma.authSession.deleteMany({
+        where: { userId, expiresAt: { lte: new Date() } },
+      }),
+      this.prisma.authSession.create({
+        data: {
+          userId,
+          tokenHash: session.tokenHash,
+          expiresAt: session.expiresAt,
+        },
+      }),
+    ]);
   }
 
   async findActiveSessionUser(

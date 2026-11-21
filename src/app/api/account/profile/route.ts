@@ -1,6 +1,10 @@
 import type { NextRequest } from "next/server";
 
-import { errorResponse, successResponse } from "@/lib/api-response";
+import {
+  errorResponse,
+  fieldErrors,
+  successResponse,
+} from "@/lib/api-response";
 import { requireApiAuth } from "@/lib/auth/request";
 import { profileErrorResponse } from "@/lib/profile-http";
 import {
@@ -37,7 +41,7 @@ export async function PATCH(request: NextRequest) {
       {
         code: "VALIDATION_ERROR",
         message: "Profile details are invalid.",
-        details: parsed.error.flatten().fieldErrors,
+        details: fieldErrors(parsed.error),
       },
       400,
     );

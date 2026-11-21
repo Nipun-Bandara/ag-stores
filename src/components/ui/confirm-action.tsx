@@ -58,7 +58,7 @@ export function ConfirmAction({
         if (!running.current) setOpen(next);
       }}
     >
-      <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
+      <AlertDialogTrigger>{children}</AlertDialogTrigger>
       <AlertDialogContent
         className="w-[calc(100%-2rem)] max-w-md rounded-lg border-border"
         aria-busy={pending}

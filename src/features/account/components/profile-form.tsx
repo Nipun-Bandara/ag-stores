@@ -1,6 +1,14 @@
 "use client";
 import { useFormik } from "formik";
-import * as Yup from "yup";
+import { z } from "zod";
+
+import {
+  alwaysRun,
+  formikValidator,
+  mobileField,
+  optionalEmailField,
+  personNameField,
+} from "@/lib/form-validation";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -15,11 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import {
-  normalizeMobile,
-  personNameSchema,
-  optionalAccountEmailSchema,
-} from "@/lib/account-identity";
+import { normalizeMobile } from "@/lib/account-identity";
 import type { AuthenticatedUser } from "@/types/auth";
 import { profileUpdateSchema } from "@/validations/profile";
 
@@ -41,45 +45,31 @@ export function ProfileForm({ user }: { user: AuthenticatedUser }) {
       currentPassword: "",
     },
     enableReinitialize: true,
-    validationSchema: Yup.object({
-      firstName: Yup.string()
-        .required(t("Required"))
-        .test(
-          "name",
-          t("Enter a valid name."),
-          (value) => !!value && personNameSchema.safeParse(value).success,
-        ),
-      lastName: Yup.string()
-        .required(t("Required"))
-        .test(
-          "name",
-          t("Enter a valid name."),
-          (value) => !!value && personNameSchema.safeParse(value).success,
-        ),
-      phone: Yup.string()
-        .required(t("Required"))
-        .test(
-          "mobile",
-          t("Enter a Sri Lankan mobile number such as 0771234567."),
-          (value) => !!value && !!normalizeMobile(value),
-        ),
-      email: Yup.string()
-        .trim()
-        .test(
-          "email",
-          t("Enter a valid email address."),
-          (value) => optionalAccountEmailSchema.safeParse(value).success,
-        ),
-      currentPassword: Yup.string()
-        .max(128, t("Password must contain at most 128 characters."))
-        .test(
-          "required-for-mobile",
-          t("Enter your current password to change your mobile number."),
-          function (value) {
-            return normalizeMobile(this.parent.phone) === user.phone || !!value;
+    validate: formikValidator(
+      z
+        .object({
+          firstName: personNameField(t),
+          lastName: personNameField(t),
+          phone: mobileField(t),
+          email: optionalEmailField(t),
+          preferredLanguage: z.string(),
+          currentPassword: z
+            .string()
+            .max(128, t("Password must contain at most 128 characters.")),
+        })
+        .refine(
+          (values) =>
+            normalizeMobile(values.phone) === user.phone ||
+            !!values.currentPassword,
+          {
+            path: ["currentPassword"],
+            ...alwaysRun,
+            message: t(
+              "Enter your current password to change your mobile number.",
+            ),
           },
         ),
-    }),
+    ),
     onSubmit: async (values, helpers) => {
       const parsed = profileUpdateSchema.safeParse(values);
       if (!parsed.success) {

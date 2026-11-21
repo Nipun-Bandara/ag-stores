@@ -129,7 +129,7 @@ export function ProductForm({
       })),
       isAvailable: product?.isAvailable ?? true,
     },
-    validationSchema: productFormValidation(t, options),
+    validate: productFormValidation(t, options),
     onSubmit: saveProduct,
   });
   const {

@@ -2,11 +2,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
-import * as Yup from "yup";
+import { z } from "zod";
 import { Pencil, CircleCheck, CircleX, Copy } from "lucide-react";
 import { toast } from "sonner";
 import type { StaffManagement } from "@/services/order-staff.service";
-import { normalizeMobile } from "@/lib/account-identity";
+import {
+  formikValidator,
+  mobileField,
+  optionalEmailField,
+  requiredText,
+} from "@/lib/form-validation";
 import { useText } from "@/features/i18n/components/locale-provider";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -245,19 +250,21 @@ function StaffForm({
       email: person?.email ?? "",
       assignedShopId: person?.assignedShopId ?? data.shops[0]?.id ?? "",
     },
-    validationSchema: Yup.object({
-      firstName: Yup.string().trim().required(t("Required")).max(75),
-      lastName: Yup.string().trim().required(t("Required")).max(75),
-      phone: Yup.string()
-        .required(t("Required"))
-        .test(
-          "mobile",
-          t("Enter a Sri Lankan mobile number such as 0771234567."),
-          (value) => Boolean(value && normalizeMobile(value)),
+    validate: formikValidator(
+      z.object({
+        firstName: requiredText(t).refine(
+          (value) => value.trim().length <= 75,
+          t("Use at most 75 characters."),
         ),
-      email: Yup.string().email(t("Enter a valid email address.")),
-      assignedShopId: Yup.string().required(t("Required")),
-    }),
+        lastName: requiredText(t).refine(
+          (value) => value.trim().length <= 75,
+          t("Use at most 75 characters."),
+        ),
+        phone: mobileField(t),
+        email: optionalEmailField(t),
+        assignedShopId: requiredText(t),
+      }),
+    ),
     onSubmit: async (values, helpers) => {
       try {
         const response = await fetch(

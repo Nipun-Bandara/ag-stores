@@ -1,7 +1,11 @@
 import type { NextRequest } from "next/server";
 
 import { UserRole } from "@/generated/prisma/client";
-import { errorResponse, successResponse } from "@/lib/api-response";
+import {
+  errorResponse,
+  fieldErrors,
+  successResponse,
+} from "@/lib/api-response";
 import { requireApiRole } from "@/lib/auth/request";
 import { cartErrorResponse } from "@/lib/cart-http";
 import { validateCartForCheckout } from "@/services/cart.service";
@@ -19,7 +23,7 @@ export async function POST(request: NextRequest) {
       {
         code: "VALIDATION_ERROR",
         message: "Cart items are invalid.",
-        details: parsed.error.flatten().fieldErrors,
+        details: fieldErrors(parsed.error),
       },
       400,
     );

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { NextResponse } from "next/server";
 
 export interface ApiError {
@@ -29,4 +30,9 @@ export function errorResponse(
   );
   response.headers.set("Cache-Control", "no-store");
   return response;
+}
+
+/** Per-field validation messages for an API error's `details`. */
+export function fieldErrors(error: z.ZodError) {
+  return z.flattenError(error).fieldErrors;
 }

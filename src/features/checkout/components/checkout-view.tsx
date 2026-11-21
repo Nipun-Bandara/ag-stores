@@ -5,7 +5,7 @@ import { useLocale, useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 import { BilingualText } from "@/features/i18n/components/bilingual-text";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 
 import Link from "next/link";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -50,6 +50,9 @@ export function CheckoutView({
   const { quote, quoteError, quotePending } = useCartQuote(items);
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
+  // One key per order attempt: a retry after a lost response returns the same
+  // order instead of placing a duplicate. Rotated once the server has answered.
+  const idempotencyKey = useRef<string | null>(null);
   const deliveryFee = quote?.deliveryFee;
   const total =
     quote && deliveryFee !== null && deliveryFee !== undefined
@@ -64,13 +67,17 @@ export function CheckoutView({
 
   async function submitOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!quote || quoteError || quotePending) return;
+    if (!quote || quoteError || quotePending || pending) return;
+    idempotencyKey.current ??= crypto.randomUUID();
     setError(undefined);
     setPending(true);
     const form = new FormData(event.currentTarget);
     const response = await fetch("/api/checkout", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey.current,
+      },
       body: JSON.stringify({
         deliveryAddressId: form.get("deliveryAddressId"),
         deliveryInstructions: form.get("deliveryInstructions"),
@@ -84,6 +91,9 @@ export function CheckoutView({
     const payload = response
       ? ((await response.json().catch(() => ({}))) as CheckoutPayload)
       : {};
+
+    // Keep the key only when the outcome is unknown (network error or 5xx).
+    if (response && response.status < 500) idempotencyKey.current = null;
 
     if (!response?.ok || !payload.data?.id) {
       setError(t(payload.error?.message ?? "Unable to place your order."));

@@ -1,6 +1,10 @@
 import type { NextRequest } from "next/server";
 import { requireApiAnyRole } from "@/lib/auth/request";
-import { successResponse, errorResponse } from "@/lib/api-response";
+import {
+  errorResponse,
+  fieldErrors,
+  successResponse,
+} from "@/lib/api-response";
 import { staffErrorResponse } from "@/lib/staff-http";
 import { getOrderStaff, saveOrderStaff } from "@/services/order-staff.service";
 import { orderStaffSchema } from "@/validations/order-staff";
@@ -24,7 +28,7 @@ export async function POST(request: NextRequest) {
       {
         code: "VALIDATION_ERROR",
         message: "Staff details are invalid.",
-        details: parsed.error.flatten().fieldErrors,
+        details: fieldErrors(parsed.error),
       },
       400,
     );

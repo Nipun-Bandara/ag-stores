@@ -1,6 +1,10 @@
 import type { NextRequest } from "next/server";
 import { UserRole } from "@/generated/prisma/client";
-import { errorResponse, successResponse } from "@/lib/api-response";
+import {
+  errorResponse,
+  fieldErrors,
+  successResponse,
+} from "@/lib/api-response";
 import { requireApiAnyRole } from "@/lib/auth/request";
 import { PackingError, savePackedWeight } from "@/services/packing.service";
 import { orderIdSchema } from "@/validations/order";
@@ -24,7 +28,7 @@ export async function PATCH(
       {
         code: "VALIDATION_ERROR",
         message: "Packed weight details are invalid.",
-        details: body.success ? undefined : body.error.flatten().fieldErrors,
+        details: body.success ? undefined : fieldErrors(body.error),
       },
       400,
     );

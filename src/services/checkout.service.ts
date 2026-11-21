@@ -17,6 +17,7 @@ import {
   type OrderConfirmationRecord,
   type ReservedProductRecord,
 } from "@/repositories/checkout.repository";
+import { isUniqueConstraintError } from "@/repositories/auth.repository";
 import { calculateDistance } from "@/services/geographic-distance.service";
 import { buildOrderNotifications } from "@/services/order-notification.service";
 import type { AuthenticatedUser } from "@/types/auth";
@@ -90,17 +91,66 @@ function toOrderView(order: OrderConfirmationRecord) {
 
 export type OrderConfirmationView = ReturnType<typeof toOrderView>;
 
+export interface CheckoutOptions {
+  /** Retries with the same key return the order the first request created. */
+  idempotencyKey?: string | null;
+}
+
+export interface CheckoutResult {
+  order: OrderConfirmationView;
+  /** True when an earlier request with the same idempotency key created it. */
+  replayed: boolean;
+}
+
 export async function checkout(
   user: AuthenticatedUser,
   input: CheckoutInput,
   repository: CheckoutRepository = getCheckoutRepository(),
 ): Promise<OrderConfirmationView> {
+  return (await checkoutIdempotent(user, input, {}, repository)).order;
+}
+
+export async function checkoutIdempotent(
+  user: AuthenticatedUser,
+  input: CheckoutInput,
+  { idempotencyKey = null }: CheckoutOptions,
+  repository: CheckoutRepository = getCheckoutRepository(),
+): Promise<CheckoutResult> {
   assertCustomer(user);
   if (input.items.length === 0) {
     throw new CheckoutError("EMPTY_CART", "Your cart is empty.", 400);
   }
 
+  try {
+    return await placeOrder(user, input, repository, idempotencyKey);
+  } catch (error) {
+    // A concurrent request with the same key committed first.
+    if (idempotencyKey && isUniqueConstraintError(error)) {
+      const existing = await repository.findOrderByIdempotencyKey(
+        user.id,
+        idempotencyKey,
+      );
+      if (existing) return { order: toOrderView(existing), replayed: true };
+    }
+    throw error;
+  }
+}
+
+function placeOrder(
+  user: AuthenticatedUser,
+  input: CheckoutInput,
+  repository: CheckoutRepository,
+  idempotencyKey: string | null,
+): Promise<CheckoutResult> {
   return repository.transaction(async (transaction) => {
+    if (idempotencyKey) {
+      const existing = await transaction.findOrderByIdempotencyKey(
+        user.id,
+        idempotencyKey,
+      );
+      if (existing) return { order: toOrderView(existing), replayed: true };
+    }
+
     const deliveryAddress = await transaction.findOwnedAddress(
       user.id,
       input.deliveryAddressId,
@@ -236,6 +286,7 @@ export async function checkout(
     );
     const order = await transaction.createOrder({
       customerId: user.id,
+      idempotencyKey,
       shopId,
       deliveryAddressId: input.deliveryAddressId,
       subtotal,
@@ -251,7 +302,7 @@ export async function checkout(
         shopOwnerId: shop.ownerId,
       }),
     );
-    return toOrderView(order);
+    return { order: toOrderView(order), replayed: false };
   });
 }
 

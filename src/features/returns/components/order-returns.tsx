@@ -2,7 +2,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
-import * as Yup from "yup";
+import { z } from "zod";
+
+import { formikValidator, requiredText } from "@/lib/form-validation";
 import { toast } from "sonner";
 import type { getOwnerOrder } from "@/services/owner-order.service";
 import type { OrderReturnView } from "@/services/order-return.service";
@@ -35,6 +37,20 @@ import { ConfirmAction } from "@/components/ui/confirm-action";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 type Order = Awaited<ReturnType<typeof getOwnerOrder>>;
+
+/** Required free-text reason: 3–500 characters after trimming. */
+function returnReasonField(t: (value: string) => string) {
+  return requiredText(t)
+    .refine(
+      (value) => !value.trim() || value.trim().length >= 3,
+      t("Enter a reason with at least 3 characters."),
+    )
+    .refine(
+      (value) => value.trim().length <= 500,
+      t("Use at most 500 characters."),
+    );
+}
+
 export function OrderReturns({
   order,
   returns,
@@ -263,20 +279,16 @@ function RecordReturnForm({
       quantity: "",
       reason: "",
     },
-    validationSchema: Yup.object({
-      orderItemId: Yup.string().required(t("Required")),
-      quantity: Yup.string()
-        .required(t("Required"))
-        .matches(
-          /^(?:0|[1-9]\d{0,9})(?:\.\d{1,3})?$/,
+    validate: formikValidator(
+      z.object({
+        orderItemId: requiredText(t),
+        quantity: requiredText(t).refine(
+          (value) => !value || /^(?:0|[1-9]\d{0,9})(?:\.\d{1,3})?$/.test(value),
           t("Enter a valid return quantity."),
         ),
-      reason: Yup.string()
-        .trim()
-        .min(3, t("Enter a reason with at least 3 characters."))
-        .max(500)
-        .required(t("Required")),
-    }),
+        reason: returnReasonField(t),
+      }),
+    ),
     onSubmit: async (values, helpers) => {
       const quantity = Number(values.quantity);
       const item = order.items.find((item) => item.id === values.orderItemId);
@@ -421,18 +433,15 @@ function ReviewReturnForm({
   const t = useText();
   const formik = useFormik({
     initialValues: { action: "approve", restock: false, note: "" },
-    validationSchema: Yup.object({
-      note: Yup.string()
-        .max(500)
-        .when("action", {
-          is: "reject",
-          then: (schema) =>
-            schema
-              .trim()
-              .min(3, t("Enter a reason with at least 3 characters."))
-              .required(t("Required")),
+    validate: formikValidator(
+      z.discriminatedUnion("action", [
+        z.object({
+          action: z.literal("approve"),
+          note: z.string().max(500, t("Use at most 500 characters.")),
         }),
-    }),
+        z.object({ action: z.literal("reject"), note: returnReasonField(t) }),
+      ]),
+    ),
     onSubmit: async (values) => {
       await onSave(
         values.action === "approve"

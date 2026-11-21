@@ -1,15 +1,20 @@
 // @vitest-environment node
 
 import { NextRequest } from "next/server";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { POST as loginRoute } from "@/app/api/auth/login/route";
 import { GET as ownerDashboard } from "@/app/api/owner/dashboard/route";
 import {
+  clearAuthAttempts,
+  clientAddress,
   consumeAuthAttempt,
   resetAuthRateLimitsForTesting,
+  setRateLimitStoreForTesting,
 } from "@/lib/security/auth-rate-limit";
+import { buildContentSecurityPolicy } from "@/lib/security/content-security-policy";
 import { isSameOriginMutation } from "@/lib/security/request-origin";
+import { proxy } from "@/proxy";
 import { cartItemInputSchema } from "@/validations/cart";
 import { orderStatusTransitionSchema } from "@/validations/order";
 import { productStockSchema } from "@/validations/product";
@@ -19,6 +24,7 @@ describe("request security", () => {
   afterEach(() => {
     delete process.env.AUTH_RATE_LIMIT_MAX_ATTEMPTS;
     delete process.env.AUTH_RATE_LIMIT_MAX_ATTEMPTS_PER_IP;
+    delete process.env.TRUSTED_PROXY_COUNT;
     resetAuthRateLimitsForTesting();
   });
 
@@ -49,7 +55,7 @@ describe("request security", () => {
     ).toBe(true);
   });
 
-  it("enforces identifier and IP authentication attempt limits", () => {
+  it("enforces identifier and IP authentication attempt limits", async () => {
     process.env.AUTH_RATE_LIMIT_MAX_ATTEMPTS = "2";
     process.env.AUTH_RATE_LIMIT_MAX_ATTEMPTS_PER_IP = "20";
     const request = new Request("http://localhost/api/auth/login", {
@@ -57,14 +63,66 @@ describe("request security", () => {
     });
 
     expect(
-      consumeAuthAttempt(request, "login", "user@example.test").allowed,
+      (await consumeAuthAttempt(request, "login", "user@example.test")).allowed,
     ).toBe(true);
     expect(
-      consumeAuthAttempt(request, "login", "user@example.test").allowed,
+      (await consumeAuthAttempt(request, "login", "user@example.test")).allowed,
     ).toBe(true);
-    expect(
+    await expect(
       consumeAuthAttempt(request, "login", "user@example.test"),
-    ).toMatchObject({ allowed: false, remaining: 0 });
+    ).resolves.toMatchObject({ allowed: false, remaining: 0 });
+  });
+
+  it("counts every format of one mobile number against the same limit", async () => {
+    process.env.AUTH_RATE_LIMIT_MAX_ATTEMPTS = "2";
+    const request = new Request("http://localhost/api/auth/login", {
+      headers: { "x-forwarded-for": "192.0.2.11" },
+    });
+
+    await consumeAuthAttempt(request, "login", "0771234567");
+    await consumeAuthAttempt(request, "login", "077-123 4567");
+    await expect(
+      consumeAuthAttempt(request, "login", "+94771234567"),
+    ).resolves.toMatchObject({ allowed: false });
+  });
+
+  it("keeps the IP counter after a successful login", async () => {
+    process.env.AUTH_RATE_LIMIT_MAX_ATTEMPTS_PER_IP = "2";
+    const request = new Request("http://localhost/api/auth/login", {
+      headers: { "x-forwarded-for": "192.0.2.12" },
+    });
+
+    await consumeAuthAttempt(request, "login", "0771111111");
+    await consumeAuthAttempt(request, "login", "0772222222");
+    await clearAuthAttempts("login", "0772222222");
+    await expect(
+      consumeAuthAttempt(request, "login", "0773333333"),
+    ).resolves.toMatchObject({ allowed: false });
+  });
+
+  it("uses the forwarded address added by the trusted proxy", () => {
+    const spoofed = new Request("http://localhost/", {
+      headers: { "x-forwarded-for": "203.0.113.99, 198.51.100.7" },
+    });
+    expect(clientAddress(spoofed)).toBe("198.51.100.7");
+
+    process.env.TRUSTED_PROXY_COUNT = "2";
+    expect(clientAddress(spoofed)).toBe("203.0.113.99");
+    process.env.TRUSTED_PROXY_COUNT = "0";
+    expect(clientAddress(spoofed)).toBe("unknown");
+  });
+
+  it("fails open when the counter store is unavailable", async () => {
+    setRateLimitStoreForTesting({
+      increment: () => Promise.reject(new Error("database down")),
+      delete: () => Promise.resolve(),
+      purgeExpired: () => Promise.resolve(),
+    });
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(
+      consumeAuthAttempt(new Request("http://localhost/"), "login", "x"),
+    ).resolves.toMatchObject({ allowed: true });
+    error.mockRestore();
   });
 
   it("returns 403 for a cross-origin authentication request", async () => {
@@ -152,5 +210,36 @@ describe("tamper-resistant request validation", () => {
         role: "ADMIN",
       }).success,
     ).toBe(false);
+  });
+
+  it("builds a nonce-based script policy without unsafe-inline scripts", () => {
+    process.env.NEXT_PUBLIC_APP_URL = "https://shop.example";
+    const production = buildContentSecurityPolicy("abc123", "production");
+    expect(production).toContain(
+      "script-src 'self' 'nonce-abc123' 'strict-dynamic'",
+    );
+    expect(production).not.toMatch(/script-src[^;]*unsafe-(inline|eval)/);
+    expect(production).toContain("frame-ancestors 'none'");
+    expect(production).toContain("upgrade-insecure-requests");
+    process.env.NEXT_PUBLIC_APP_URL = "http://127.0.0.1:3100";
+    expect(buildContentSecurityPolicy("abc123", "production")).not.toContain(
+      "upgrade-insecure-requests",
+    );
+    delete process.env.NEXT_PUBLIC_APP_URL;
+    expect(buildContentSecurityPolicy("abc123", "development")).toContain(
+      "'unsafe-eval'",
+    );
+  });
+
+  it("sends a fresh nonce on every page request", () => {
+    const policies = [1, 2].map(() => {
+      const response = proxy(new NextRequest("http://localhost/landing"));
+      return response.headers.get("Content-Security-Policy") ?? "";
+    });
+    const nonces = policies.map(
+      (policy) => /'nonce-([^']+)'/.exec(policy)?.[1],
+    );
+    expect(nonces[0]).toBeTruthy();
+    expect(nonces[0]).not.toBe(nonces[1]);
   });
 });

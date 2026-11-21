@@ -30,11 +30,19 @@ status changes go through the centralized state machine and role policy.
   `AUTH_RATE_LIMIT_MAX_ATTEMPTS` and
   `AUTH_RATE_LIMIT_MAX_ATTEMPTS_PER_IP`.
 
-The included rate-limit store is process-local and intentionally bounded to
-avoid memory exhaustion. A multi-instance deployment must put an equivalent
-limit at the load balancer/API gateway or replace the store with Redis or a
-database-backed limiter so counters are shared between instances. Forwarded IP
-headers must only be trusted when the edge proxy overwrites them.
+Counters live in the PostgreSQL `auth_rate_limits` table and are updated with
+one atomic upsert per attempt, so every app instance shares them. Mobile
+numbers are normalized first, so `0771234567`, `077-123 4567` and
+`+94771234567` count against one limit. A successful login or registration
+clears only that identifier's counter; the per-IP counter keeps running, so one
+valid account cannot be used to refresh an attacker's IP allowance. If the
+counter store is unreachable the limiter fails open and logs the error (login
+itself needs the same database). Tests use an in-memory store.
+
+The client address is read from `X-Forwarded-For` as written by the trusted
+proxy: with `TRUSTED_PROXY_COUNT=N` (default 1) the Nth entry from the right is
+used, so entries a client prepends are ignored. Set it to the number of proxies
+that append to the header, or `0` when the app is reached directly.
 
 ## Request and browser protections
 
@@ -46,11 +54,18 @@ mutation endpoints apply the same check.
 
 All API JSON responses use `Cache-Control: no-store`. Application responses
 include clickjacking, MIME sniffing, referrer, permissions, base URI, object,
-and form-action protections. Production also sends HSTS and must be served only
+and form-action protections. Rendered pages also get a per-request nonce-based
+Content-Security-Policy from `src/proxy.ts`
+(`src/lib/security/content-security-policy.ts`): scripts run only with the
+request's nonce plus `'strict-dynamic'`, and network, image and worker sources
+are limited to the app, Supabase Storage and Mapbox. `style-src` still allows
+inline styles because chart, map, animation and toast libraries set style
+attributes. Pages must stay dynamically rendered for nonces to apply. Production also sends HSTS and must be served only
 through HTTPS.
 
-React's escaped text rendering is used throughout and there is no
-`dangerouslySetInnerHTML` usage. Product image URLs are limited to HTTPS and
+React's escaped text rendering is used throughout. The only
+`dangerouslySetInnerHTML` is the chart component's generated `<style>` block,
+built from developer-defined colour config. Product image URLs are limited to HTTPS and
 are never treated as markup. The application currently accepts URLs only; it
 does not ingest or transform uploaded files.
 

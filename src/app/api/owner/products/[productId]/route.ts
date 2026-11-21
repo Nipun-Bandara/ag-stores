@@ -1,7 +1,11 @@
 import type { NextRequest } from "next/server";
 
 import { UserRole } from "@/generated/prisma/client";
-import { errorResponse, successResponse } from "@/lib/api-response";
+import {
+  errorResponse,
+  fieldErrors,
+  successResponse,
+} from "@/lib/api-response";
 import { requireApiRole } from "@/lib/auth/request";
 import { productErrorResponse } from "@/lib/product-http";
 import {
@@ -46,7 +50,7 @@ export async function PATCH(request: NextRequest, context: ProductContext) {
       {
         code: "VALIDATION_ERROR",
         message: "Product details are invalid.",
-        details: parsed.error.flatten().fieldErrors,
+        details: fieldErrors(parsed.error),
       },
       400,
     );

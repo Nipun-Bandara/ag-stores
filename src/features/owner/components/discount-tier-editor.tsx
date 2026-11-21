@@ -1,7 +1,9 @@
 "use client";
 import { quantityValid } from "@/lib/quantity";
 import { useFormik } from "formik";
-import * as Yup from "yup";
+import { z } from "zod";
+
+import { formikValidator } from "@/lib/form-validation";
 import { Label } from "@/components/ui/label";
 import { useId } from "react";
 import { Input } from "@/components/ui/input";
@@ -63,24 +65,22 @@ export function DiscountTierEditor({
   const t = useText();
   const locale = useLocale();
   const exampleId = useId();
-  const exampleSchema = Yup.object({
-    exampleQuantity: Yup.string()
-      .required(t("Enter a valid example quantity."))
-      .test("quantity", t("Enter a valid example quantity."), (value) =>
-        Boolean(
-          value &&
-          /^\d+(?:\.\d{1,3})?$/.test(value) &&
-          quantityValid(value, setup),
-        ),
+  const exampleSchema = z.object({
+    exampleQuantity: z
+      .string()
+      .refine(
+        (value) =>
+          /^\d+(?:\.\d{1,3})?$/.test(value) && quantityValid(value, setup),
+        t("Enter a valid example quantity."),
       ),
   });
   const exampleForm = useFormik({
     initialValues: { exampleQuantity: "1" },
-    validationSchema: exampleSchema,
+    validate: formikValidator(exampleSchema),
     onSubmit: () => {},
   });
   const { exampleQuantity } = exampleForm.values;
-  const exampleValid = exampleSchema.isValidSync(exampleForm.values);
+  const exampleValid = exampleSchema.safeParse(exampleForm.values).success;
   let validated: { price: string; tiers: DiscountTier[] } | undefined;
   let error: string | undefined;
   try {

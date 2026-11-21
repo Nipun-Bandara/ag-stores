@@ -66,6 +66,7 @@ describe("checkout order creation", () => {
     expect(transaction.order.create).toHaveBeenCalledWith({
       data: {
         ...data,
+        idempotencyKey: null,
         estimatedSubtotal: data.subtotal,
         estimatedTotal: data.total,
         packingRequired: false,

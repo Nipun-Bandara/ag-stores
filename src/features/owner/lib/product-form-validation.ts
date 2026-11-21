@@ -1,4 +1,10 @@
-import * as Yup from "yup";
+import { z } from "zod";
+
+import {
+  alwaysRun,
+  formikValidator,
+  requiredText,
+} from "@/lib/form-validation";
 import {
   pricingDraft,
   type TierDraft,
@@ -24,92 +30,131 @@ export interface ProductFormValues {
   isAvailable: boolean;
 }
 
+const QUANTITY_PATTERN = /^\d{1,10}(?:\.\d{1,3})?$/;
+const PRICE_PATTERN = /^\d{1,10}(?:\.\d{1,2})?$/;
+
+type QuantityField =
+  | "stockQuantity"
+  | "lowStockThreshold"
+  | "minimumOrderQuantity"
+  | "orderingIncrement";
+
+/** Smallest allowed value for each quantity field, by selling unit. */
+function quantityFloor(field: QuantityField, sellingUnit: string): number {
+  if (field === "stockQuantity" || field === "lowStockThreshold") return 0;
+  if (sellingUnit !== "KG") return 1;
+  return field === "orderingIncrement" ? 0.001 : 0.002;
+}
+
+function quantityValidForUnit(
+  value: string,
+  field: QuantityField,
+  sellingUnit: string,
+): boolean {
+  if (!QUANTITY_PATTERN.test(value)) return false;
+  const amount = Number(value);
+  return (
+    amount <= 2147483647 &&
+    amount >= quantityFloor(field, sellingUnit) &&
+    (sellingUnit === "KG" || Number.isInteger(amount))
+  );
+}
+
+function maxLength(t: (text: string) => string, limit: number) {
+  return z.string().max(limit, t(`Use at most ${limit} characters.`));
+}
+
 export function productFormValidation(
   t: (text: string) => string,
   options: ProductFormOptions,
 ) {
-  const quantity = (positive = false, increment = false) =>
-    Yup.string()
-      .required(t("Required"))
-      .test(
-        "quantity",
-        t("Enter a valid quantity for the selected selling unit."),
-        function (value) {
-          if (!value || !/^\d{1,10}(?:\.\d{1,3})?$/.test(value)) return false;
-          const amount = Number(value);
-          return (
-            amount <= 2147483647 &&
-            amount >=
-              (positive
-                ? this.parent.sellingUnit === "KG"
-                  ? increment
-                    ? 0.001
-                    : 0.002
-                  : 1
-                : 0) &&
-            (this.parent.sellingUnit === "KG" || Number.isInteger(amount))
-          );
-        },
-      );
-  return Yup.object({
-    shopId: Yup.string()
-      .required(t("Select a shop"))
-      .test("shop", t("Select a shop"), (value) =>
-        options.shops.some((shop) => shop.id === value),
+  const quantityFields: QuantityField[] = [
+    "stockQuantity",
+    "lowStockThreshold",
+    "minimumOrderQuantity",
+    "orderingIncrement",
+  ];
+  const schema = z
+    .object({
+      shopId: z
+        .string()
+        .refine(
+          (value) => options.shops.some((shop) => shop.id === value),
+          t("Select a shop"),
+        ),
+      categoryId: z.string().min(1, t("Select a category")),
+      sellingUnit: z.enum(["UNIT", "KG"], t("Required")),
+      nameEn: requiredText(t).refine(
+        (value) => value.trim().length <= 180,
+        t("Use at most 180 characters."),
       ),
-    categoryId: Yup.string()
-      .required(t("Select a category"))
-      .test("category", t("Select a category"), function (value) {
-        return options.categories.some(
-          (category) =>
-            category.id === value && category.shopId === this.parent.shopId,
-        );
-      }),
-    sellingUnit: Yup.string().oneOf(["UNIT", "KG"]).required(t("Required")),
-    nameEn: Yup.string()
-      .trim()
-      .required(t("Required"))
-      .max(180, t("Use at most 180 characters.")),
-    nameSi: Yup.string().max(180, t("Use at most 180 characters.")),
-    itemCode: Yup.string()
-      .trim()
-      .required(t("Item code is required."))
-      .max(100, t("Use at most 100 characters.")),
-    barcode: Yup.string().max(100, t("Use at most 100 characters.")),
-    descriptionEn: Yup.string().max(5000, t("Use at most 5000 characters.")),
-    descriptionSi: Yup.string().max(5000, t("Use at most 5000 characters.")),
-    price: Yup.string()
-      .required(t("Required"))
-      .matches(
-        /^\d{1,10}(?:\.\d{1,2})?$/,
+      nameSi: maxLength(t, 180),
+      itemCode: z
+        .string()
+        .refine((value) => value.trim().length > 0, t("Item code is required."))
+        .refine(
+          (value) => value.trim().length <= 100,
+          t("Use at most 100 characters."),
+        ),
+      barcode: maxLength(t, 100),
+      descriptionEn: maxLength(t, 5000),
+      descriptionSi: maxLength(t, 5000),
+      price: requiredText(t).refine(
+        (value) => !value || PRICE_PATTERN.test(value),
         t("Enter a valid regular price with up to two decimal places."),
       ),
-    stockQuantity: quantity(),
-    lowStockThreshold: quantity(),
-    minimumOrderQuantity: quantity(true),
-    orderingIncrement: quantity(true, true),
-    discountTiers: Yup.array()
-      .max(4, t("A product can have at most four discount tiers."))
-      .test("pricing", function (drafts) {
-        const values = this.parent as ProductFormValues;
-        if (!/^\d{1,10}(?:\.\d{1,2})?$/.test(values.price)) return true;
-        try {
-          pricingDraft(values.price, (drafts as TierDraft[]) ?? [], {
-            sellingUnit: values.sellingUnit,
-            minimumOrderQuantity: Number(values.minimumOrderQuantity),
-            orderingIncrement: Number(values.orderingIncrement),
-          });
-          return true;
-        } catch (error) {
-          return this.createError({
-            message: t(
-              error instanceof Error
-                ? error.message
-                : "Invalid discount tiers.",
-            ),
+      stockQuantity: requiredText(t),
+      lowStockThreshold: requiredText(t),
+      minimumOrderQuantity: requiredText(t),
+      orderingIncrement: requiredText(t),
+      discountTiers: z
+        .array(z.custom<TierDraft>())
+        .max(4, t("A product can have at most four discount tiers.")),
+      isAvailable: z.boolean(),
+    })
+    .superRefine((values: ProductFormValues, context) => {
+      if (
+        values.categoryId &&
+        !options.categories.some(
+          (category) =>
+            category.id === values.categoryId &&
+            category.shopId === values.shopId,
+        )
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["categoryId"],
+          message: t("Select a category"),
+        });
+      }
+
+      for (const field of quantityFields) {
+        const value = values[field];
+        if (value && !quantityValidForUnit(value, field, values.sellingUnit)) {
+          context.addIssue({
+            code: "custom",
+            path: [field],
+            message: t("Enter a valid quantity for the selected selling unit."),
           });
         }
-      }),
-    isAvailable: Yup.boolean(),
-  });
+      }
+
+      if (!PRICE_PATTERN.test(values.price)) return;
+      try {
+        pricingDraft(values.price, values.discountTiers ?? [], {
+          sellingUnit: values.sellingUnit,
+          minimumOrderQuantity: Number(values.minimumOrderQuantity),
+          orderingIncrement: Number(values.orderingIncrement),
+        });
+      } catch (error) {
+        context.addIssue({
+          code: "custom",
+          path: ["discountTiers"],
+          message: t(
+            error instanceof Error ? error.message : "Invalid discount tiers.",
+          ),
+        });
+      }
+    }, alwaysRun);
+  return formikValidator<ProductFormValues>(schema);
 }

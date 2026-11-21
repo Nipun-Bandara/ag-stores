@@ -3,9 +3,14 @@ import { useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 
 import { useFormik } from "formik";
-import * as Yup from "yup";
+import { z } from "zod";
+
+import {
+  formikValidator,
+  mobileField,
+  passwordField,
+} from "@/lib/form-validation";
 import { Phone, Lock } from "lucide-react";
-import { normalizeMobile } from "@/lib/account-identity";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import {
@@ -37,18 +42,9 @@ export default function Login({ onSwitchToSignup, returnTo }: LoginProps) {
       identifier: "",
       password: "",
     },
-    validationSchema: Yup.object({
-      identifier: Yup.string()
-        .required(t("Required"))
-        .test(
-          "mobile",
-          t("Enter a Sri Lankan mobile number such as 0771234567."),
-          (value) => !!value && !!normalizeMobile(value),
-        ),
-      password: Yup.string()
-        .max(128, t("Password must contain at most 128 characters."))
-        .required(t("Required")),
-    }),
+    validate: formikValidator(
+      z.object({ identifier: mobileField(t), password: passwordField(t) }),
+    ),
     onSubmit: async (values) => {
       try {
         await login(values, returnTo);
