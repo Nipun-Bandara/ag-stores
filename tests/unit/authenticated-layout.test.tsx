@@ -224,12 +224,18 @@ describe("authenticated layout", () => {
     );
     expect(screen.getByText("Catalog")).toBeVisible();
     expect(state.replace).not.toHaveBeenCalled();
+    // Sidebar menu and its sign-in link, then the top bar's Log in button. Both
+    // sign-in links carry no return path, so login lands by role.
     expect(sidebarHrefs()).toEqual([
       "/home",
       "/products",
       "/cart",
-      "/auth?returnTo=%2Fproducts",
+      "/auth",
+      "/auth",
     ]);
+    expect(screen.getByTestId("header-login")).toHaveTextContent("Log in");
+    // Phones sign in from the Account tab instead.
+    expect(screen.getByTestId("header-login")).toHaveClass("max-md:hidden");
     expect(tabHrefs()).toEqual(["/home", "/products", "/cart", "/account"]);
   });
   it("renders public pages while the session is still loading", () => {

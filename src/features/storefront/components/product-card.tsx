@@ -8,6 +8,7 @@ import {
   type Locale,
 } from "@/lib/i18n/config";
 import type { StorefrontProductView } from "@/services/storefront.service";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 
@@ -27,11 +28,13 @@ export function ProductCard({
   return (
     <Card
       as="article"
-      className="min-w-0 flex-row items-start justify-between gap-4 rounded-none border-b border-border bg-transparent px-0 py-5 shadow-none ring-0"
+      className="h-full min-w-0 flex-row items-stretch justify-between gap-4 rounded-none border-b border-border bg-transparent px-0 py-5 shadow-none ring-0"
       data-testid="product-card"
     >
-      <div className="min-w-0 flex-1 py-1">
-        <h3 className="break-words text-base font-semibold leading-snug">
+      {/* Fixed slots (two-line name, one-line category, two-line price,
+          badge at the bottom) keep every card the same height. */}
+      <div className="flex min-w-0 flex-1 flex-col py-1">
+        <h3 className="line-clamp-2 min-h-[2lh] break-words text-base font-semibold leading-snug">
           <Link
             href={href}
             className="text-foreground no-underline hover:text-primary"
@@ -40,23 +43,24 @@ export function ProductCard({
             {name}
           </Link>
         </h3>
-        <p className="mt-1 break-words text-xs leading-relaxed text-muted-foreground">
+        <p className="mt-1 truncate text-xs leading-relaxed text-muted-foreground">
           {localizeBilingual(
             product.categoryNameEn,
             product.categoryNameSi,
             locale,
           )}
         </p>
-        <div className="mt-3">
+        <div className="mb-2 mt-3 min-h-10">
           <CompactProductPrice product={cartProduct} locale={locale} />
         </div>
-        {product.isOutOfStock ? (
-          <p className="mt-2 text-xs text-muted-foreground">
-            {copy.outOfStock}
-          </p>
-        ) : null}
+        <Badge
+          variant={product.isOutOfStock ? "destructive" : "success"}
+          className="mt-auto self-start"
+        >
+          {product.isOutOfStock ? copy.outOfStock : copy.inStock}
+        </Badge>
       </div>
-      <div className="relative mb-3 w-28 shrink-0">
+      <div className="relative mb-3 w-28 shrink-0 self-start">
         <Link
           href={href}
           aria-label={`${copy.viewProduct}: ${name}`}

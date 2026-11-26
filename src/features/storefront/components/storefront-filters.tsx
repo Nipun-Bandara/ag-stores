@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
+import { Search } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { useText } from "@/features/i18n/components/locale-provider";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { Label } from "@/components/ui/label";
 import type { Dictionary } from "@/lib/i18n/config";
 import {
@@ -16,15 +20,17 @@ import { cn } from "@/lib/utils";
 import { LOADED_PAGES_PARAM } from "@/lib/product-pagination";
 
 type Filters = { search: string; categoryId: string };
-function filterKey(values: Filters): string {
-  return JSON.stringify([values.search.trim(), values.categoryId]);
-}
 
+/**
+ * Catalogue search. Nothing is applied while typing or choosing a category;
+ * the shopper presses Search (or Enter) to run it.
+ */
 export function StorefrontFilters({
   categoryOptions,
   initialSearch,
   initialCategoryId,
   copy,
+  searchLabel,
 }: {
   categoryOptions: { value: string; label: string }[];
   initialSearch: string;
@@ -33,48 +39,37 @@ export function StorefrontFilters({
     Dictionary["storefront"],
     "searchProducts" | "searchPlaceholder" | "category" | "allCategories"
   >;
+  /** Text for the submit button; defaults to a translated "Search". */
+  searchLabel?: string;
 }) {
+  const t = useText();
   const router = useRouter();
   const pathname = usePathname();
-  const initialValues = {
-    search: initialSearch,
-    categoryId: initialCategoryId,
-  };
-  const serverKey = filterKey(initialValues);
+  const serverKey = JSON.stringify([initialSearch, initialCategoryId]);
   const [state, setState] = useState({
-    values: initialValues,
+    values: { search: initialSearch, categoryId: initialCategoryId } as Filters,
     serverKey,
-    requestedKey: null as string | null,
   });
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [pending, startTransition] = useTransition();
 
-  // Accept back/forward or external navigation without overwriting newer typing
-  // when a response to this form's own navigation arrives.
+  // Back/forward or a link changed the filters: show what the page now uses.
   if (state.serverKey !== serverKey) {
-    const ownResponse = serverKey === state.requestedKey;
     setState({
-      values: ownResponse ? state.values : initialValues,
+      values: { search: initialSearch, categoryId: initialCategoryId },
       serverKey,
-      requestedKey: ownResponse ? state.requestedKey : null,
     });
   }
 
-  useEffect(() => () => clearTimeout(timer.current), []);
-  useEffect(() => {
-    if (serverKey !== state.requestedKey) clearTimeout(timer.current);
-  }, [serverKey, state.requestedKey]);
+  function setValue(name: keyof Filters, value: string) {
+    setState((current) => ({
+      ...current,
+      values: { ...current.values, [name]: value },
+    }));
+  }
 
-  function apply(values: Filters) {
-    clearTimeout(timer.current);
-    const key = filterKey(values);
-    if (
-      key === state.requestedKey ||
-      (state.requestedKey === null && key === serverKey)
-    )
-      return;
+  function apply() {
     const params = new URLSearchParams(window.location.search);
-    for (const [name, value] of Object.entries(values)) {
+    for (const [name, value] of Object.entries(state.values)) {
       const normalized = value.trim();
       if (normalized) params.set(name, normalized);
       else params.delete(name);
@@ -82,9 +77,8 @@ export function StorefrontFilters({
     params.delete("page");
     params.delete(LOADED_PAGES_PARAM);
     const query = params.toString();
-    setState((current) => ({ ...current, requestedKey: key }));
     startTransition(() =>
-      router.replace(query ? `${pathname}?${query}` : pathname, {
+      router.push(query ? `${pathname}?${query}` : pathname, {
         scroll: false,
       }),
     );
@@ -92,11 +86,12 @@ export function StorefrontFilters({
 
   return (
     <form
-      className="grid min-w-0 items-end gap-4 sm:grid-cols-2"
+      role="search"
+      className="grid min-w-0 items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:gap-4"
       aria-busy={pending}
       onSubmit={(event) => {
         event.preventDefault();
-        apply(state.values);
+        apply();
       }}
     >
       <div className="min-w-0">
@@ -106,16 +101,12 @@ export function StorefrontFilters({
         <Input
           id="search"
           name="search"
+          type="search"
           value={state.values.search}
           maxLength={180}
           placeholder={copy.searchPlaceholder}
           className="mt-1.5 h-10 w-full font-normal text-foreground placeholder:text-muted-foreground"
-          onChange={(event) => {
-            const next = { ...state.values, search: event.currentTarget.value };
-            setState((current) => ({ ...current, values: next }));
-            clearTimeout(timer.current);
-            timer.current = setTimeout(() => apply(next), 300);
-          }}
+          onChange={(event) => setValue("search", event.currentTarget.value)}
         />
       </div>
       <div className="min-w-0">
@@ -126,11 +117,7 @@ export function StorefrontFilters({
           name="categoryId"
           items={categoryOptions}
           value={state.values.categoryId}
-          onValueChange={(value) => {
-            const next = { ...state.values, categoryId: value ?? "" };
-            setState((current) => ({ ...current, values: next }));
-            apply(next);
-          }}
+          onValueChange={(value) => setValue("categoryId", value ?? "")}
         >
           <SelectTrigger
             id="categoryId"
@@ -157,6 +144,14 @@ export function StorefrontFilters({
           </SelectContent>
         </Select>
       </div>
+      <Button
+        type="submit"
+        className="h-10 w-full sm:w-auto"
+        disabled={pending}
+      >
+        {pending ? <Spinner className="size-4" /> : <Search aria-hidden />}
+        {searchLabel ?? t("Search")}
+      </Button>
     </form>
   );
 }

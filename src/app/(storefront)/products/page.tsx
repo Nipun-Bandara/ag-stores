@@ -18,7 +18,6 @@ import {
   productSearchSchema,
 } from "@/validations/product";
 import { StorefrontFilters } from "@/features/storefront/components/storefront-filters";
-import { Card } from "@/components/ui/card";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getServerText();
@@ -90,14 +89,15 @@ export default async function ProductsPage({
       <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
         {copy.searchDescription}
       </p>
-      <Card className="mt-5 gap-0 border-0 bg-transparent p-0 shadow-none ring-0">
+      {/* Plain wrapper: a clipped, rounded card here cut off the field corners. */}
+      <div className="mt-5">
         <StorefrontFilters
           categoryOptions={categoryOptions}
           initialSearch={search?.success ? search.data : ""}
           initialCategoryId={category?.success ? category.data : ""}
           copy={copy}
         />
-      </Card>
+      </div>
       <StorefrontCartSummary locale={locale} localizedRoute={localizedRoute} />
       {filters.categoryId ? (
         <p className="mt-4 text-sm text-muted-foreground">

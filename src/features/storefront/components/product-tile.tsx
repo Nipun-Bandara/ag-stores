@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Badge } from "@/components/ui/badge";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import { AddToCartButton } from "@/features/cart/components/add-to-cart-button";
 import {
@@ -53,20 +54,27 @@ export function ProductTile({
           />
         </div>
       </div>
-      <h3 className="mt-2 line-clamp-2 break-words text-sm font-medium leading-snug">
-        <Link
-          href={href}
-          className="text-foreground no-underline hover:text-primary"
+      {/* Fixed slots (two-line name, two-line price, badge at the bottom)
+          keep every tile in a row the same height. */}
+      <div className="flex flex-1 flex-col">
+        <h3 className="mt-2 line-clamp-2 min-h-[2lh] break-words text-sm font-medium leading-snug">
+          <Link
+            href={href}
+            className="text-foreground no-underline hover:text-primary"
+          >
+            {name}
+          </Link>
+        </h3>
+        <div className="mb-2 mt-1 min-h-10">
+          <CompactProductPrice product={cartProduct} locale={locale} />
+        </div>
+        <Badge
+          variant={product.isOutOfStock ? "destructive" : "success"}
+          className="mt-auto self-start"
         >
-          {name}
-        </Link>
-      </h3>
-      <div className="mt-1">
-        <CompactProductPrice product={cartProduct} locale={locale} />
+          {product.isOutOfStock ? copy.outOfStock : copy.inStock}
+        </Badge>
       </div>
-      {product.isOutOfStock ? (
-        <p className="mt-1 text-xs text-muted-foreground">{copy.outOfStock}</p>
-      ) : null}
     </article>
   );
 }

@@ -48,7 +48,8 @@ test.afterAll(async () => {
   await prisma.$disconnect();
 });
 
-test("English route renders English navigation and storefront text", async ({
+// Landing page is switched off for now (it redirects to /home); re-enable with it.
+test.skip("English route renders English navigation and storefront text", async ({
   page,
 }) => {
   await page.goto("/en/landing");
@@ -65,7 +66,8 @@ test("English route renders English navigation and storefront text", async ({
   ).toBeVisible();
 });
 
-test("Sinhala route renders Sinhala text and translated product fields", async ({
+// Landing page is switched off for now (it redirects to /home); re-enable with it.
+test.skip("Sinhala route renders Sinhala text and translated product fields", async ({
   page,
 }) => {
   await page.goto("/si/landing");

@@ -7,6 +7,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Loader } from "@/components/Loader";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { buttonVariants } from "@/components/ui/button";
+import { LogIn } from "lucide-react";
 import {
   SidebarProvider,
   SidebarTrigger,
@@ -121,7 +123,8 @@ export function AuthenticatedShell({
                     localizedRoute,
                   )}
                   data-testid="mobile-brand"
-                  className="flex items-center gap-2 font-bold text-foreground no-underline md:hidden"
+                  aria-label="AG Stores"
+                  className="flex shrink-0 items-center gap-2 whitespace-nowrap font-bold text-foreground no-underline md:hidden"
                 >
                   <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-[11px] text-primary-foreground">
                     AG
@@ -129,7 +132,23 @@ export function AuthenticatedShell({
                   AG Stores
                 </Link>
               ) : null}
-              <div className="ml-auto flex items-center gap-3">
+              <div className="ml-auto flex items-center gap-2 sm:gap-3">
+                {/* Signed-out visitors on tablet and desktop see how to sign in;
+                    phones use the Account tab. Hidden while the session loads
+                    so signed-in users never see it flash. */}
+                {!isLoading && !user ? (
+                  <Link
+                    href={routePath("/auth", locale, localizedRoute)}
+                    className={buttonVariants({
+                      size: "sm",
+                      className: "max-md:hidden",
+                    })}
+                    data-testid="header-login"
+                  >
+                    <LogIn aria-hidden />
+                    {t("Log in")}
+                  </Link>
+                ) : null}
                 <LanguageSwitcher
                   locale={locale}
                   label={locale === "si" ? "භාෂාව" : t("Language")}

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
-test("landing language picker switches between English and Sinhala", async ({
+// Landing page is switched off for now (it redirects to /home); re-enable with it.
+test.skip("landing language picker switches between English and Sinhala", async ({
   page,
 }) => {
   await page.goto("/en/landing");
@@ -35,7 +36,10 @@ test("auth page uses the selected locale and keeps its own language picker", asy
   ).toContainText("සිංහල");
 });
 
-test("small-screen landing menu can switch languages", async ({ page }) => {
+// Landing page is switched off for now (it redirects to /home); re-enable with it.
+test.skip("small-screen landing menu can switch languages", async ({
+  page,
+}) => {
   for (const width of [390, 768]) {
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/en/landing");

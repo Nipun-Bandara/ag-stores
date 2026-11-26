@@ -13,6 +13,7 @@ import { ProductTile } from "@/features/storefront/components/product-tile";
 import { getDictionary, localizeBilingual, routePath } from "@/lib/i18n/config";
 import { getLocaleContext, getServerText } from "@/lib/i18n/server";
 import { translate } from "@/lib/i18n/text";
+import { shuffled } from "@/lib/shuffle";
 import {
   listStorefrontCategories,
   listStorefrontProducts,
@@ -38,16 +39,19 @@ export default async function StoreHomePage() {
   const copy = getDictionary(locale).storefront;
   const href = (path: string) => routePath(path, locale, localizedRoute);
   const stocked = categories.filter((category) => category.productCount > 0);
-  // Rows lead with each category's best discounts (the repository's order).
+  // A random handful of categories each visit; within a row the repository
+  // already orders products by their discount, highest first.
   const rows = (
     await Promise.all(
-      stocked.slice(0, HOME_ROW_LIMIT).map(async (category) => ({
-        category,
-        products: await listStorefrontProducts({
-          categoryId: category.id,
-          limit: PRODUCTS_PER_ROW,
-        }),
-      })),
+      shuffled(stocked)
+        .slice(0, HOME_ROW_LIMIT)
+        .map(async (category) => ({
+          category,
+          products: await listStorefrontProducts({
+            categoryId: category.id,
+            limit: PRODUCTS_PER_ROW,
+          }),
+        })),
     )
   ).filter((row) => row.products.length > 0);
 
@@ -58,29 +62,29 @@ export default async function StoreHomePage() {
         action={href("/products")}
         method="get"
         role="search"
-        className="relative"
+        className="flex items-center gap-2"
       >
         <label htmlFor="home-search" className="sr-only">
           {copy.searchProducts}
         </label>
-        <Search
-          aria-hidden
-          className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-        />
-        <input
-          id="home-search"
-          name="search"
-          type="search"
-          maxLength={180}
-          placeholder={copy.searchPlaceholder}
-          className="h-12 w-full rounded-full border border-input bg-card pl-10 pr-24 text-base shadow-xs outline-none transition focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-        />
+        <div className="relative min-w-0 flex-1">
+          <Search
+            aria-hidden
+            className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <input
+            id="home-search"
+            name="search"
+            type="search"
+            maxLength={180}
+            placeholder={copy.searchPlaceholder}
+            className="h-11 w-full rounded-full border border-input bg-card pl-10 pr-4 text-base shadow-xs outline-none transition focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          />
+        </div>
         <button
           type="submit"
           className={buttonVariants({
-            size: "sm",
-            className:
-              "absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full",
+            className: "h-11 shrink-0 rounded-full px-5",
           })}
         >
           {translate(locale, "Search")}
@@ -92,7 +96,7 @@ export default async function StoreHomePage() {
           <h2 className="px-4 text-sm font-semibold text-muted-foreground lg:px-6">
             {copy.shopByCategory}
           </h2>
-          <ul className="mt-2 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:px-6">
+          <ul className="relative mt-2 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:px-6">
             {stocked.map((category) => (
               <li key={category.id} className="shrink-0">
                 <Link
@@ -145,7 +149,7 @@ export default async function StoreHomePage() {
                   <ChevronRight aria-hidden className="size-4" />
                 </Link>
               </div>
-              <div className="mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2 [scrollbar-width:none] lg:scroll-px-6 lg:px-6">
+              <div className="relative mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2 [scrollbar-width:none] lg:scroll-px-6 lg:px-6">
                 {products.map((product) => (
                   <ProductTile
                     key={product.id}

@@ -7,7 +7,8 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { StorefrontFilters } from "@/features/storefront/components/storefront-filters";
-const nav = vi.hoisted(() => ({ replace: vi.fn() }));
+
+const nav = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
 vi.mock("next/navigation", () => ({
   useRouter: () => nav,
   usePathname: () => "/si/products",
@@ -15,7 +16,7 @@ vi.mock("next/navigation", () => ({
 const props = {
   categoryOptions: [
     { value: "", label: "All categories" },
-    { value: "beverages-id", label: "Beverages · Test Shop" },
+    { value: "beverages-id", label: "Beverages" },
   ],
   initialSearch: "",
   initialCategoryId: "",
@@ -27,86 +28,68 @@ const props = {
   },
 };
 beforeEach(() => {
-  window.history.replaceState({}, "", "/?page=9&pageSize=48");
+  window.history.replaceState({}, "", "/?page=9&pageSize=48&loaded=3");
   vi.useFakeTimers();
+  nav.push.mockClear();
   nav.replace.mockClear();
 });
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
 });
-function tick() {
-  act(() => vi.advanceTimersByTime(300));
-}
 function choose(label: string) {
   fireEvent.click(screen.getByRole("combobox", { name: "Category" }));
   const option = screen.getByRole("option", { name: label });
   fireEvent.pointerDown(option, { pointerType: "mouse" });
   fireEvent.click(option);
 }
-it("debounces typing, uses theme placeholders, and has no apply button", () => {
+function search() {
+  fireEvent.click(screen.getByRole("button", { name: "Search" }));
+}
+
+it("waits for the Search button instead of searching while typing", () => {
   render(<StorefrontFilters {...props} />);
-  const search = screen.getByLabelText("Search products");
-  fireEvent.change(search, { target: { value: "t" } });
-  act(() => vi.advanceTimersByTime(200));
-  fireEvent.change(search, { target: { value: "tea" } });
-  expect(nav.replace).not.toHaveBeenCalled();
-  tick();
-  expect(nav.replace).toHaveBeenCalledExactlyOnceWith(
-    "/si/products?pageSize=48&search=tea",
-    { scroll: false },
-  );
-  expect(
-    screen.queryByRole("button", { name: /Apply/ }),
-  ).not.toBeInTheDocument();
-  expect(search).toHaveClass("placeholder:text-muted-foreground");
-  expect(screen.getByRole("combobox")).toHaveClass(
-    "text-muted-foreground",
-    "data-[size=default]:h-10",
-  );
-});
-it("changes category immediately, keeps readable labels, and combines unfinished search", () => {
-  render(<StorefrontFilters {...props} />);
-  fireEvent.change(screen.getByLabelText("Search products"), {
-    target: { value: "tea" },
-  });
-  choose("Beverages · Test Shop");
-  expect(nav.replace).toHaveBeenCalledExactlyOnceWith(
-    "/si/products?pageSize=48&search=tea&categoryId=beverages-id",
-    { scroll: false },
-  );
-  tick();
-  expect(nav.replace).toHaveBeenCalledTimes(1);
-  expect(screen.getByRole("combobox")).toHaveTextContent(
-    "Beverages · Test Shop",
-  );
-  choose("All categories");
-  expect(nav.replace).toHaveBeenLastCalledWith(
-    "/si/products?pageSize=48&search=tea",
-    {
-      scroll: false,
-    },
-  );
-});
-it("keeps newer text and focus when an earlier filter response arrives", () => {
-  const view = render(<StorefrontFilters {...props} />);
   const input = screen.getByLabelText("Search products");
-  input.focus();
   fireEvent.change(input, { target: { value: "tea" } });
-  tick();
-  fireEvent.change(input, { target: { value: "teapot" } });
-  view.rerender(<StorefrontFilters {...props} initialSearch="tea" />);
-  expect(input).toHaveValue("teapot");
-  expect(input).toHaveFocus();
-  tick();
-  expect(nav.replace).toHaveBeenLastCalledWith(
-    "/si/products?pageSize=48&search=teapot",
-    {
-      scroll: false,
-    },
+  act(() => vi.advanceTimersByTime(5000));
+  expect(nav.push).not.toHaveBeenCalled();
+  expect(nav.replace).not.toHaveBeenCalled();
+
+  search();
+  // A new search starts at the first page and drops scroll-loaded pages.
+  expect(nav.push).toHaveBeenCalledExactlyOnceWith(
+    "/si/products?pageSize=48&search=tea",
+    { scroll: false },
+  );
+  expect(input).toHaveClass("placeholder:text-muted-foreground");
+});
+
+it("does not search when only a category is chosen, until Search is pressed", () => {
+  render(<StorefrontFilters {...props} />);
+  choose("Beverages");
+  expect(nav.push).not.toHaveBeenCalled();
+  expect(screen.getByRole("combobox")).toHaveTextContent("Beverages");
+
+  search();
+  expect(nav.push).toHaveBeenLastCalledWith(
+    "/si/products?pageSize=48&categoryId=beverages-id",
+    { scroll: false },
   );
 });
-it("restores filters after external navigation and clears timers on unmount", () => {
+
+it("combines a typed name and a category in one search, and submits on Enter", () => {
+  render(<StorefrontFilters {...props} />);
+  const input = screen.getByLabelText("Search products");
+  fireEvent.change(input, { target: { value: "  green tea " } });
+  choose("Beverages");
+  fireEvent.submit(input.closest("form")!);
+  expect(nav.push).toHaveBeenCalledExactlyOnceWith(
+    "/si/products?pageSize=48&search=green+tea&categoryId=beverages-id",
+    { scroll: false },
+  );
+});
+
+it("shows the filters the page now uses after Back or a link", () => {
   const view = render(<StorefrontFilters {...props} />);
   fireEvent.change(screen.getByLabelText("Search products"), {
     target: { value: "tea" },
@@ -119,12 +102,6 @@ it("restores filters after external navigation and clears timers on unmount", ()
     />,
   );
   expect(screen.getByLabelText("Search products")).toHaveValue("rice");
-  tick();
-  expect(nav.replace).not.toHaveBeenCalled();
-  fireEvent.change(screen.getByLabelText("Search products"), {
-    target: { value: "milk" },
-  });
-  view.unmount();
-  tick();
-  expect(nav.replace).not.toHaveBeenCalled();
+  expect(screen.getByRole("combobox")).toHaveTextContent("Beverages");
+  expect(nav.push).not.toHaveBeenCalled();
 });

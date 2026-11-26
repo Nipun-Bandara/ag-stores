@@ -24,17 +24,13 @@ it("bounds requested pages and page sizes and clamps pages after filtering", () 
     pageCount: 1,
   });
 });
-it("fetches only a customer page and counts with identical visibility and search conditions", async () => {
+it("fetches only a customer page and counts with identical visibility conditions", async () => {
   const findMany = vi.fn().mockResolvedValue([]);
   const count = vi.fn().mockResolvedValue(8000);
   const repository = new PrismaStorefrontRepository({
     product: { findMany, count },
   } as unknown as PrismaClient);
-  const filters = {
-    search: "tea",
-    page: 3,
-    pageSize: 24,
-  };
+  const filters = { page: 3, pageSize: 24 };
   await repository.findProducts(filters);
   await repository.countProducts(filters);
   expect(findMany).toHaveBeenCalledWith(

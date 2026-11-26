@@ -299,9 +299,9 @@ export function AppSidebar({
           <NavMain groups={navGroups} />
         </SidebarContent>
         <SidebarFooter>
-          <GuestSignIn
-            href={`${routePath("/auth", locale, localizedRoute)}?returnTo=${encodeURIComponent(pathname)}`}
-          />
+          {/* No return path: after login customers start at Home and
+              owners/staff at their dashboard. */}
+          <GuestSignIn href={routePath("/auth", locale, localizedRoute)} />
         </SidebarFooter>
       </Sidebar>
     );
