@@ -5,7 +5,16 @@ import { randomUUID } from "node:crypto";
 
 import { PrismaPg } from "@prisma/adapter-pg";
 import { NextRequest } from "next/server";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+
+const photoStorage = vi.hoisted(() => ({ remove: vi.fn() }));
+vi.mock("@/lib/product-photo-storage", () => ({
+  publicPhotoUrl: (key: string) =>
+    `https://mock.supabase.test/storage/v1/object/public/product-photos/${key}`,
+  isManagedPhotoUrl: (url: string | null) =>
+    !!url?.includes("/storage/v1/object/public/product-photos/"),
+  deletePhoto: photoStorage.remove,
+}));
 
 import {
   GET as listProducts,
@@ -18,6 +27,7 @@ import { POST as loginRoute } from "@/app/api/auth/login/route";
 import { PrismaClient, UserRole } from "@/generated/prisma/client";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 import { hashSessionToken } from "@/lib/auth/session-token";
+import { cleanupProductPhotos } from "@/services/product-photo-cleanup.service";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const describeWithDatabase = databaseUrl ? describe : describe.skip;
@@ -68,6 +78,8 @@ describeWithDatabase("shop owner product API", () => {
   let otherShopId: string;
   let otherCategoryId: string;
   let otherProductId: string;
+  const photoProductIds: string[] = [];
+  const photoUploadIds: string[] = [];
 
   const input = () => ({
     itemCode: `000-${suffix}`,
@@ -143,13 +155,20 @@ describeWithDatabase("shop owner product API", () => {
   });
 
   afterAll(async () => {
+    await prisma.productPhotoUpload.deleteMany({
+      where: { id: { in: photoUploadIds } },
+    });
     await prisma.authSession.deleteMany({
       where: {
         tokenHash: { in: tokens.filter(Boolean).map(hashSessionToken) },
       },
     });
     await prisma.product.deleteMany({
-      where: { id: { in: [productId, otherProductId].filter(Boolean) } },
+      where: {
+        id: {
+          in: [productId, otherProductId, ...photoProductIds].filter(Boolean),
+        },
+      },
     });
     await prisma.category.deleteMany({
       where: { id: { in: [categoryId, otherCategoryId].filter(Boolean) } },
@@ -210,6 +229,284 @@ describeWithDatabase("shop owner product API", () => {
       isAvailable: true,
       categoryId,
     });
+  });
+
+  it("creates a fractional-stock KG product with an attached photo", async () => {
+    const ownerId = (
+      await prisma.shop.findUniqueOrThrow({ where: { id: ownerShopId } })
+    ).ownerId;
+    const key = `products/${ownerShopId}/${randomUUID()}.webp`;
+    const upload = await prisma.productPhotoUpload.create({
+      data: { shopId: ownerShopId, ownerId, storageKey: key },
+    });
+    photoUploadIds.push(upload.id);
+
+    const response = await createProduct(
+      request("/api/owner/products", "POST", ownerToken, {
+        ...input(),
+        itemCode: `kg-photo-${randomUUID()}`,
+        nameEn: `KG Photo ${randomUUID()}`,
+        sellingUnit: "KG",
+        minimumOrderQuantity: 0.002,
+        orderingIncrement: 0.001,
+        stockQuantity: 1.5,
+        lowStockThreshold: 0.25,
+        imageUrl: null,
+        imageUploadId: upload.id,
+      }),
+    );
+    expect(response.status).toBe(201);
+    const created = (await response.json()).data;
+    photoProductIds.push(created.id);
+    const product = await prisma.product.findUniqueOrThrow({
+      where: { id: created.id },
+    });
+    expect(product.sellingUnit).toBe("KG");
+    expect(product.stockQuantity.toString()).toBe("1.5");
+    expect(product.imageStorageKey).toBe(key);
+    expect(
+      (
+        await prisma.productPhotoUpload.findUniqueOrThrow({
+          where: { id: upload.id },
+        })
+      ).attachedAt,
+    ).not.toBeNull();
+  });
+
+  it("attaches only a same-owner shop upload and preserves a photo on failed edits", async () => {
+    const ownerId = (
+      await prisma.shop.findUniqueOrThrow({ where: { id: ownerShopId } })
+    ).ownerId;
+    const firstKey = `products/${ownerShopId}/${randomUUID()}.webp`;
+    const firstUpload = await prisma.productPhotoUpload.create({
+      data: { shopId: ownerShopId, ownerId, storageKey: firstKey },
+    });
+    photoUploadIds.push(firstUpload.id);
+    const create = await createProduct(
+      request("/api/owner/products", "POST", ownerToken, {
+        ...input(),
+        itemCode: `photo-${randomUUID()}`,
+        nameEn: `Photo ${randomUUID()}`,
+        imageUrl: null,
+        imageUploadId: firstUpload.id,
+      }),
+    );
+    expect(create.status).toBe(201);
+    const created = (await create.json()).data;
+    photoProductIds.push(created.id);
+    expect(
+      (await prisma.product.findUniqueOrThrow({ where: { id: created.id } }))
+        .imageStorageKey,
+    ).toBe(firstKey);
+    expect(
+      (
+        await prisma.productPhotoUpload.findUniqueOrThrow({
+          where: { id: firstUpload.id },
+        })
+      ).attachedAt,
+    ).not.toBeNull();
+
+    const foreign = await prisma.productPhotoUpload.create({
+      data: {
+        shopId: otherShopId,
+        ownerId: otherOwnerId,
+        storageKey: `products/${otherShopId}/${randomUUID()}.webp`,
+      },
+    });
+    photoUploadIds.push(foreign.id);
+    const denied = await updateProduct(
+      request(`/api/owner/products/${created.id}`, "PATCH", ownerToken, {
+        ...input(),
+        shopId: undefined,
+        itemCode: created.itemCode,
+        nameEn: created.nameEn,
+        imageUrl: null,
+        imageUploadId: foreign.id,
+      }),
+      context(created.id),
+    );
+    expect(denied.status).toBe(409);
+    expect(
+      (await prisma.product.findUniqueOrThrow({ where: { id: created.id } }))
+        .imageStorageKey,
+    ).toBe(firstKey);
+
+    const secondKey = `products/${ownerShopId}/${randomUUID()}.webp`;
+    const secondUpload = await prisma.productPhotoUpload.create({
+      data: {
+        shopId: ownerShopId,
+        ownerId,
+        productId: created.id,
+        storageKey: secondKey,
+      },
+    });
+    photoUploadIds.push(secondUpload.id);
+    photoStorage.remove.mockImplementationOnce(async (key: string) => {
+      expect(key).toBe(firstKey);
+      expect(
+        (await prisma.product.findUniqueOrThrow({ where: { id: created.id } }))
+          .imageStorageKey,
+      ).toBe(secondKey);
+      throw new Error("Storage unavailable");
+    });
+    const replaced = await updateProduct(
+      request(`/api/owner/products/${created.id}`, "PATCH", ownerToken, {
+        ...input(),
+        shopId: undefined,
+        itemCode: created.itemCode,
+        nameEn: created.nameEn,
+        imageUrl: null,
+        imageUploadId: secondUpload.id,
+      }),
+      context(created.id),
+    );
+    expect(replaced.status).toBe(200);
+    expect(
+      (await prisma.product.findUniqueOrThrow({ where: { id: created.id } }))
+        .imageStorageKey,
+    ).toBe(secondKey);
+    expect(
+      (
+        await prisma.productPhotoUpload.findUniqueOrThrow({
+          where: { id: firstUpload.id },
+        })
+      ).deletedAt,
+    ).toBeNull();
+
+    const failedSave = await updateProduct(
+      request(`/api/owner/products/${created.id}`, "PATCH", ownerToken, {
+        ...input(),
+        shopId: undefined,
+        itemCode: created.itemCode,
+        nameEn: `Integration Product ${suffix}`,
+        imageUrl: null,
+      }),
+      context(created.id),
+    );
+    expect(failedSave.status).toBe(409);
+    expect(
+      (await prisma.product.findUniqueOrThrow({ where: { id: created.id } }))
+        .imageStorageKey,
+    ).toBe(secondKey);
+
+    const removed = await updateProduct(
+      request(`/api/owner/products/${created.id}`, "PATCH", ownerToken, {
+        ...input(),
+        shopId: undefined,
+        itemCode: created.itemCode,
+        nameEn: created.nameEn,
+        imageUrl: null,
+      }),
+      context(created.id),
+    );
+    expect(removed.status).toBe(200);
+    expect(
+      (await prisma.product.findUniqueOrThrow({ where: { id: created.id } }))
+        .imageStorageKey,
+    ).toBeNull();
+    expect(photoStorage.remove).toHaveBeenCalledWith(secondKey);
+  });
+
+  it("keeps an external legacy URL when other product details change", async () => {
+    const before = await prisma.product.findUniqueOrThrow({
+      where: { id: productId },
+    });
+    expect(before.imageUrl).toBe("https://example.test/product.jpg");
+    const saved = await updateProduct(
+      request(`/api/owner/products/${productId}`, "PATCH", ownerToken, {
+        ...input(),
+        shopId: undefined,
+        nameEn: `Legacy Photo ${suffix}`,
+        imageUrl: before.imageUrl,
+      }),
+      context(productId),
+    );
+    expect(saved.status).toBe(200);
+    expect(
+      (await prisma.product.findUniqueOrThrow({ where: { id: productId } }))
+        .imageUrl,
+    ).toBe(before.imageUrl);
+  });
+
+  it("cleans abandoned uploads after a grace period while keeping referenced photos", async () => {
+    const ownerId = (
+      await prisma.shop.findUniqueOrThrow({ where: { id: ownerShopId } })
+    ).ownerId;
+    const old = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    const activeKey = `products/${ownerShopId}/${randomUUID()}.webp`;
+    const abandonedKey = `products/${ownerShopId}/${randomUUID()}.webp`;
+    const active = await prisma.product.create({
+      data: {
+        shopId: ownerShopId,
+        categoryId,
+        nameEn: `Active photo ${randomUUID()}`,
+        price: "1.00",
+        imageUrl: `https://mock.supabase.test/storage/v1/object/public/product-photos/${activeKey}`,
+        imageStorageKey: activeKey,
+      },
+    });
+    photoProductIds.push(active.id);
+    for (const [key, productId] of [
+      [activeKey, active.id],
+      [abandonedKey, null],
+    ] as const) {
+      const upload = await prisma.productPhotoUpload.create({
+        data: {
+          shopId: ownerShopId,
+          ownerId,
+          productId,
+          storageKey: key,
+          createdAt: old,
+          ...(productId ? { attachedAt: old } : {}),
+        },
+      });
+      photoUploadIds.push(upload.id);
+    }
+    const removed: string[] = [];
+    const result = await cleanupProductPhotos(prisma, async (key) => {
+      removed.push(key);
+    });
+    expect(removed).toContain(abandonedKey);
+    expect(removed).not.toContain(activeKey);
+    expect(result.retained).toBeGreaterThanOrEqual(1);
+    expect(
+      (await prisma.product.findUniqueOrThrow({ where: { id: active.id } }))
+        .imageStorageKey,
+    ).toBe(activeKey);
+
+    const retryKey = `products/${ownerShopId}/${randomUUID()}.webp`;
+    const retryUpload = await prisma.productPhotoUpload.create({
+      data: {
+        shopId: ownerShopId,
+        ownerId,
+        storageKey: retryKey,
+        createdAt: old,
+      },
+    });
+    photoUploadIds.push(retryUpload.id);
+    const failed = await cleanupProductPhotos(prisma, async (key) => {
+      if (key === retryKey) throw new Error("offline");
+    });
+    expect(failed.failed).toBe(1);
+    expect(
+      (
+        await prisma.productPhotoUpload.findUniqueOrThrow({
+          where: { id: retryUpload.id },
+        })
+      ).purgedAt,
+    ).toBeNull();
+    const retried: string[] = [];
+    await cleanupProductPhotos(prisma, async (key) => {
+      retried.push(key);
+    });
+    expect(retried).toContain(retryKey);
+    expect(
+      (
+        await prisma.productPhotoUpload.findUniqueOrThrow({
+          where: { id: retryUpload.id },
+        })
+      ).purgedAt,
+    ).not.toBeNull();
   });
 
   it("prevents customers from modifying products", async () => {

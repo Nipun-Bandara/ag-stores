@@ -1,4 +1,5 @@
 "use client";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import { BilingualText } from "@/features/i18n/components/bilingual-text";
 import { useLocale, useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
@@ -96,10 +97,12 @@ function CategoryForm({
   return (
     <Card className="gap-0 p-5">
       <form
-        className="grid gap-4 md:grid-cols-2 lg:grid-cols-[repeat(3,minmax(0,1fr))_auto] lg:items-end"
+        className={`grid gap-4 md:grid-cols-2 lg:items-end ${category || shops.length > 1 ? "lg:grid-cols-[repeat(3,minmax(0,1fr))_auto]" : "lg:grid-cols-[repeat(2,minmax(0,1fr))_auto]"}`}
         onSubmit={handleSubmit}
       >
-        <h2 className="text-lg font-semibold md:col-span-2 lg:col-span-4">
+        <h2
+          className={`text-lg font-semibold md:col-span-2 ${category || shops.length > 1 ? "lg:col-span-4" : "lg:col-span-3"}`}
+        >
           {category ? (
             <>
               <Text value="Edit" />{" "}
@@ -112,7 +115,7 @@ function CategoryForm({
             t("Create a category")
           )}
         </h2>
-        {!category ? (
+        {!category && shops.length > 1 ? (
           <div className="min-w-0">
             <Label htmlFor="shopId" className="block text-sm font-medium">
               <Text value="Shop" />
@@ -143,12 +146,12 @@ function CategoryForm({
               </SelectContent>
             </Select>
           </div>
-        ) : (
+        ) : category ? (
           <p className="min-w-0 text-sm text-muted-foreground">
             <Text value={"Shop: "} />
             {category.shopName}
           </p>
-        )}
+        ) : null}
         <FormField
           id={category ? `nameEn-${category.id}` : "nameEn"}
           name="nameEn"
@@ -208,7 +211,6 @@ export function CategoryManager({
   const [categories, setCategories] = useState(initialData.categories);
   const [editingId, setEditingId] = useState<string>();
   const [pendingId, setPendingId] = useState<string>();
-  const [error, setError] = useState<string>();
   const editingCategory = categories.find(({ id }) => id === editingId);
 
   function saveCategory(saved: CategoryView) {
@@ -222,7 +224,6 @@ export function CategoryManager({
   }
 
   async function changeStatus(category: CategoryView) {
-    setError(undefined);
     setPendingId(category.id);
     const status = category.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     const response = await fetch(
@@ -236,14 +237,18 @@ export function CategoryManager({
 
     if (!response?.ok) {
       const payload = response ? await readPayload(response) : {};
-      setError(
+      toast.error(
         t(payload.error?.message ?? "Unable to change category status."),
       );
     } else {
       const payload = await readPayload(response);
-      if (payload.data) saveCategory(payload.data);
+      if (payload.data) {
+        saveCategory(payload.data);
+        toast.success(t("Category status updated."));
+      }
     }
     setPendingId(undefined);
+    return Boolean(response?.ok);
   }
 
   return (
@@ -273,11 +278,7 @@ export function CategoryManager({
         <h2 id="category-list-heading" className="text-lg font-semibold">
           <Text value={"Categories "} />
         </h2>
-        {error ? (
-          <div className="mt-4">
-            <FormError>{error}</FormError>
-          </div>
-        ) : null}
+
         {categories.length === 0 ? (
           <Empty className="mt-4">
             <EmptyHeader>
@@ -323,32 +324,62 @@ export function CategoryManager({
                       >
                         <Pencil aria-hidden="true" />
                       </IconActionButton>
-                      <IconActionButton
-                        size="icon-sm"
+                      <ConfirmAction
+                        title={t(
+                          category.status === "ACTIVE"
+                            ? "Deactivate category"
+                            : "Activate category",
+                        )}
+                        description={t(
+                          category.status === "ACTIVE"
+                            ? "Deactivate {name}? Products in this category will be hidden from customers."
+                            : "Activate {name} to make this category available again?",
+                          {
+                            name: localizeBilingual(
+                              category.nameEn,
+                              category.nameSi,
+                              locale,
+                            ),
+                          },
+                        )}
+                        confirmLabel={t(
+                          category.status === "ACTIVE"
+                            ? "Deactivate"
+                            : "Activate",
+                        )}
                         variant={
                           category.status === "ACTIVE"
                             ? "destructive"
                             : "success"
                         }
-                        className={
-                          category.status === "ACTIVE"
-                            ? "text-white [html.dark_&]:text-black"
-                            : undefined
-                        }
-                        type="button"
-                        label={`${t(category.status === "ACTIVE" ? "Deactivate" : "Activate")} ${localizeBilingual(category.nameEn, category.nameSi, locale)}`}
-                        disabled={pendingId === category.id}
-                        onClick={() => changeStatus(category)}
+                        onConfirm={() => changeStatus(category)}
                       >
-                        {category.status === "ACTIVE" ? (
-                          <CircleX
-                            aria-hidden="true"
-                            className="stroke-white [html.dark_&]:stroke-black"
-                          />
-                        ) : (
-                          <CircleCheck aria-hidden="true" />
-                        )}
-                      </IconActionButton>
+                        <IconActionButton
+                          size="icon-sm"
+                          variant={
+                            category.status === "ACTIVE"
+                              ? "destructive"
+                              : "success"
+                          }
+                          className={
+                            category.status === "ACTIVE"
+                              ? "text-white [html.dark_&]:text-black"
+                              : undefined
+                          }
+                          type="button"
+                          label={`${t(category.status === "ACTIVE" ? "Deactivate" : "Activate")} ${localizeBilingual(category.nameEn, category.nameSi, locale)}`}
+                          disabled={pendingId === category.id}
+                        >
+                          {category.status === "ACTIVE" ? (
+                            <CircleX
+                              aria-hidden="true"
+                              className="stroke-white [html.dark_&]:stroke-black"
+                            />
+                          ) : (
+                            <CircleCheck aria-hidden="true" />
+                          )}
+                        </IconActionButton>
+                      </ConfirmAction>
                     </div>
                   </div>
                 </div>

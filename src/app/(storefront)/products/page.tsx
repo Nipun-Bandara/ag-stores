@@ -1,0 +1,139 @@
+import { parseLoadedPages, parseProductPage } from "@/lib/product-pagination";
+import { Text } from "@/features/i18n/components/text";
+import { ProductPagination } from "@/features/products/components/product-pagination";
+import type { Metadata } from "next";
+
+import { ProductGrid } from "@/features/storefront/components/product-grid";
+import { InfiniteProductList } from "@/features/storefront/components/infinite-product-list";
+import { StorefrontCartSummary } from "@/features/cart/components/storefront-cart-summary";
+import { getDictionary, localizeBilingual } from "@/lib/i18n/config";
+import { getLocaleContext, getServerText } from "@/lib/i18n/server";
+import {
+  listStorefrontCategories,
+  getStorefrontProductPage,
+  getStorefrontProductsThroughPage,
+} from "@/services/storefront.service";
+import {
+  productCategoryFilterSchema,
+  productSearchSchema,
+} from "@/validations/product";
+import { StorefrontFilters } from "@/features/storefront/components/storefront-filters";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerText();
+  return {
+    title: `${t("Products")} | AG Stores`,
+    description: t("Browse available products from local shops."),
+  };
+}
+
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    search?: string | string[];
+    categoryId?: string | string[];
+    page?: string | string[];
+    pageSize?: string | string[];
+    loaded?: string | string[];
+  }>;
+}) {
+  const query = await searchParams;
+  const searchValue = Array.isArray(query.search)
+    ? query.search[0]
+    : query.search;
+  const categoryValue = Array.isArray(query.categoryId)
+    ? query.categoryId[0]
+    : query.categoryId;
+  const search = searchValue
+    ? productSearchSchema.safeParse(searchValue)
+    : undefined;
+  const category = categoryValue
+    ? productCategoryFilterSchema.safeParse(categoryValue)
+    : undefined;
+  const filters = {
+    ...(search?.success && search.data ? { search: search.data } : {}),
+    ...(category?.success ? { categoryId: category.data } : {}),
+  };
+  const [localeContext, products, categories] = await Promise.all([
+    getLocaleContext(),
+    getStorefrontProductPage(filters, parseProductPage(query)),
+    listStorefrontCategories(),
+  ]);
+  const { locale, localizedRoute } = localeContext;
+  const copy = getDictionary(locale).storefront;
+  // Pages a phone had already loaded by scrolling (Back, refresh, shared link).
+  const loadedPages = parseLoadedPages(
+    query.loaded,
+    products.page,
+    products.pageCount,
+  );
+  const loadedProducts = await getStorefrontProductsThroughPage(
+    filters,
+    products.pageSize,
+    loadedPages,
+  );
+  const categoryOptions = [
+    { value: "", label: copy.allCategories },
+    ...categories.map((item) => ({
+      value: item.id,
+      label: localizeBilingual(item.nameEn, item.nameSi, locale),
+    })),
+  ];
+
+  return (
+    <section className="min-w-0 w-full pb-28 md:pb-0">
+      <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+        {copy.allProducts}
+      </h1>
+      <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+        {copy.searchDescription}
+      </p>
+      {/* Plain wrapper: a clipped, rounded card here cut off the field corners. */}
+      <div className="mt-5">
+        <StorefrontFilters
+          categoryOptions={categoryOptions}
+          initialSearch={search?.success ? search.data : ""}
+          initialCategoryId={category?.success ? category.data : ""}
+          copy={copy}
+        />
+      </div>
+      <StorefrontCartSummary locale={locale} localizedRoute={localizedRoute} />
+      {filters.categoryId ? (
+        <p className="mt-4 text-sm text-muted-foreground">
+          <Text value="Highest discounts first, based on the minimum order quantity." />
+        </p>
+      ) : null}
+      {/* Phones scroll through pages instead of using numbered pagination. */}
+      <div className="max-md:hidden">
+        <ProductPagination {...products} />
+      </div>
+      <div className="mt-1">
+        <ProductGrid
+          products={products.products}
+          locale={locale}
+          localizedRoute={localizedRoute}
+          emptyMessage={copy.noMatches}
+        />
+      </div>
+      <InfiniteProductList
+        key={`${filters.search ?? ""}|${filters.categoryId ?? ""}|${products.pageSize}|${products.page}|${loadedPages}`}
+        initialPage={products.page}
+        initialLastPage={loadedPages}
+        initialProducts={loadedProducts}
+        pageCount={products.pageCount}
+        pageSize={products.pageSize}
+        initialProductIds={products.products.map((product) => product.id)}
+        search={filters.search}
+        categoryId={filters.categoryId}
+        locale={locale}
+        localizedRoute={localizedRoute}
+      />
+      {products.total > 0 ? (
+        <div className="max-md:hidden">
+          <ProductPagination {...products} compact />
+        </div>
+      ) : null}
+    </section>
+  );
+}

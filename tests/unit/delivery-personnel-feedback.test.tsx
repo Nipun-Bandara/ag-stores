@@ -60,8 +60,11 @@ it("shows readable initial selections and reports account creation", async () =>
   });
   const { container } = renderManager();
   expect(
-    screen.getByRole("combobox", { name: "Assigned shop" }),
-  ).toHaveTextContent("Colombo Shop");
+    screen.queryByRole("combobox", { name: "Assigned shop" }),
+  ).not.toBeInTheDocument();
+  expect(container.querySelector('input[name="assignedShopId"]')).toHaveValue(
+    "shop-id",
+  );
   expect(screen.getByRole("combobox", { name: "Status" })).toHaveTextContent(
     "Active",
   );
@@ -145,6 +148,12 @@ it.each(["ACTIVE", "INACTIVE"] as const)(
         name: `${status === "ACTIVE" ? "Deactivate" : "Activate"} Test Courier`,
       }),
     );
+    expect(mocks.fetch).not.toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: status === "ACTIVE" ? "Deactivate" : "Activate",
+      }),
+    );
     await waitFor(() =>
       expect(mocks.success).toHaveBeenCalledWith(
         `Test Courier was ${nextStatus === "ACTIVE" ? "activated" : "deactivated"}.`,
@@ -169,11 +178,14 @@ it("reports status failures and retains the saved account status", async () => {
   fireEvent.click(
     screen.getByRole("button", { name: "Deactivate Test Courier" }),
   );
+  fireEvent.click(screen.getByRole("button", { name: "Deactivate" }));
   await waitFor(() =>
     expect(mocks.error).toHaveBeenCalledWith(
       "Unable to update account status.",
     ),
   );
+  expect(screen.getByRole("alertdialog")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(
     screen.getByRole("button", { name: "Deactivate Test Courier" }),
   ).toBeEnabled();

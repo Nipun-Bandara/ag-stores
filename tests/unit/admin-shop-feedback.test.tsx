@@ -175,6 +175,12 @@ it.each([true, false])(
         name: `${initialIsActive ? "Deactivate" : "Activate"} Test Shop`,
       }),
     );
+    expect(mocks.fetch).not.toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: initialIsActive ? "Deactivate" : "Activate",
+      }),
+    );
     await waitFor(() =>
       expect(mocks.success).toHaveBeenCalledWith(
         `Test Shop was ${initialIsActive ? "deactivated" : "activated"}.`,
@@ -198,9 +204,12 @@ it("reports status request failures and keeps the current action", async () => {
     </TooltipProvider>,
   );
   fireEvent.click(screen.getByRole("button", { name: "Deactivate Test Shop" }));
+  fireEvent.click(screen.getByRole("button", { name: "Deactivate" }));
   await waitFor(() =>
     expect(mocks.error).toHaveBeenCalledWith("Unable to update shop status."),
   );
+  expect(screen.getByRole("alertdialog")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(
     screen.getByRole("button", { name: "Deactivate Test Shop" }),
   ).toBeEnabled();

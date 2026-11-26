@@ -1,8 +1,12 @@
 import type { NextRequest } from "next/server";
 
 import { UserRole } from "@/generated/prisma/client";
-import { errorResponse, successResponse } from "@/lib/api-response";
-import { requireApiRole } from "@/lib/auth/request";
+import {
+  errorResponse,
+  fieldErrors,
+  successResponse,
+} from "@/lib/api-response";
+import { requireApiAnyRole } from "@/lib/auth/request";
 import { orderStatusErrorResponse } from "@/lib/order-status-http";
 import { transitionOrderStatus } from "@/services/order-status.service";
 import {
@@ -14,7 +18,10 @@ export async function PATCH(
   request: NextRequest,
   context: RouteContext<"/api/owner/orders/[orderId]/status">,
 ) {
-  const authorization = await requireApiRole(request, UserRole.SHOP_OWNER);
+  const authorization = await requireApiAnyRole(request, [
+    UserRole.SHOP_OWNER,
+    UserRole.ORDER_STAFF,
+  ]);
   if (!authorization.authorized) return authorization.response;
 
   const orderId = orderIdSchema.safeParse((await context.params).orderId);
@@ -26,7 +33,7 @@ export async function PATCH(
       {
         code: "VALIDATION_ERROR",
         message: "Order status details are invalid.",
-        details: body.success ? undefined : body.error.flatten().fieldErrors,
+        details: body.success ? undefined : fieldErrors(body.error),
       },
       400,
     );

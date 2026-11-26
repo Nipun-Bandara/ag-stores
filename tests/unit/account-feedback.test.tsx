@@ -140,6 +140,10 @@ it.each(["default", "delete"])(
         name: action === "default" ? "Make Home default" : "Delete Home",
       }),
     );
+    if (action === "delete") {
+      expect(mocks.fetch).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    }
     await waitFor(() =>
       expect(mocks.success).toHaveBeenCalledWith(
         action === "default" ? "Default address updated." : "Address deleted.",
@@ -163,6 +167,8 @@ it.each(["default", "delete"])(
       name: action === "default" ? "Make Home default" : "Delete Home",
     });
     fireEvent.click(button);
+    if (action === "delete")
+      fireEvent.click(screen.getByRole("button", { name: "Delete" }));
     await waitFor(() =>
       expect(mocks.error).toHaveBeenCalledWith(
         action === "default"
@@ -170,6 +176,10 @@ it.each(["default", "delete"])(
           : "Unable to delete this address.",
       ),
     );
+    if (action === "delete") {
+      expect(screen.getByRole("alertdialog")).toBeVisible();
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    }
     expect(screen.getByRole("heading", { name: "Home" })).toBeVisible();
     expect(button).toBeEnabled();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();

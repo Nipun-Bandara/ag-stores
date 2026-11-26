@@ -1,10 +1,9 @@
+import { BackLink } from "@/components/ui/back-link";
 import { getServerText } from "@/lib/i18n/server";
 import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
 
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 
 import { UserRole } from "@/generated/prisma/client";
 import { AdminShopForm } from "@/features/admin/components/admin-shop-form";
@@ -13,7 +12,6 @@ import { requireRole } from "@/lib/auth/server";
 import { AdminShopError, getAdminShop } from "@/services/admin-shop.service";
 import { adminShopIdSchema } from "@/validations/admin-shop";
 import { Card } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -41,13 +39,9 @@ export default async function AdminShopDetailPage({
 
   return (
     <section className="min-w-0 w-full">
-      <Link
-        href="/admin/shops"
-        className={buttonVariants({ variant: null, className: "px-0" })}
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
+      <BackLink href="/admin/shops">
         <Text value="Back to shops" />
-      </Link>
+      </BackLink>
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground">

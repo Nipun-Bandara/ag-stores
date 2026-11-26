@@ -47,7 +47,9 @@ suite("stage 1 product selling database transactions", () => {
       role,
       name: "Stage 1",
       email: null,
-      phone: null,
+      phone: "+94770000000",
+      firstName: "Test",
+      lastName: "Owner",
       preferredLanguage: PreferredLanguage.EN,
       status: UserStatus.ACTIVE,
     };
@@ -93,6 +95,9 @@ suite("stage 1 product selling database transactions", () => {
       const user = await prisma.user.create({
         data: {
           name: "Stage 1",
+          firstName: "Stage",
+          lastName: "One",
+          phone: `+947${randomUUID().replace(/\D/g, "").slice(0, 8).padEnd(8, "0")}`,
           email: `stage1-${randomUUID()}@example.test`,
           passwordHash: "test-only",
           role,

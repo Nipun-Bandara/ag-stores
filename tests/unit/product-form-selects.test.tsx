@@ -33,6 +33,17 @@ const options = {
 afterEach(cleanup);
 
 describe("product form selects", () => {
+  it("automatically uses the only shop without displaying a shop selector", () => {
+    render(
+      <ProductForm options={{ ...options, shops: [options.shops[0]!] }} />,
+    );
+    expect(
+      screen.queryByRole("combobox", { name: "Shop" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Category" }),
+    ).toHaveTextContent("Groceries");
+  });
   it("shows readable default shop and category labels", () => {
     const { container } = render(<ProductForm options={options} />);
 
@@ -77,7 +88,14 @@ it("uses the selling-unit select and updates automatic new-product quantity rule
   expect(
     screen.getByRole("combobox", { name: "Selling unit" }),
   ).toHaveTextContent("Kilograms (kg)");
-  expect(screen.getByLabelText("Minimum order quantity")).toHaveValue(0.002);
+  expect(screen.getByLabelText("Minimum order quantity")).toHaveValue(0.01);
+  expect(screen.getByLabelText("Minimum order quantity")).not.toHaveAttribute(
+    "readonly",
+  );
+  fireEvent.change(screen.getByLabelText("Minimum order quantity"), {
+    target: { value: "0.025" },
+  });
+  expect(screen.getByLabelText("Minimum order quantity")).toHaveValue(0.025);
   expect(screen.getByText("Not applicable")).toBeVisible();
   expect(container.querySelector('input[name="orderingIncrement"]')).toBeNull();
   fireEvent.click(screen.getByRole("combobox", { name: "Selling unit" }));

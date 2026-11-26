@@ -1,8 +1,6 @@
-import { CataloguePricing } from "@/features/pricing/catalogue-pricing";
-import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-
 import { AddToCartButton } from "@/features/cart/components/add-to-cart-button";
+import { CompactProductPrice } from "./compact-product-price";
 import {
   getDictionary,
   localizeBilingual,
@@ -10,6 +8,7 @@ import {
   type Locale,
 } from "@/lib/i18n/config";
 import type { StorefrontProductView } from "@/services/storefront.service";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 
@@ -24,74 +23,63 @@ export function ProductCard({
 }) {
   const copy = getDictionary(locale).storefront;
   const name = localizeBilingual(product.nameEn, product.nameSi, locale);
-
+  const href = routePath(`/products/${product.id}`, locale, localizedRoute);
+  const cartProduct = { ...product, name };
   return (
     <Card
       as="article"
-      className="gap-0 overflow-hidden py-0"
+      className="h-full min-w-0 flex-row items-stretch justify-between gap-4 rounded-none border-b border-border bg-transparent px-0 py-5 shadow-none ring-0"
       data-testid="product-card"
     >
-      <div className="relative">
-        <ImageWithFallback
-          src={product.imageUrl}
-          alt={name}
-          fallback={copy.noImage}
-          className="aspect-[16/10] w-full"
-        />
+      {/* Fixed slots (two-line name, one-line category, two-line price,
+          badge at the bottom) keep every card the same height. */}
+      <div className="flex min-w-0 flex-1 flex-col py-1">
+        <h3 className="line-clamp-2 min-h-[2lh] break-words text-base font-semibold leading-snug">
+          <Link
+            href={href}
+            className="text-foreground no-underline hover:text-primary"
+            title={copy.viewProduct}
+          >
+            {name}
+          </Link>
+        </h3>
+        <p className="mt-1 truncate text-xs leading-relaxed text-muted-foreground">
+          {localizeBilingual(
+            product.categoryNameEn,
+            product.categoryNameSi,
+            locale,
+          )}
+        </p>
+        <div className="mb-2 mt-3 min-h-10">
+          <CompactProductPrice product={cartProduct} locale={locale} />
+        </div>
         <Badge
           variant={product.isOutOfStock ? "destructive" : "success"}
-          className="absolute left-3 top-3"
+          className="mt-auto self-start"
         >
           {product.isOutOfStock ? copy.outOfStock : copy.inStock}
         </Badge>
       </div>
-      <div className="flex flex-1 flex-col gap-3 p-4">
-        <div className="min-w-0">
-          <p className="break-words text-xs font-medium text-muted-foreground">
-            {localizeBilingual(
-              product.categoryNameEn,
-              product.categoryNameSi,
-              locale,
-            )}
-          </p>
-          <h3 className="mt-1 break-words text-base font-semibold leading-snug">
-            <Link
-              href={routePath(
-                `/products/${product.id}`,
-                locale,
-                localizedRoute,
-              )}
-              className="text-foreground hover:text-primary"
-              title={copy.viewProduct}
-            >
-              {name}
-            </Link>
-          </h3>
-          <p className="mt-1 break-words text-xs text-muted-foreground">
-            {product.shopName}
-          </p>
-        </div>
-        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
-          <CataloguePricing
-            product={{ ...product, name: product.nameEn }}
-            locale={locale}
+      <div className="relative mb-3 w-28 shrink-0 self-start">
+        <Link
+          href={href}
+          aria-label={`${copy.viewProduct}: ${name}`}
+          className="block overflow-hidden rounded-xl"
+        >
+          <ImageWithFallback
+            src={product.imageUrl}
+            alt={name}
+            fallback={copy.noImage}
+            sizes="112px"
+            className="size-28 rounded-xl text-xs"
           />
+        </Link>
+        <div className="absolute -bottom-3 right-0 max-w-full rounded-lg bg-background shadow-sm">
           <AddToCartButton
             compact
             locale={locale}
-            product={{
-              id: product.id,
-              name,
-              nameEn: product.nameEn,
-              nameSi: product.nameSi,
-              price: product.price,
-              discountTiers: product.discountTiers,
-              sellingUnit: product.sellingUnit,
-              minimumOrderQuantity: product.minimumOrderQuantity,
-              orderingIncrement: product.orderingIncrement,
-              stockQuantity: product.stockQuantity,
-              imageUrl: product.imageUrl,
-            }}
+            localizedRoute={localizedRoute}
+            product={cartProduct}
           />
         </div>
       </div>

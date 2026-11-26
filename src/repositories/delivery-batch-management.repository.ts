@@ -40,6 +40,7 @@ const batchDetailSelect = {
           total: true,
           customerNote: true,
           createdAt: true,
+          customer: { select: { firstName: true } },
           shop: {
             select: {
               id: true,

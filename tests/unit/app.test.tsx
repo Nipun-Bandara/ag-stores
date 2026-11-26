@@ -1,85 +1,37 @@
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  within,
-  waitFor,
-} from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+import LandingPage from "@/app/landing/page";
 import { getDictionary } from "@/lib/i18n/config";
 
-import HomePage from "@/app/page";
-vi.mock("next/image", () => ({
-  default: ({ alt }: { alt: string }) => <span>{alt}</span>,
-}));
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
-  usePathname: () => "/",
-}));
-afterEach(cleanup);
-
-vi.mock("@/services/storefront.service", () => ({
-  listStorefrontCategories: vi.fn().mockResolvedValue([]),
-  listStorefrontProducts: vi.fn().mockResolvedValue([]),
-}));
-
+const locale = vi.hoisted(() => ({ locale: "en", localizedRoute: false }));
 vi.mock("@/lib/i18n/server", () => ({
-  getLocaleContext: vi.fn().mockResolvedValue({
-    locale: "en",
-    localizedRoute: false,
-  }),
+  getLocaleContext: vi.fn(async () => locale),
+}));
+vi.mock("next/navigation", () => ({
+  redirect: (path: string) => {
+    throw new Error(path);
+  },
 }));
 
-vi.mock("@/features/i18n/components/language-switcher", () => ({
-  LanguageSwitcher: () => <select aria-label="Language" />,
-  useLocaleChange: () => ({ pending: false, changeLocale: vi.fn() }),
-}));
-
+// The landing page is switched off for now (its original code is kept,
+// commented out, in src/app/landing/page.tsx). Restore its rendering tests
+// from git history together with the page.
 describe("application", () => {
-  it("renders the application landing page", async () => {
-    render(await HomePage());
+  it.each([
+    { localeValue: "en", localizedRoute: false, destination: "/home" },
+    { localeValue: "si", localizedRoute: true, destination: "/si/home" },
+  ])(
+    "sends /landing to the store Home ($localeValue)",
+    async ({ localeValue, localizedRoute, destination }) => {
+      Object.assign(locale, { locale: localeValue, localizedRoute });
+      await expect(LandingPage()).rejects.toThrow(destination);
+    },
+  );
 
-    expect(
-      screen.getByRole("heading", {
-        level: 1,
-        name: getDictionary("en").landing.heroTitle,
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Built for local commerce" }),
-    ).toBeVisible();
-    expect(
-      screen.getByRole("heading", { name: "How an order moves" }),
-    ).toBeVisible();
-    expect(
-      screen.getByRole("button", { name: "Browse products" }),
-    ).toBeVisible();
-    expect(
-      screen.queryByText(/farmer|tractor|testimonial/i),
-    ).not.toBeInTheDocument();
-  });
-
-  it("uses matching English and Sinhala landing copy", () => {
+  it("keeps matching English and Sinhala landing copy for when it returns", () => {
     const english = getDictionary("en").landing;
     const sinhala = getDictionary("si").landing;
     expect(Object.keys(sinhala)).toEqual(Object.keys(english));
     expect(sinhala.heroTitle).not.toBe(english.heroTitle);
-    expect(sinhala.flowTitle).not.toBe(english.flowTitle);
-  });
-
-  it("opens the shared mobile sheet and closes it after choosing a destination", async () => {
-    const copy = getDictionary("en").landing;
-    render(await HomePage());
-    fireEvent.click(screen.getByRole("button", { name: copy.openMenu }));
-    const menu = await screen.findByRole("dialog");
-    expect(
-      within(menu).getByRole("link", { name: copy.features }),
-    ).toHaveAttribute("href", "#workspaces");
-    fireEvent.click(within(menu).getByRole("link", { name: copy.features }));
-    await waitFor(() =>
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
-    );
   });
 });

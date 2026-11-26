@@ -1,5 +1,6 @@
+import { DEFAULT_PRODUCT_PAGE_SIZE } from "@/lib/product-pagination";
 import { validatePricing, tierViews } from "@/lib/pricing";
-import { SellingSetupError, firstOrderQuantity } from "@/lib/quantity";
+import { SellingSetupError } from "@/lib/quantity";
 import {
   AuditAction,
   AuditEntityType,
@@ -8,6 +9,7 @@ import {
 } from "@/generated/prisma/client";
 import { withSerializableRetry } from "@/lib/db-transaction";
 import { writeAuditLog } from "@/repositories/audit-write.repository";
+import { publicPhotoUrl } from "@/lib/product-photo-storage";
 import type {
   ProductAvailabilityInput,
   ProductCreateInput,
@@ -37,12 +39,17 @@ const productSelect = {
   stockQuantity: true,
   lowStockThreshold: true,
   imageUrl: true,
+  imageStorageKey: true,
   isAvailable: true,
   createdAt: true,
   updatedAt: true,
   shop: { select: { name: true } },
   category: { select: { nameEn: true, nameSi: true, status: true } },
 } satisfies Prisma.ProductSelect;
+
+// A photo attachment and audit write add round trips to product saves. The
+// database can be slower than Prisma's five-second interactive default.
+const productWriteTransaction = { timeout: 20_000 } as const;
 
 export type ProductRecord = Prisma.ProductGetPayload<{
   select: typeof productSelect;
@@ -65,6 +72,8 @@ export interface ProductFilters {
   categoryId?: string;
   search?: string;
   inventoryStatus?: ProductInventoryStatus;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface ProductRepository {
@@ -79,6 +88,7 @@ export interface ProductRepository {
     ownerId: string,
     filters: ProductFilters,
   ): Promise<ProductRecord[]>;
+  countOwned(ownerId: string, filters: ProductFilters): Promise<number>;
   findOwnedById(
     ownerId: string,
     productId: string,
@@ -100,6 +110,50 @@ export interface ProductRepository {
     productId: string,
     input: ProductStockInput,
   ): Promise<ProductRecord | null>;
+}
+
+function ownerProductWhere(
+  ownerId: string,
+  filters: ProductFilters,
+): Prisma.ProductWhereInput {
+  const search = filters.search;
+  return {
+    shop: { ownerId },
+    ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
+    ...(search
+      ? {
+          OR: [
+            { itemCode: { contains: search, mode: "insensitive" } },
+            { barcode: { contains: search, mode: "insensitive" } },
+            { nameEn: { contains: search, mode: "insensitive" } },
+            { nameSi: { contains: search, mode: "insensitive" } },
+            { descriptionEn: { contains: search, mode: "insensitive" } },
+            { descriptionSi: { contains: search, mode: "insensitive" } },
+          ],
+        }
+      : {}),
+  };
+}
+
+function ownerInventoryWhere(
+  ownerId: string,
+  filters: ProductFilters,
+): Prisma.Sql {
+  const minimum = Prisma.sql`CASE WHEN p."sellingUnit" = 'KG' THEN GREATEST(p."minimumOrderQuantity", 0.002) ELSE CEIL(p."minimumOrderQuantity" / NULLIF(p."orderingIncrement", 0)) * p."orderingIncrement" END`;
+  const available = Prisma.sql`p."stockQuantity" >= (${minimum})`;
+  const inventory =
+    filters.inventoryStatus === "OUT_OF_STOCK"
+      ? Prisma.sql`p."stockQuantity" < (${minimum})`
+      : filters.inventoryStatus === "LOW_STOCK"
+        ? Prisma.sql`${available} AND p."stockQuantity" <= p."lowStockThreshold"`
+        : Prisma.sql`${available} AND p."stockQuantity" > p."lowStockThreshold"`;
+  const search = filters.search
+    ? `%${filters.search.replace(/[\\%_]/g, "\\$&")}%`
+    : undefined;
+  return Prisma.sql`s."ownerId" = ${ownerId}::uuid
+    ${filters.categoryId ? Prisma.sql`AND p."categoryId" = ${filters.categoryId}::uuid` : Prisma.empty}
+    ${search ? Prisma.sql`AND (p."itemCode" ILIKE ${search} OR p.barcode ILIKE ${search} OR p."nameEn" ILIKE ${search} OR p."nameSi" ILIKE ${search} OR p."descriptionEn" ILIKE ${search} OR p."descriptionSi" ILIKE ${search})` : Prisma.empty}
+    AND (${inventory})`;
 }
 
 export class PrismaProductRepository implements ProductRepository {
@@ -143,37 +197,44 @@ export class PrismaProductRepository implements ProductRepository {
     ownerId: string,
     filters: ProductFilters,
   ): Promise<ProductRecord[]> {
-    const search = filters.search;
-    const products = await this.prisma.product.findMany({
-      where: {
-        shop: { ownerId },
-        ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
-        ...(search
-          ? {
-              OR: [
-                { itemCode: { contains: search, mode: "insensitive" } },
-                { barcode: { contains: search, mode: "insensitive" } },
-                { nameEn: { contains: search, mode: "insensitive" } },
-                { nameSi: { contains: search, mode: "insensitive" } },
-                { descriptionEn: { contains: search, mode: "insensitive" } },
-                { descriptionSi: { contains: search, mode: "insensitive" } },
-              ],
-            }
-          : {}),
-      },
-      orderBy: [{ shop: { name: "asc" } }, { nameEn: "asc" }],
+    const take = Math.min(filters.pageSize ?? DEFAULT_PRODUCT_PAGE_SIZE, 48);
+    const skip = ((filters.page ?? 1) - 1) * take;
+    if (filters.inventoryStatus) {
+      const ids = await this.prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+        SELECT p.id FROM products p JOIN shops s ON s.id = p."shopId"
+        WHERE ${ownerInventoryWhere(ownerId, filters)}
+        ORDER BY s.name ASC, p."nameEn" ASC, p.id ASC LIMIT ${take} OFFSET ${skip}
+      `);
+      if (!ids.length) return [];
+      const products = await this.prisma.product.findMany({
+        where: { id: { in: ids.map((item) => item.id) }, shop: { ownerId } },
+        select: productSelect,
+      });
+      const byId = new Map(products.map((product) => [product.id, product]));
+      return ids.flatMap((item) => {
+        const product = byId.get(item.id);
+        return product ? [product] : [];
+      });
+    }
+    return this.prisma.product.findMany({
+      where: ownerProductWhere(ownerId, filters),
+      orderBy: [{ shop: { name: "asc" } }, { nameEn: "asc" }, { id: "asc" }],
+      skip,
+      take,
       select: productSelect,
     });
-    // The first purchasable quantity may be above an unaligned minimum.
-    return products.filter((product) => {
-      const status =
-        Number(product.stockQuantity) < firstOrderQuantity(product)
-          ? "OUT_OF_STOCK"
-          : product.stockQuantity.lte(product.lowStockThreshold)
-            ? "LOW_STOCK"
-            : "AVAILABLE";
-      return !filters.inventoryStatus || status === filters.inventoryStatus;
-    });
+  }
+
+  async countOwned(ownerId: string, filters: ProductFilters): Promise<number> {
+    if (!filters.inventoryStatus)
+      return this.prisma.product.count({
+        where: ownerProductWhere(ownerId, filters),
+      });
+    const result = await this.prisma.$queryRaw<{ total: bigint }[]>(Prisma.sql`
+      SELECT COUNT(*) AS total FROM products p JOIN shops s ON s.id = p."shopId"
+      WHERE ${ownerInventoryWhere(ownerId, filters)}
+    `);
+    return Number(result[0]?.total ?? 0);
   }
 
   findOwnedById(
@@ -187,12 +248,29 @@ export class PrismaProductRepository implements ProductRepository {
   }
 
   create(input: ProductCreateInput, actorId: string): Promise<ProductRecord> {
-    const { discountTiers = [], ...fields } = input;
+    const { discountTiers = [], imageUploadId, ...fields } = input;
     validatePricing(input.price, discountTiers, input);
     return this.prisma.$transaction(async (transaction) => {
+      const upload = imageUploadId
+        ? await transaction.productPhotoUpload.findFirst({
+            where: {
+              id: imageUploadId,
+              ownerId: actorId,
+              shopId: input.shopId,
+              productId: null,
+              attachedAt: null,
+              deletedAt: null,
+            },
+          })
+        : null;
+      if (imageUploadId && !upload) throw new Error("PHOTO_UPLOAD_NOT_OWNED");
       const product = await transaction.product.create({
         data: {
           ...fields,
+          imageUrl: upload
+            ? publicPhotoUrl(upload.storageKey)
+            : fields.imageUrl,
+          imageStorageKey: upload?.storageKey ?? null,
           discountTiers: {
             create: discountTiers.map((tier, index) => ({
               ...tier,
@@ -202,6 +280,13 @@ export class PrismaProductRepository implements ProductRepository {
         },
         select: productSelect,
       });
+      if (upload) {
+        const claimed = await transaction.productPhotoUpload.updateMany({
+          where: { id: upload.id, attachedAt: null, deletedAt: null },
+          data: { productId: product.id, attachedAt: new Date() },
+        });
+        if (claimed.count !== 1) throw new Error("PHOTO_UPLOAD_NOT_OWNED");
+      }
       await writeAuditLog(transaction, {
         actorId,
         action: AuditAction.PRODUCT_PRICE_UPDATED,
@@ -216,7 +301,7 @@ export class PrismaProductRepository implements ProductRepository {
         },
       });
       return product;
-    });
+    }, productWriteTransaction);
   }
 
   async update(
@@ -237,6 +322,9 @@ export class PrismaProductRepository implements ProductRepository {
             where: { id: productId, shop: { ownerId: actorId } },
             select: {
               price: true,
+              shopId: true,
+              imageUrl: true,
+              imageStorageKey: true,
               stockQuantity: true,
               sellingUnit: true,
               lowStockThreshold: true,
@@ -282,6 +370,26 @@ export class PrismaProductRepository implements ProductRepository {
             }
           }
           const previousTiers = tierViews(previous.discountTiers);
+          const upload = input.imageUploadId
+            ? await transaction.productPhotoUpload.findFirst({
+                where: {
+                  id: input.imageUploadId,
+                  ownerId: actorId,
+                  shopId: previous.shopId,
+                  attachedAt: null,
+                  deletedAt: null,
+                  OR: [{ productId: null }, { productId }],
+                },
+              })
+            : null;
+          if (input.imageUploadId && !upload)
+            throw new Error("PHOTO_UPLOAD_NOT_OWNED");
+          if (
+            !upload &&
+            input.imageUrl !== previous.imageUrl &&
+            input.imageUrl !== null
+          )
+            throw new Error("PHOTO_REFERENCE_INVALID");
           const nextTiers = input.discountTiers ?? previousTiers;
           validatePricing(input.price, nextTiers, input);
           const product = await transaction.product.update({
@@ -310,7 +418,12 @@ export class PrismaProductRepository implements ProductRepository {
                     },
                   }),
               stockQuantity: input.stockQuantity,
-              imageUrl: input.imageUrl,
+              imageUrl: upload
+                ? publicPhotoUrl(upload.storageKey)
+                : input.imageUrl,
+              imageStorageKey:
+                upload?.storageKey ??
+                (input.imageUrl === null ? null : previous.imageStorageKey),
               isAvailable: input.isAvailable,
               ...(input.lowStockThreshold === undefined
                 ? {}
@@ -318,6 +431,13 @@ export class PrismaProductRepository implements ProductRepository {
             },
             select: productSelect,
           });
+          if (upload) {
+            const claimed = await transaction.productPhotoUpload.updateMany({
+              where: { id: upload.id, attachedAt: null, deletedAt: null },
+              data: { productId, attachedAt: new Date() },
+            });
+            if (claimed.count !== 1) throw new Error("PHOTO_UPLOAD_NOT_OWNED");
+          }
           if (
             !previous.price.equals(product.price) ||
             JSON.stringify(previousTiers) !== JSON.stringify(nextTiers) ||
@@ -353,7 +473,10 @@ export class PrismaProductRepository implements ProductRepository {
           }
           return product;
         },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          ...productWriteTransaction,
+        },
       ),
     );
   }

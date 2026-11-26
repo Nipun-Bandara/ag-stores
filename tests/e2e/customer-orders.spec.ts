@@ -35,7 +35,7 @@ async function signIn(page: Page) {
     .getByLabel("Password", { exact: true })
     .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/products$/);
 }
 
 test.describe.serial("customer order history and tracking", () => {

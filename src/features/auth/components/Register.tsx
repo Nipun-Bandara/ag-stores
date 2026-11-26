@@ -2,17 +2,20 @@
 import { Lock, Mail, Phone, UserRound } from "lucide-react";
 import { InputPasswordWithToggle } from "@/components/ui/input-password-with-toggle";
 import { useFormik } from "formik";
-import * as Yup from "yup";
+import { z } from "zod";
+
+import {
+  formikValidator,
+  mobileField,
+  optionalEmailField,
+  passwordField,
+  personNameField,
+} from "@/lib/form-validation";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useLocale, useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 import { registrationSchema } from "@/validations/auth";
-import {
-  normalizeMobile,
-  personNameSchema,
-  optionalAccountEmailSchema,
-} from "@/lib/account-identity";
 import { describeApiError } from "@/utils/apiError";
 import {
   Card,
@@ -50,46 +53,21 @@ export default function Register({ onSwitchToLogin, returnTo }: RegisterProps) {
       password: "",
       preferredLanguage: locale === "si" ? "SI" : "EN",
     },
-    validationSchema: Yup.object({
-      firstName: Yup.string()
-        .required(t("Required"))
-        .test(
-          "person-name",
-          t("Enter a valid name."),
-          (value) => !!value && personNameSchema.safeParse(value).success,
-        ),
-      lastName: Yup.string()
-        .required(t("Required"))
-        .test(
-          "person-name",
-          t("Enter a valid name."),
-          (value) => !!value && personNameSchema.safeParse(value).success,
-        ),
-      phone: Yup.string()
-        .required(t("Required"))
-        .test(
-          "mobile",
-          t("Enter a Sri Lankan mobile number such as 0771234567."),
-          (value) => !!value && !!normalizeMobile(value),
-        ),
-      email: Yup.string()
-        .trim()
-        .test(
-          "email",
-          t("Enter a valid email address."),
-          (value) => optionalAccountEmailSchema.safeParse(value).success,
-        ),
-      password: Yup.string()
-        .max(128, t("Password must contain at most 128 characters."))
-        .required(t("Required"))
-        .test(
-          "strong-password",
-          t("Use 8+ characters with uppercase, lowercase, and a number."),
+    validate: formikValidator(
+      z.object({
+        firstName: personNameField(t),
+        lastName: personNameField(t),
+        phone: mobileField(t),
+        email: optionalEmailField(t),
+        password: passwordField(t).refine(
           (value) =>
-            !!value &&
+            !value ||
+            value.length > 128 ||
             registrationSchema.shape.password.safeParse(value).success,
+          t("Use 8+ characters with uppercase, lowercase, and a number."),
         ),
-    }),
+      }),
+    ),
     onSubmit: async (values) => {
       try {
         const payload = registrationSchema.parse(values);

@@ -1,15 +1,18 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  extensions = [pg_trgm]
 }
 
 enum UserRole {
   CUSTOMER
   SHOP_OWNER
+  ORDER_STAFF
   DELIVERY_PERSON
   ADMIN
 }
@@ -74,6 +77,10 @@ enum AuditAction {
   SHOP_CREATED
   SHOP_UPDATED
   SHOP_STATUS_UPDATED
+  ORDER_RETURN_RECORDED
+  ORDER_RETURN_REVIEWED
+  ORDER_REFUND_RECORDED
+  STAFF_ACCOUNT_UPDATED
 }
 
 enum AuditEntityType {
@@ -81,6 +88,12 @@ enum AuditEntityType {
   ORDER
   USER
   SHOP
+}
+
+enum ReturnStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 model User {
@@ -108,6 +121,7 @@ model User {
   sessions           AuthSession[]
   orderStatusChanges OrderStatusHistory[] @relation("OrderStatusChangedBy")
   notifications      Notification[]
+  photoUploads       ProductPhotoUpload[]
 
   @@index([role, status])
   @@index([assignedShopId, status])
@@ -143,6 +157,16 @@ model AuthSession {
   @@map("auth_sessions")
 }
 
+/// Fixed-window counters for login/registration abuse protection, shared by every app instance.
+model AuthRateLimit {
+  key     String   @id @db.VarChar(128)
+  count   Int
+  resetAt DateTime @db.Timestamptz(3)
+
+  @@index([resetAt])
+  @@map("auth_rate_limits")
+}
+
 model Shop {
   id                           String   @id @default(uuid()) @db.Uuid
   ownerId                      String   @db.Uuid
@@ -160,11 +184,12 @@ model Shop {
   createdAt                    DateTime @default(now()) @db.Timestamptz(3)
   updatedAt                    DateTime @updatedAt @db.Timestamptz(3)
 
-  owner             User       @relation("ShopOwner", fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  deliveryPersonnel User[]     @relation("ShopDeliveryPersonnel")
+  owner             User                 @relation("ShopOwner", fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  deliveryPersonnel User[]               @relation("ShopDeliveryPersonnel")
   categories        Category[]
   products          Product[]
   orders            Order[]
+  photoUploads      ProductPhotoUpload[]
 
   @@unique([ownerId, name])
   @@unique([phone])
@@ -231,6 +256,7 @@ model Product {
   stockQuantity        Decimal     @default(0) @db.Decimal(13, 3)
   lowStockThreshold    Decimal     @default(5) @db.Decimal(13, 3)
   imageUrl             String?     @db.VarChar(2048)
+  imageStorageKey      String?     @unique @db.VarChar(255)
   isAvailable          Boolean     @default(true)
   createdAt            DateTime    @default(now()) @db.Timestamptz(3)
   updatedAt            DateTime    @updatedAt @db.Timestamptz(3)
@@ -239,13 +265,38 @@ model Product {
   category      Category              @relation(fields: [categoryId, shopId], references: [id, shopId], onDelete: Restrict, onUpdate: Cascade)
   discountTiers ProductDiscountTier[]
   orderItems    OrderItem[]
+  photoUploads  ProductPhotoUpload[]
 
+  // Trigram indexes serve the storefront's case-insensitive substring search.
+  @@index([nameEn(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_nameEn_trgm_idx")
+  @@index([nameSi(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_nameSi_trgm_idx")
+  @@index([descriptionEn(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_descriptionEn_trgm_idx")
+  @@index([descriptionSi(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_descriptionSi_trgm_idx")
   @@unique([shopId, nameEn])
   @@unique([shopId, itemCode])
   @@unique([shopId, barcode])
   @@index([categoryId, shopId])
   @@index([shopId, isAvailable])
   @@map("products")
+}
+
+model ProductPhotoUpload {
+  id         String    @id @default(uuid()) @db.Uuid
+  shopId     String    @db.Uuid
+  ownerId    String    @db.Uuid
+  productId  String?   @db.Uuid
+  storageKey String    @unique @db.VarChar(255)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  attachedAt DateTime? @db.Timestamptz(3)
+  deletedAt  DateTime? @db.Timestamptz(3)
+  purgedAt   DateTime? @db.Timestamptz(3)
+
+  shop    Shop     @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  owner   User     @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([attachedAt, createdAt])
+  @@map("product_photo_uploads")
 }
 
 model ProductDiscountTier {
@@ -277,6 +328,8 @@ model Order {
   packingVersion     Int           @default(0)
   packingFinalizedAt DateTime?     @db.Timestamptz(3)
   customerNote       String?
+  /// Client-supplied key that makes checkout retries return the original order.
+  idempotencyKey     String?       @db.VarChar(64)
   cancelledAt        DateTime?     @db.Timestamptz(3)
   cancellationReason String?       @db.VarChar(500)
   createdAt          DateTime      @default(now()) @db.Timestamptz(3)
@@ -289,7 +342,9 @@ model Order {
   batchAssignment DeliveryBatchOrder?
   statusHistory   OrderStatusHistory[]
   notifications   Notification[]
+  returns         OrderReturn[]
 
+  @@unique([customerId, idempotencyKey])
   @@index([customerId, createdAt])
   @@index([shopId, status, createdAt])
   @@index([deliveryAddressId, customerId])
@@ -331,6 +386,8 @@ model OrderItem {
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  returns OrderReturn[]
 
   @@unique([orderId, productId])
   @@index([productId])
@@ -382,4 +439,29 @@ model Notification {
   @@index([userId, readAt, createdAt])
   @@index([orderId, type])
   @@map("notifications")
+}
+
+model OrderReturn {
+  id             String       @id @default(uuid()) @db.Uuid
+  orderId        String       @db.Uuid
+  orderItemId    String       @db.Uuid
+  quantity       Decimal      @db.Decimal(13, 3)
+  refundAmount   Decimal      @db.Decimal(12, 2)
+  reason         String       @db.VarChar(500)
+  status         ReturnStatus @default(PENDING)
+  restock        Boolean      @default(false)
+  recordedById   String       @db.Uuid
+  reviewedById   String?      @db.Uuid
+  reviewNote     String?      @db.VarChar(500)
+  reviewedAt     DateTime?    @db.Timestamptz(3)
+  refundPaidAt   DateTime?    @db.Timestamptz(3)
+  refundPaidById String?      @db.Uuid
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([orderId, createdAt])
+  @@index([orderItemId, status])
+  @@map("order_returns")
 }

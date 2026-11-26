@@ -91,6 +91,7 @@ export interface ShopCheckoutSettingsRecord {
 
 export interface CheckoutOrderData {
   customerId: string;
+  idempotencyKey?: string | null;
   shopId: string;
   deliveryAddressId: string;
   subtotal: string;
@@ -118,6 +119,10 @@ export interface CheckoutTransaction {
     quantity: number,
   ): Promise<ReservedProductRecord | null>;
   findProduct(productId: string): Promise<ReservedProductRecord | null>;
+  findOrderByIdempotencyKey(
+    customerId: string,
+    idempotencyKey: string,
+  ): Promise<OrderConfirmationRecord | null>;
   createOrder(data: CheckoutOrderData): Promise<OrderConfirmationRecord>;
   createNotifications(
     notifications: readonly NotificationCreateRecord[],
@@ -131,6 +136,10 @@ export interface CheckoutRepository {
   findOrderForCustomer(
     customerId: string,
     orderId: string,
+  ): Promise<OrderConfirmationRecord | null>;
+  findOrderByIdempotencyKey(
+    customerId: string,
+    idempotencyKey: string,
   ): Promise<OrderConfirmationRecord | null>;
 }
 
@@ -196,10 +205,18 @@ class PrismaCheckoutTransaction implements CheckoutTransaction {
     });
   }
 
+  findOrderByIdempotencyKey(
+    customerId: string,
+    idempotencyKey: string,
+  ): Promise<OrderConfirmationRecord | null> {
+    return findOrderByIdempotencyKey(this.prisma, customerId, idempotencyKey);
+  }
+
   async createOrder(data: CheckoutOrderData): Promise<OrderConfirmationRecord> {
     const created = await this.prisma.order.create({
       data: {
         customerId: data.customerId,
+        idempotencyKey: data.idempotencyKey ?? null,
         shopId: data.shopId,
         deliveryAddressId: data.deliveryAddressId,
         subtotal: data.subtotal,
@@ -256,4 +273,22 @@ export class PrismaCheckoutRepository implements CheckoutRepository {
       select: orderConfirmationSelect,
     });
   }
+
+  findOrderByIdempotencyKey(
+    customerId: string,
+    idempotencyKey: string,
+  ): Promise<OrderConfirmationRecord | null> {
+    return findOrderByIdempotencyKey(this.prisma, customerId, idempotencyKey);
+  }
+}
+
+function findOrderByIdempotencyKey(
+  prisma: Prisma.TransactionClient,
+  customerId: string,
+  idempotencyKey: string,
+): Promise<OrderConfirmationRecord | null> {
+  return prisma.order.findUnique({
+    where: { customerId_idempotencyKey: { customerId, idempotencyKey } },
+    select: orderConfirmationSelect,
+  });
 }

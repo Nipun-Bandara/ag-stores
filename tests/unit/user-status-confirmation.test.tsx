@@ -49,13 +49,15 @@ it.each([
     fireEvent.click(
       screen.getByRole("button", { name: `${action} Test user` }),
     );
-    let dialog = await screen.findByRole("dialog", { name: `${action} user` });
+    let dialog = await screen.findByRole("alertdialog", {
+      name: `${action} user`,
+    });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(toast.success).not.toHaveBeenCalled();
     expect(toast.error).not.toHaveBeenCalled();
     fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
     await waitFor(() =>
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
     );
     expect(toast.success).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
@@ -63,7 +65,7 @@ it.each([
     fireEvent.click(
       screen.getByRole("button", { name: `${action} Test user` }),
     );
-    dialog = await screen.findByRole("dialog", { name: `${action} user` });
+    dialog = await screen.findByRole("alertdialog", { name: `${action} user` });
     fireEvent.click(within(dialog).getByRole("button", { name: action }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(fetchMock).toHaveBeenCalledWith(
@@ -79,7 +81,7 @@ it.each([
         : "Test user was deactivated.",
     );
     await waitFor(() =>
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
     );
   },
 );
@@ -103,11 +105,11 @@ it("keeps a rejected change in the dialog so it can be retried", async () => {
     </TooltipProvider>,
   );
   fireEvent.click(screen.getByRole("button", { name: "Deactivate Admin" }));
-  const dialog = await screen.findByRole("dialog", { name: "Deactivate user" });
+  const dialog = await screen.findByRole("alertdialog", {
+    name: "Deactivate user",
+  });
   fireEvent.click(within(dialog).getByRole("button", { name: "Deactivate" }));
-  expect(await within(dialog).findByRole("alert")).toHaveTextContent(
-    "The final active administrator cannot be deactivated.",
-  );
+  await waitFor(() => expect(toast.error).toHaveBeenCalled());
   expect(toast.error).toHaveBeenCalledWith(
     "The final active administrator cannot be deactivated.",
   );

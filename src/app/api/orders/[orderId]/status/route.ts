@@ -1,6 +1,10 @@
 import type { NextRequest } from "next/server";
 
-import { errorResponse, successResponse } from "@/lib/api-response";
+import {
+  errorResponse,
+  fieldErrors,
+  successResponse,
+} from "@/lib/api-response";
 import { requireApiAuth } from "@/lib/auth/request";
 import { orderStatusErrorResponse } from "@/lib/order-status-http";
 import { transitionOrderStatus } from "@/services/order-status.service";
@@ -26,7 +30,7 @@ export async function PATCH(
       {
         code: "VALIDATION_ERROR",
         message: "Order status details are invalid.",
-        details: body.success ? undefined : body.error.flatten().fieldErrors,
+        details: body.success ? undefined : fieldErrors(body.error),
       },
       400,
     );

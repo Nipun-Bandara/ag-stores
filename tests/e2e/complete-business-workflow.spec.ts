@@ -1,3 +1,4 @@
+import { updateOwnerOrderStatus } from "./helpers/order-status";
 import {
   mobileForTestAccount,
   fillAccountNames,
@@ -292,7 +293,7 @@ test.describe.serial("complete retail order and delivery workflow", () => {
       .locator("form:visible")
       .getByRole("button", { name: "Register", exact: true })
       .click();
-    await expect(page).toHaveURL(/\/account$/);
+    await expect(page).toHaveURL(/\/products$/);
     await page.locator('[data-slot="sidebar-footer"] button').click();
     await page.getByRole("menuitem", { name: "Sign out" }).click();
 
@@ -320,18 +321,24 @@ test.describe.serial("complete retail order and delivery workflow", () => {
 
     await page.goto("/products");
     await page.getByLabel("Search products").fill(mainProductName);
-    await page.getByRole("button", { name: "Apply filters" }).click();
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get("search"))
+      .toBe(mainProductName);
     const productCard = page
       .getByTestId("product-card")
       .filter({ hasText: mainProductName });
     await expect(productCard).toBeVisible();
-    await productCard.getByRole("link", { name: "View product" }).click();
+    await productCard
+      .getByRole("link", { name: mainProductName, exact: true })
+      .click();
     await expect(
       page.getByRole("heading", { level: 1, name: mainProductName }),
     ).toBeVisible();
     await page.goto("/products");
     await page.getByLabel("Search products").fill(mainProductName);
-    await page.getByRole("button", { name: "Apply filters" }).click();
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get("search"))
+      .toBe(mainProductName);
     await page
       .getByTestId("product-card")
       .filter({ hasText: mainProductName })
@@ -367,15 +374,15 @@ test.describe.serial("complete retail order and delivery workflow", () => {
       .filter({ hasText: mainOrderId });
     await expect(ownerOrderCard).toBeVisible();
     await ownerOrderCard.getByRole("link", { name: "View order" }).click();
-    await page.getByRole("button", { name: "Confirm order" }).click();
+    await updateOwnerOrderStatus(page, "Confirmed");
     await expect(
       page.getByText("Confirmed", { exact: true }).first(),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Mark preparing" }).click();
+    await updateOwnerOrderStatus(page, "Preparing");
     await expect(
       page.getByText("Preparing", { exact: true }).first(),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Mark ready for delivery" }).click();
+    await updateOwnerOrderStatus(page, "Ready for delivery");
     await expect(
       page.getByText("Ready for delivery", { exact: true }).first(),
     ).toBeVisible();
@@ -497,6 +504,10 @@ test.describe.serial("complete retail order and delivery workflow", () => {
       .getByLabel("Cancellation reason (optional)")
       .fill("Workflow cancellation test");
     await page.getByRole("button", { name: "Cancel order" }).click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Cancel order", exact: true })
+      .click();
     await expect(page.getByTestId("customer-order-status")).toHaveText(
       "Cancelled",
     );
@@ -569,6 +580,10 @@ test.describe.serial("complete retail order and delivery workflow", () => {
     await page.getByRole("button", { name: "Start delivery" }).click();
     await expect(page.getByText("IN PROGRESS", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Mark failed" }).click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Mark failed", exact: true })
+      .click();
     await expect(page.getByText("COMPLETED", { exact: true })).toBeVisible();
     await expect(
       prisma.order.findUniqueOrThrow({ where: { id: failedOrderId } }),

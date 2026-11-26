@@ -4,7 +4,10 @@ export const serverEnvSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
-  DATABASE_URL: z.url().startsWith("postgresql://"),
+  DATABASE_URL: z.url().refine((value) => /^postgres(?:ql)?:\/\//.test(value), {
+    message: "DATABASE_URL must be a postgresql:// or postgres:// URL.",
+  }),
+  DATABASE_PREFER_IPV4: z.enum(["true", "false"]).default("false"),
   NEXT_PUBLIC_APP_URL: z.url().default("http://localhost:3000"),
   AUTH_RATE_LIMIT_MAX_ATTEMPTS: z.coerce
     .number()

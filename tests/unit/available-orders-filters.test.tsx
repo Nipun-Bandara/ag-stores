@@ -16,8 +16,12 @@ describe("available delivery order filters", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Created after")).toHaveTextContent(
-      "Oct 8, 2026",
+    expect(screen.getByLabelText("Created after")).toHaveValue(
+      new Intl.DateTimeFormat("en-LK", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }).format(new Date(2026, 9, 8)),
     );
     expect(screen.getByRole("combobox", { name: "Sort by" })).toHaveTextContent(
       "Approximate distance",
@@ -32,7 +36,7 @@ describe("available delivery order filters", () => {
     expect(values.get("sortBy")).toBe("distance");
     expect(values.get("direction")).toBe("asc");
 
-    fireEvent.click(screen.getByLabelText("Created after"));
+    fireEvent.click(screen.getByRole("button", { name: "Select date" }));
     expect(
       screen.getByRole("dialog", { name: "Created after" }),
     ).toBeInTheDocument();

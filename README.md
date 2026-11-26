@@ -21,7 +21,7 @@ shadcn/ui conventions, PostgreSQL, Prisma, and Zod.
 2. Create the local environment file:
 
    ```bash
-   cp.env.example .env.example .env
+   cp .env.example .env
    ```
 
    Delivery maps are disabled by default. To enable Mapbox visualization, set
@@ -29,13 +29,18 @@ shadcn/ui conventions, PostgreSQL, Prisma, and Zod.
    `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` beginning with `pk.`. Never use a Mapbox
    secret token (`sk.*`) in a `NEXT_PUBLIC_*` variable.
 
+   Product photo uploads additionally require server-only Supabase Storage
+   configuration; follow [product photo setup](docs/product-photos.md).
+
 3. Update `DATABASE_URL` in `.env`, then generate the Prisma client:
 
    ```bash
    npm run db:generate
    ```
 
-4. Apply migrations. Existing databases must first follow the staged identity check/backfill in [mobile accounts](docs/mobile-accounts.md):
+4. Apply migrations. The product search migration enables the `pg_trgm`
+   extension, so the migrating role needs permission to create extensions
+   (available by default on Neon, Supabase and local PostgreSQL). Existing databases must first follow the staged identity check/backfill in [mobile accounts](docs/mobile-accounts.md):
 
    ```bash
    npm run db:migrate:deploy
@@ -65,6 +70,10 @@ npm test
 npm run test:e2e
 npm run format:check
 ```
+
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, unit tests and a
+production build on every push and pull request, plus the integration tests
+against a PostgreSQL service.
 
 Database integration tests require a migrated and seeded PostgreSQL database:
 

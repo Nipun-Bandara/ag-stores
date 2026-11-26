@@ -1,7 +1,11 @@
 import type { NextRequest } from "next/server";
 
 import { UserRole } from "@/generated/prisma/client";
-import { errorResponse, successResponse } from "@/lib/api-response";
+import {
+  errorResponse,
+  fieldErrors,
+  successResponse,
+} from "@/lib/api-response";
 import { adminShopErrorResponse } from "@/lib/admin-shop-http";
 import { requireApiRole } from "@/lib/auth/request";
 import {
@@ -32,7 +36,7 @@ export async function POST(request: NextRequest) {
       {
         code: "VALIDATION_ERROR",
         message: "Shop details are invalid.",
-        details: parsed.error.flatten().fieldErrors,
+        details: fieldErrors(parsed.error),
       },
       400,
     );

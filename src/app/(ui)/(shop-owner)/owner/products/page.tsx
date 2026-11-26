@@ -1,3 +1,5 @@
+import { parseProductPage } from "@/lib/product-pagination";
+import { ProductPagination } from "@/features/products/components/product-pagination";
 import { getServerText } from "@/lib/i18n/server";
 import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
@@ -6,20 +8,18 @@ import Link from "next/link";
 
 import { UserRole } from "@/generated/prisma/client";
 import { ProductList } from "@/features/owner/components/product-list";
-import { ProductFilterSelects } from "@/features/owner/components/product-filter-selects";
+import { ProductFilters } from "@/features/owner/components/product-filters";
 import { requireRole } from "@/lib/auth/server";
 import {
   getProductFormOptions,
-  listOwnerProducts,
+  getOwnerProductPage,
 } from "@/services/product.service";
 import {
   productCategoryFilterSchema,
   productInventoryStatusSchema,
   productSearchSchema,
 } from "@/validations/product";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -32,13 +32,14 @@ interface ProductsPageProps {
     categoryId?: string | string[];
     search?: string | string[];
     inventoryStatus?: string | string[];
+    page?: string | string[];
+    pageSize?: string | string[];
   }>;
 }
 
 export default async function OwnerProductsPage({
   searchParams,
 }: ProductsPageProps) {
-  const t = await getServerText();
   const user = await requireRole(UserRole.SHOP_OWNER, "/owner/products");
   const query = await searchParams;
   const categoryValue = Array.isArray(query.categoryId)
@@ -65,7 +66,7 @@ export default async function OwnerProductsPage({
     ...(inventory?.success ? { inventoryStatus: inventory.data } : {}),
   };
   const [products, options] = await Promise.all([
-    listOwnerProducts(user, filters),
+    getOwnerProductPage(user, filters, parseProductPage(query)),
     getProductFormOptions(user),
   ]);
 
@@ -92,29 +93,19 @@ export default async function OwnerProductsPage({
         </Link>
       </div>
       <Card className="gap-0 mt-8 p-5">
-        <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto]">
-          <Label className="text-sm font-medium" htmlFor="search">
-            <Text value={"Search "} />
-            <Input
-              id="search"
-              name="search"
-              defaultValue={search?.success ? search.data : ""}
-              placeholder={t("Name, description, item code or barcode")}
-              className="mt-1.5 h-10 w-full"
-            />
-          </Label>
-          <ProductFilterSelects
-            key={`${category?.success ? category.data : ""}:${inventory?.success ? inventory.data : ""}`}
-            categories={options.categories}
-            initialCategoryId={category?.success ? category.data : ""}
-            initialInventoryStatus={inventory?.success ? inventory.data : ""}
-          />
-          <Button variant="outline" type="submit" className="h-10 self-end">
-            <Text value={"Apply filters "} />
-          </Button>
-        </form>
+        <ProductFilters
+          categories={options.categories}
+          initialSearch={search?.success ? search.data : ""}
+          initialCategoryId={category?.success ? category.data : ""}
+          initialInventoryStatus={inventory?.success ? inventory.data : ""}
+        />
       </Card>
-      <ProductList initialProducts={products} />
+      <ProductPagination {...products} />
+      <ProductList
+        key={JSON.stringify([filters, products.page, products.pageSize])}
+        initialProducts={products.products}
+      />
+      {products.total > 0 ? <ProductPagination {...products} compact /> : null}
     </section>
   );
 }

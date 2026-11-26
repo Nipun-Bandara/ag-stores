@@ -1,14 +1,15 @@
 "use client";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import { useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 
 export function CustomerOrderCancellation({ orderId }: { orderId: string }) {
@@ -16,25 +17,28 @@ export function CustomerOrderCancellation({ orderId }: { orderId: string }) {
   const router = useRouter();
   const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
 
   async function cancelOrder() {
     setPending(true);
-    setError("");
     try {
       const response = await fetch(`/api/account/orders/${orderId}/cancel`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason: reason || undefined }),
       });
-      const payload = await response.json();
+      const payload = await response.json().catch(() => null);
       if (!response.ok) {
-        setError(t(payload.error?.message ?? "Unable to cancel this order."));
-        return;
+        toast.error(
+          t(payload?.error?.message ?? "Unable to cancel this order."),
+        );
+        return false;
       }
+      toast.success(t("Order cancelled"));
       router.refresh();
+      return true;
     } catch {
-      setError(t("Unable to cancel this order."));
+      toast.error(t("Unable to cancel this order."));
+      return false;
     } finally {
       setPending(false);
     }
@@ -65,20 +69,21 @@ export function CustomerOrderCancellation({ orderId }: { orderId: string }) {
           className="mt-2 min-h-24 w-full"
         />
       </Label>
-      <Button
-        variant="destructive"
-        type="button"
-        disabled={pending}
-        onClick={cancelOrder}
-        className="mt-4"
+      <ConfirmAction
+        title={t("Cancel this order")}
+        description={t("Cancel this order? This cannot be undone.")}
+        confirmLabel={t("Cancel order")}
+        onConfirm={cancelOrder}
       >
-        {pending ? t("Cancelling…") : t("Cancel order")}
-      </Button>
-      {error ? (
-        <Alert variant="destructive" role="alert" className="mt-3">
-          {error}
-        </Alert>
-      ) : null}
+        <Button
+          variant="destructive"
+          type="button"
+          disabled={pending}
+          className="mt-4"
+        >
+          {pending ? t("Cancelling…") : t("Cancel order")}
+        </Button>
+      </ConfirmAction>
     </Card>
   );
 }

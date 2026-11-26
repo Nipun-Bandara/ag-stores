@@ -85,6 +85,44 @@ function repositoryFor(record: OrderTransitionRecord | null) {
   return { repository, transaction };
 }
 
+it("allows assigned order staff to prepare orders and denies other shops and delivery dispatch", async () => {
+  const staff = {
+    ...user("staff", UserRole.ORDER_STAFF),
+    assignedShopId: shopId,
+  };
+  const allowed = repositoryFor(order());
+  await transitionOrderStatus(
+    staff,
+    orderId,
+    OrderStatus.READY_FOR_DELIVERY,
+    undefined,
+    allowed.repository,
+  );
+  expect(allowed.transaction.updateStatus).toHaveBeenCalled();
+  const wrongShop = repositoryFor(order());
+  await expect(
+    transitionOrderStatus(
+      { ...staff, assignedShopId: "other-shop" },
+      orderId,
+      OrderStatus.CONFIRMED,
+      undefined,
+      wrongShop.repository,
+    ),
+  ).rejects.toMatchObject({ status: 403 });
+  expect(wrongShop.transaction.updateStatus).not.toHaveBeenCalled();
+  const dispatch = repositoryFor(order(OrderStatus.READY_FOR_DELIVERY));
+  await expect(
+    transitionOrderStatus(
+      staff,
+      orderId,
+      OrderStatus.ASSIGNED,
+      undefined,
+      dispatch.repository,
+    ),
+  ).rejects.toMatchObject({ status: 403 });
+  expect(dispatch.transaction.updateStatus).not.toHaveBeenCalled();
+});
+
 describe("order status service", () => {
   it("updates status and records timestamped history atomically", async () => {
     const { repository, transaction } = repositoryFor(order());
@@ -260,4 +298,69 @@ describe("order status service", () => {
     });
     expect(transaction.createHistory).not.toHaveBeenCalled();
   });
+});
+
+it.each([OrderStatus.PLACED, OrderStatus.CONFIRMED])(
+  "allows an owner to jump from %s directly to ready with one actual history event",
+  async (status) => {
+    const { repository, transaction } = repositoryFor(order(status));
+    const result = await transitionOrderStatus(
+      user(ownerId, UserRole.SHOP_OWNER),
+      orderId,
+      OrderStatus.READY_FOR_DELIVERY,
+      undefined,
+      repository,
+    );
+    expect(result.status).toBe(OrderStatus.READY_FOR_DELIVERY);
+    expect(transaction.updateStatus).toHaveBeenCalledWith(
+      orderId,
+      status,
+      OrderStatus.READY_FOR_DELIVERY,
+      null,
+      false,
+    );
+    expect(transaction.createHistory).toHaveBeenCalledTimes(1);
+    expect(transaction.createHistory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fromStatus: status,
+        toStatus: OrderStatus.READY_FOR_DELIVERY,
+      }),
+    );
+    expect(transaction.restoreStock).not.toHaveBeenCalled();
+  },
+);
+
+it("does not let a direct ready transition bypass packed-weight checks", async () => {
+  const record = order();
+  record.packingRequired = true;
+  record.items[0]!.sellingUnit = "KG";
+  const { repository, transaction } = repositoryFor(record);
+  await expect(
+    transitionOrderStatus(
+      user(ownerId, UserRole.SHOP_OWNER),
+      orderId,
+      OrderStatus.READY_FOR_DELIVERY,
+      undefined,
+      repository,
+    ),
+  ).rejects.toMatchObject({ code: "PACKING_INCOMPLETE" });
+  expect(transaction.updateStatus).not.toHaveBeenCalled();
+});
+
+it("does not let a direct ready transition bypass agreement for a weight outside the allowance", async () => {
+  const record = order(OrderStatus.CONFIRMED);
+  record.packingRequired = true;
+  record.items[0]!.sellingUnit = "KG";
+  record.items[0]!.packedQuantity = new Prisma.Decimal(3);
+  const { repository, transaction } = repositoryFor(record);
+  await expect(
+    transitionOrderStatus(
+      user(ownerId, UserRole.SHOP_OWNER),
+      orderId,
+      OrderStatus.READY_FOR_DELIVERY,
+      undefined,
+      repository,
+    ),
+  ).rejects.toMatchObject({ code: "CUSTOMER_CONTACT_REQUIRED" });
+  expect(transaction.updateStatus).not.toHaveBeenCalled();
 });

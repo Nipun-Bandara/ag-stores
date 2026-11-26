@@ -32,7 +32,7 @@ test("registers without email, signs in by local mobile and signs out", async ({
     .locator("form:visible")
     .getByRole("button", { name: "Register", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/products$/);
   expect(await prisma.user.findUnique({ where: { phone } })).toMatchObject({
     email: null,
     firstName: "Browser",
@@ -45,8 +45,8 @@ test("registers without email, signs in by local mobile and signs out", async ({
   await page.locator("#login-identifier").fill(localPhone);
   await page.locator("#login-password").fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/products$/);
   await expect(
-    page.getByRole("heading", { name: "Your account" }),
+    page.getByRole("heading", { name: "All products" }),
   ).toBeVisible();
 });

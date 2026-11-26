@@ -68,3 +68,28 @@ it("validates discount changes against the current regular price", () => {
   );
   expect(screen.getByRole("alert")).toHaveTextContent("cannot exceed");
 });
+
+it("validates the live example quantity and prevents Enter from submitting the product form", () => {
+  render(
+    <DiscountTierEditor
+      regularPrice="100.00"
+      drafts={[{ minimumQuantity: "1", discountAmount: "5.00" }]}
+      onChange={vi.fn()}
+      setup={{
+        sellingUnit: "UNIT",
+        minimumOrderQuantity: 1,
+        orderingIncrement: 1,
+      }}
+    />,
+  );
+  const quantity = screen.getByLabelText("Example quantity");
+  fireEvent.change(quantity, { target: { value: "3" } });
+  expect(screen.getByText(/Line total.*285.00/)).toBeVisible();
+  expect(fireEvent.keyDown(quantity, { key: "Enter", code: "Enter" })).toBe(
+    false,
+  );
+  fireEvent.change(quantity, { target: { value: "0.5" } });
+  expect(quantity).toHaveAttribute("aria-invalid", "true");
+  expect(screen.getByText("Enter a valid example quantity.")).toBeVisible();
+  expect(screen.queryByText(/Our price/)).not.toBeInTheDocument();
+});

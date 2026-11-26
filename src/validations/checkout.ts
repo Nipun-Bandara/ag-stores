@@ -17,3 +17,12 @@ export const checkoutSchema = z
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 
 export const orderIdSchema = z.uuid();
+
+/** Opaque per-attempt key from the Idempotency-Key header (e.g. a UUID). */
+export const idempotencyKeySchema = z
+  .string()
+  .trim()
+  .regex(
+    /^[A-Za-z0-9_-]{8,64}$/,
+    "Idempotency-Key must be 8-64 URL-safe characters.",
+  );

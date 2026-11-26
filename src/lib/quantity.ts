@@ -1,6 +1,11 @@
 /** Quantities are represented as thousandths for all arithmetic and validation. */
 export type SellingUnit = "UNIT" | "KG";
 export const MAX_QUANTITY = 2147483647;
+/** Pre-filled minimum for newly created KG products. */
+export const DEFAULT_KG_MINIMUM_ORDER_QUANTITY = 0.01;
+/** Hard floor for any KG quantity (2 g), whatever the saved minimum. */
+export const KG_ABSOLUTE_MINIMUM_QUANTITY = 0.002;
+const KG_MINIMUM_MILLI = BigInt(2);
 
 export function quantityMilli(
   value: string | number | { toString(): string },
@@ -34,11 +39,12 @@ export function quantityValid(
   try {
     const amount = quantityMilli(quantity);
     const minimum = quantityMilli(
-      setup.minimumOrderQuantity ?? (setup.sellingUnit === "KG" ? 0.002 : 1),
+      setup.minimumOrderQuantity ??
+        (setup.sellingUnit === "KG" ? KG_ABSOLUTE_MINIMUM_QUANTITY : 1),
     );
     if (amount <= BigInt(0) || minimum <= BigInt(0) || amount < minimum)
       return false;
-    if (setup.sellingUnit === "KG") return amount >= BigInt(2);
+    if (setup.sellingUnit === "KG") return amount >= KG_MINIMUM_MILLI;
     const increment = quantityMilli(setup.orderingIncrement ?? 1);
     return (
       increment > BigInt(0) &&
@@ -57,11 +63,14 @@ export function firstOrderQuantity(setup: {
   orderingIncrement?: number | string | { toString(): string };
 }): number {
   const minimum = quantityMilli(
-    setup.minimumOrderQuantity ?? (setup.sellingUnit === "KG" ? 0.002 : 1),
+    setup.minimumOrderQuantity ??
+      (setup.sellingUnit === "KG" ? KG_ABSOLUTE_MINIMUM_QUANTITY : 1),
   );
   if (minimum <= BigInt(0)) throw new Error("Minimum must be positive.");
   if (setup.sellingUnit === "KG")
-    return quantityNumber(minimum < BigInt(2) ? BigInt(2) : minimum);
+    return quantityNumber(
+      minimum < KG_MINIMUM_MILLI ? KG_MINIMUM_MILLI : minimum,
+    );
   const increment = quantityMilli(setup.orderingIncrement ?? 1);
   if (increment <= BigInt(0)) throw new Error("Increment must be positive.");
   return quantityNumber(
@@ -80,3 +89,18 @@ export function stepQuantity(
 }
 
 export class SellingSetupError extends Error {}
+
+/** One gram equals one stored thousandth of a kilogram; fractional grams are unsupported. */
+export function weightToKilograms(value: string, unit: "kg" | "g"): number {
+  if (unit === "kg") return quantityNumber(quantityMilli(value));
+  if (!/^\d{1,13}$/.test(value))
+    throw new Error("Enter a whole number of grams.");
+  const grams = BigInt(value);
+  if (grams > BigInt(MAX_QUANTITY) * BigInt(1000))
+    throw new Error("Quantity is too large.");
+  return quantityNumber(grams);
+}
+
+export function displayWeight(kilograms: number, unit: "kg" | "g"): string {
+  return unit === "kg" ? String(kilograms) : String(quantityMilli(kilograms));
+}

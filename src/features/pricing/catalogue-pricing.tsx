@@ -27,7 +27,11 @@ export function CataloguePricing({
           quantity,
           unit: translate(
             locale,
-            product.sellingUnit === "KG" ? "kg" : "units",
+            product.sellingUnit === "KG"
+              ? "kg"
+              : quantity === 1
+                ? "unit"
+                : "units",
           ),
         })}
       </p>
@@ -38,6 +42,7 @@ export function CataloguePricing({
         sellingUnit={product.sellingUnit ?? "UNIT"}
         locale={locale}
         showLine={!!selected}
+        separateLineItems
       />
     </div>
   );

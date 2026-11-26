@@ -2,7 +2,11 @@ import type { NextRequest } from "next/server";
 
 import { UserRole } from "@/generated/prisma/client";
 import { addressErrorResponse } from "@/lib/address-http";
-import { errorResponse, successResponse } from "@/lib/api-response";
+import {
+  errorResponse,
+  fieldErrors,
+  successResponse,
+} from "@/lib/api-response";
 import { requireApiRole } from "@/lib/auth/request";
 import {
   createCustomerAddress,
@@ -33,7 +37,7 @@ export async function POST(request: NextRequest) {
       {
         code: "VALIDATION_ERROR",
         message: "Address details are invalid.",
-        details: parsed.error.flatten().fieldErrors,
+        details: fieldErrors(parsed.error),
       },
       400,
     );

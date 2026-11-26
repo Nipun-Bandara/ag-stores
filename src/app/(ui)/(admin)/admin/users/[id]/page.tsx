@@ -1,10 +1,10 @@
+import { BackLink } from "@/components/ui/back-link";
 import { getServerText } from "@/lib/i18n/server";
 import { Text } from "@/features/i18n/components/text";
 import type { Metadata } from "next";
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 
 import { UserRole } from "@/generated/prisma/client";
 import { UserStatusControl } from "@/features/admin/components/user-status-control";
@@ -44,13 +44,9 @@ export default async function AdminUserDetailPage({
 
   return (
     <section className="min-w-0 w-full">
-      <Link
-        href="/admin/users"
-        className={buttonVariants({ variant: null, className: "px-0" })}
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
+      <BackLink href="/admin/users">
         <Text value="Back to users" />
-      </Link>
+      </BackLink>
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground">

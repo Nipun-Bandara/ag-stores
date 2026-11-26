@@ -1,3 +1,7 @@
+import {
+  productPageInfo,
+  type ProductPageRequest,
+} from "@/lib/product-pagination";
 import { tierViews, type DiscountTier } from "@/lib/pricing";
 import { firstOrderQuantity } from "@/lib/quantity";
 import { getDb } from "@/db";
@@ -109,4 +113,46 @@ export async function getStorefrontProduct(
 ): Promise<StorefrontProductView | null> {
   const product = await repository.findProductById(productId);
   return product ? toProductView(product) : null;
+}
+
+export async function getStorefrontProductPage(
+  filters: StorefrontProductFilters,
+  request: ProductPageRequest,
+  repository: StorefrontRepository = getStorefrontRepository(),
+) {
+  const pagination = productPageInfo(
+    await repository.countProducts(filters),
+    request,
+  );
+  const products = await repository.findProducts({
+    ...filters,
+    page: pagination.page,
+    pageSize: pagination.pageSize,
+    limit: pagination.pageSize,
+  });
+  return { products: products.map(toProductView), ...pagination };
+}
+
+/**
+ * Products on pages 2..throughPage, in catalogue order, for restoring a phone
+ * catalogue that had already loaded more pages by scrolling.
+ */
+export async function getStorefrontProductsThroughPage(
+  filters: StorefrontProductFilters,
+  pageSize: number,
+  throughPage: number,
+  repository: StorefrontRepository = getStorefrontRepository(),
+): Promise<StorefrontProductView[]> {
+  if (throughPage < 2) return [];
+  const pages = await Promise.all(
+    Array.from({ length: throughPage - 1 }, (_, index) =>
+      repository.findProducts({
+        ...filters,
+        page: index + 2,
+        pageSize,
+        limit: pageSize,
+      }),
+    ),
+  );
+  return pages.flat().map(toProductView);
 }

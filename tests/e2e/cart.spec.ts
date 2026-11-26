@@ -12,7 +12,7 @@ test("customer manages a cart and continues to checkout", async ({ page }) => {
     .getByLabel("Password", { exact: true })
     .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/products$/);
 
   await page.goto("/products");
   const rice = page
@@ -56,6 +56,10 @@ test("customer manages a cart and continues to checkout", async ({ page }) => {
   ).toBeVisible();
   await page.goto("/cart", { timeout: 60_000 });
   await page.getByRole("button", { name: "Clear cart" }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Clear cart", exact: true })
+    .click();
   await expect(page.getByText("Your cart is empty")).toBeVisible();
 });
 
@@ -69,7 +73,7 @@ test("zero-stock products cannot be added", async ({ page }) => {
     .getByLabel("Password", { exact: true })
     .fill("ChangeMe123!");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/products$/);
   await page.goto("/products");
   const product = page
     .getByTestId("product-card")

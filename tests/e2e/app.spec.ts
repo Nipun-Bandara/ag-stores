@@ -1,14 +1,22 @@
 import { expect, test } from "@playwright/test";
 
-test("application loads successfully", async ({ page }) => {
+test("everyone starts at the store Home and can find Log in", async ({
+  page,
+}) => {
   await page.goto("/");
+  await expect(page).toHaveURL(/\/home$/);
 
-  await expect(
-    page.getByRole("heading", {
-      level: 1,
-      name: "Shop locally. Follow every order.",
-    }),
-  ).toBeVisible();
+  await page.getByTestId("header-login").click();
+  await expect(page).toHaveURL(/\/auth$/);
+  await expect(page.getByText("Welcome back", { exact: true })).toBeVisible();
+
+  await page.getByRole("link", { name: "Back to Home" }).click();
+  await expect(page).toHaveURL(/\/home$/);
+});
+
+test("the disabled landing page sends visitors to Home", async ({ page }) => {
+  await page.goto("/landing");
+  await expect(page).toHaveURL(/\/home$/);
 });
 
 test("health endpoint returns success", async ({ request }) => {

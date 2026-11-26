@@ -6,6 +6,7 @@ import type {
 
 export interface AuthenticatedUser {
   id: string;
+  assignedShopId?: string | null;
   name: string;
   firstName: string;
   lastName: string;

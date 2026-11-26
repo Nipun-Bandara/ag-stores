@@ -1,8 +1,28 @@
 import type { NextConfig } from "next";
 
+const storageHost = (() => {
+  try {
+    const url = new URL(
+      process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+    );
+    return url.protocol === "https:" ? url.hostname : null;
+  } catch {
+    return null;
+  }
+})();
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
+      ...(storageHost
+        ? [
+            {
+              protocol: "https" as const,
+              hostname: storageHost,
+              pathname: "/storage/v1/object/public/product-photos/**",
+            },
+          ]
+        : []),
       {
         protocol: "https",
         hostname: "images.unsplash.com",
@@ -34,7 +54,7 @@ const nextConfig: NextConfig = {
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
       {
         key: "Permissions-Policy",
-        value: "camera=(), microphone=(), geolocation=(self), payment=()",
+        value: "camera=(self), microphone=(), geolocation=(self), payment=()",
       },
     ];
 

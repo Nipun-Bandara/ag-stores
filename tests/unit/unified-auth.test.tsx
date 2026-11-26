@@ -27,6 +27,13 @@ vi.mock("next-themes", () => ({
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
   usePathname: () => "/si/auth",
+  redirect: (path: string) => {
+    throw new Error(`redirect:${path}`);
+  },
+}));
+const session = vi.hoisted(() => ({ user: null as { role: string } | null }));
+vi.mock("@/lib/auth/server", () => ({
+  getAuthenticatedUser: async () => session.user,
 }));
 vi.mock("@/lib/i18n/server", () => ({
   getLocaleContext: async () => ({ locale: "si", localizedRoute: true }),
@@ -35,6 +42,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: toastError } }));
 
 beforeEach(() => {
   vi.clearAllMocks();
+  session.user = null;
   const style = document.createElement("style");
   style.textContent = ".hidden { display: none; }";
   style.id = "auth-test-styles";
@@ -59,7 +67,7 @@ describe("unified authentication page", () => {
     expect(screen.getByText("Create Account")).not.toBeVisible();
     expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute(
       "href",
-      "/si",
+      "/si/home",
     );
   });
 
@@ -145,9 +153,8 @@ describe("unified authentication page", () => {
     for (const path of [
       "/account",
       "/si/account",
-      "/products",
-      "/si/products",
-      "/categories/example",
+      "/checkout",
+      "/si/account/orders",
     ]) {
       const response = proxy(new NextRequest(`http://localhost${path}`));
       const destination = new URL(response.headers.get("location")!);
@@ -158,17 +165,24 @@ describe("unified authentication page", () => {
     }
   });
 
-  it("keeps catalog filters when asking a guest to sign in", () => {
-    const response = proxy(
-      new NextRequest(
-        "http://localhost/si/products?search=tea&categoryId=beverages",
-      ),
-    );
+  it("lets guests browse the storefront and cart without signing in", () => {
+    for (const path of [
+      "/products",
+      "/si/products?search=tea&categoryId=beverages",
+      "/products/example",
+      "/categories/example",
+      "/cart",
+    ]) {
+      const response = proxy(new NextRequest(`http://localhost${path}`));
+      expect(response.headers.get("location")).toBeNull();
+    }
+  });
+
+  it("keeps the checkout destination when asking a guest to sign in", () => {
+    const response = proxy(new NextRequest("http://localhost/si/checkout"));
     const destination = new URL(response.headers.get("location")!);
     expect(destination.pathname).toBe("/si/auth");
-    expect(destination.searchParams.get("returnTo")).toBe(
-      "/si/products?search=tea&categoryId=beverages",
-    );
+    expect(destination.searchParams.get("returnTo")).toBe("/si/checkout");
   });
 
   it("rejects external and authentication-loop return destinations", () => {
@@ -189,5 +203,24 @@ describe("unified authentication page", () => {
     expect(safeAuthReturnTo("/si/account?tab=orders")).toBe(
       "/si/account?tab=orders",
     );
+  });
+
+  it("sends signed-in visitors on: customers to Home, others to their dashboard", async () => {
+    session.user = { role: "CUSTOMER" };
+    await expect(
+      AuthPage({ searchParams: Promise.resolve({}) }),
+    ).rejects.toThrow("redirect:/si/home");
+    session.user = { role: "SHOP_OWNER" };
+    await expect(
+      AuthPage({ searchParams: Promise.resolve({}) }),
+    ).rejects.toThrow("redirect:/si/owner");
+    // An allowed return path still wins; one for another role does not.
+    session.user = { role: "CUSTOMER" };
+    await expect(
+      AuthPage({ searchParams: Promise.resolve({ returnTo: "/si/checkout" }) }),
+    ).rejects.toThrow("redirect:/si/checkout");
+    await expect(
+      AuthPage({ searchParams: Promise.resolve({ returnTo: "/admin/users" }) }),
+    ).rejects.toThrow("redirect:/si/home");
   });
 });

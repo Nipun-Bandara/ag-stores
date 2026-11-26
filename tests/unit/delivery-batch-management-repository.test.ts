@@ -20,3 +20,27 @@ it("allows time to acquire and complete a delivery lifecycle transaction", async
     timeout: 30_000,
   });
 });
+
+it("loads the customer first name alongside each delivery stop", async () => {
+  const findFirst = vi.fn().mockResolvedValue(null);
+  const repository = new PrismaDeliveryBatchManagementRepository({
+    deliveryBatch: { findFirst },
+  } as unknown as PrismaClient);
+  await repository.findOwnedDetail("delivery-person", "batch");
+  expect(findFirst).toHaveBeenCalledWith(
+    expect.objectContaining({
+      where: { id: "batch", deliveryPersonId: "delivery-person" },
+      select: expect.objectContaining({
+        orders: expect.objectContaining({
+          select: expect.objectContaining({
+            order: {
+              select: expect.objectContaining({
+                customer: { select: { firstName: true } },
+              }),
+            },
+          }),
+        }),
+      }),
+    }),
+  );
+});

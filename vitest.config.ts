@@ -14,11 +14,30 @@ export default defineConfig({
     },
   },
   test: {
-    environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],
-    include: ["tests/{unit,integration}/**/*.test.{ts,tsx}"],
     coverage: {
       reporter: ["text", "html"],
     },
+    // Creating a jsdom per file dominated run time, so only component tests
+    // (.tsx) get a DOM. A .ts test that needs one can opt in with
+    // `// @vitest-environment jsdom`.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "node",
+          environment: "node",
+          include: ["tests/{unit,integration}/**/*.test.ts"],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "dom",
+          environment: "jsdom",
+          include: ["tests/{unit,integration}/**/*.test.tsx"],
+        },
+      },
+    ],
   },
 });

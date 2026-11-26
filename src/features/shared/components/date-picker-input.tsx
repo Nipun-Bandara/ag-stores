@@ -39,11 +39,13 @@ export function DatePickerInput({
   name,
   label,
   id,
+  showHint = true,
 }: {
   initialDate?: string;
   name: string;
   label: string;
   id: string;
+  showHint?: boolean;
 }) {
   const t = useText();
   const locale = useLocale();
@@ -107,7 +109,7 @@ export function DatePickerInput({
           placeholder={displayDate(new Date(2025, 5, 1))}
           autoComplete="off"
           aria-invalid={invalid}
-          aria-describedby={`${id}-help`}
+          aria-describedby={showHint || invalid ? `${id}-help` : undefined}
           onChange={(event) => {
             const text = event.target.value;
             const date = parseDate(text);
@@ -180,14 +182,16 @@ export function DatePickerInput({
           </Popover>
         </InputGroupAddon>
       </InputGroup>
-      <p
-        id={`${id}-help`}
-        className={`mt-1 text-xs ${invalid ? "text-destructive" : "text-muted-foreground"}`}
-      >
-        {invalid
-          ? t("Enter a valid date, for example 2026-10-31.")
-          : t("Type a date or choose from the calendar.")}
-      </p>
+      {showHint || invalid ? (
+        <p
+          id={`${id}-help`}
+          className={`mt-1 text-xs ${invalid ? "text-destructive" : "text-muted-foreground"}`}
+        >
+          {invalid
+            ? t("Enter a valid date, for example 2026-10-31.")
+            : t("Type a date or choose from the calendar.")}
+        </p>
+      ) : null}
     </Field>
   );
 }

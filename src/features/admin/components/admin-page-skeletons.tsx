@@ -1,13 +1,7 @@
+import { BackLink } from "@/components/ui/back-link";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  ArrowUpRight,
-  ClipboardList,
-  Store,
-  Truck,
-  Users,
-} from "lucide-react";
+import { ArrowUpRight, ClipboardList, Store, Truck, Users } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -66,13 +60,9 @@ function SectionTitle({ children }: { children: string }) {
 function DetailHeading({ shop = false }: { shop?: boolean }) {
   return (
     <>
-      <Link
-        href={shop ? "/admin/shops" : "/admin/users"}
-        className={buttonVariants({ variant: null, className: "px-0" })}
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
+      <BackLink href={shop ? "/admin/shops" : "/admin/users"}>
         <Text value={shop ? "Back to shops" : "Back to users"} />
-      </Link>
+      </BackLink>
       <div className="mt-5 flex flex-wrap justify-between gap-4">
         <div className="w-full max-w-md space-y-2">
           <p className="text-sm text-muted-foreground">
@@ -540,13 +530,9 @@ export function AdminShopsSkeleton() {
     <LoadingPage>
       <Heading
         title="Shop management"
-        description="Create shops, assign owners, and control customer availability."
+        description="Manage shop details and customer availability."
       />
-      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <div className="min-w-0 space-y-4">
-          <SectionTitle>Create shop</SectionTitle>
-          <ShopFormPlaceholder />
-        </div>
+      <div className="mt-8">
         <div className="min-w-0 space-y-4">
           <SectionTitle>Shops</SectionTitle>
           {Array.from({ length: 4 }, (_, index) => (

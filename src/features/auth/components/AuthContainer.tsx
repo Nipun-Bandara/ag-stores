@@ -1,15 +1,14 @@
 "use client";
+import { BackLink } from "@/components/ui/back-link";
 import { useLocale, useText } from "@/features/i18n/components/locale-provider";
 import { LanguageSwitcher } from "@/features/i18n/components/language-switcher";
 import { Text } from "@/features/i18n/components/text";
 
 import { useState, useSyncExternalStore } from "react";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { useTheme } from "next-themes";
 import Login from "./Login";
 import Register from "./Register";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import DotGrid from "@/components/DotGrid";
 
 const subscribeToMount = () => () => {};
@@ -40,16 +39,9 @@ export default function AuthContainer({
 
   return (
     <div className="w-full min-h-screen bg-background flex flex-col lg:flex-row relative text-foreground">
-      <Link
-        href={homeHref}
-        className={buttonVariants({
-          variant: null,
-          className: "absolute top-4 left-4 z-50",
-        })}
-      >
-        <ArrowLeft className="w-4 h-4" />
+      <BackLink href={homeHref} className="absolute top-4 left-4 z-50">
         <Text value={"Back to Home "} />
-      </Link>
+      </BackLink>
       <div className="absolute top-4 right-4 z-50">
         <LanguageSwitcher
           locale={locale}

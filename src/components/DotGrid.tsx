@@ -7,10 +7,7 @@ import {
   useMemo,
   type CSSProperties,
 } from "react";
-import { gsap } from "gsap";
-import { InertiaPlugin } from "gsap/InertiaPlugin";
-
-gsap.registerPlugin(InertiaPlugin);
+import { animate, type AnimationPlaybackControls } from "motion";
 
 const throttle = <T extends unknown[]>(
   func: (...args: T) => void,
@@ -42,6 +39,41 @@ interface Dot {
   xOffset: number;
   yOffset: number;
   _inertiaApplied: boolean;
+  _animation?: AnimationPlaybackControls;
+}
+
+/**
+ * Flings a dot with an initial velocity (px/s) that decelerates at
+ * `resistance` px/s², then springs it back to rest.
+ */
+function flingDot(
+  dot: Dot,
+  velocityX: number,
+  velocityY: number,
+  resistance: number,
+  returnDuration: number,
+) {
+  dot._animation?.stop();
+  dot._inertiaApplied = true;
+  const speed = Math.hypot(velocityX, velocityY);
+  // Constant deceleration: travel v²/2a over v/a seconds.
+  const travel = speed / (2 * resistance);
+  const duration = Math.min(3, Math.max(0.2, speed / resistance));
+  const fling = animate(
+    dot,
+    { xOffset: velocityX * travel, yOffset: velocityY * travel },
+    { duration, ease: "easeOut" },
+  );
+  dot._animation = fling;
+  void fling.then(() => {
+    if (dot._animation !== fling) return;
+    dot._inertiaApplied = false;
+    dot._animation = animate(
+      dot,
+      { xOffset: 0, yOffset: 0 },
+      { type: "spring", duration: returnDuration, bounce: 0.45 },
+    );
+  });
 }
 interface DotGridProps {
   dotSize?: number;
@@ -230,22 +262,9 @@ const DotGrid = ({
       for (const dot of dotsRef.current) {
         const dist = Math.hypot(dot.cx - pr.x, dot.cy - pr.y);
         if (speed > speedTrigger && dist < proximity && !dot._inertiaApplied) {
-          dot._inertiaApplied = true;
-          gsap.killTweensOf(dot);
           const pushX = dot.cx - pr.x + vx * 0.005;
           const pushY = dot.cy - pr.y + vy * 0.005;
-          gsap.to(dot, {
-            inertia: { xOffset: pushX, yOffset: pushY, resistance },
-            onComplete: () => {
-              gsap.to(dot, {
-                xOffset: 0,
-                yOffset: 0,
-                duration: returnDuration,
-                ease: "elastic.out(1,0.75)",
-              });
-              dot._inertiaApplied = false;
-            },
-          });
+          flingDot(dot, pushX, pushY, resistance, returnDuration);
         }
       }
     };
@@ -258,23 +277,10 @@ const DotGrid = ({
       for (const dot of dotsRef.current) {
         const dist = Math.hypot(dot.cx - cx, dot.cy - cy);
         if (dist < shockRadius && !dot._inertiaApplied) {
-          dot._inertiaApplied = true;
-          gsap.killTweensOf(dot);
           const falloff = Math.max(0, 1 - dist / shockRadius);
           const pushX = (dot.cx - cx) * shockStrength * falloff;
           const pushY = (dot.cy - cy) * shockStrength * falloff;
-          gsap.to(dot, {
-            inertia: { xOffset: pushX, yOffset: pushY, resistance },
-            onComplete: () => {
-              gsap.to(dot, {
-                xOffset: 0,
-                yOffset: 0,
-                duration: returnDuration,
-                ease: "elastic.out(1,0.75)",
-              });
-              dot._inertiaApplied = false;
-            },
-          });
+          flingDot(dot, pushX, pushY, resistance, returnDuration);
         }
       }
     };
@@ -286,6 +292,7 @@ const DotGrid = ({
     return () => {
       window.removeEventListener("mousemove", throttledMove);
       window.removeEventListener("click", onClick);
+      for (const dot of dotsRef.current) dot._animation?.stop();
     };
   }, [
     maxSpeed,

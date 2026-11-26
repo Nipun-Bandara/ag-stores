@@ -1,7 +1,11 @@
 import type { NextRequest } from "next/server";
 
 import { UserRole } from "@/generated/prisma/client";
-import { errorResponse, successResponse } from "@/lib/api-response";
+import {
+  errorResponse,
+  fieldErrors,
+  successResponse,
+} from "@/lib/api-response";
 import { requireApiRole } from "@/lib/auth/request";
 import { getOwnerReports } from "@/services/owner-report.service";
 import { ownerReportFiltersSchema } from "@/validations/owner-report";
@@ -18,7 +22,7 @@ export async function GET(request: NextRequest) {
       {
         code: "VALIDATION_ERROR",
         message: "Report filters are invalid.",
-        details: filters.error.flatten().fieldErrors,
+        details: fieldErrors(filters.error),
       },
       400,
     );

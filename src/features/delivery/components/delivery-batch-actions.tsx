@@ -1,8 +1,10 @@
 "use client";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import { useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { ArrowDown, ArrowUp, CircleCheck, CircleX } from "lucide-react";
 
 import { useRouter } from "next/navigation";
@@ -13,7 +15,6 @@ import type {
 } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
 import { IconActionButton } from "@/components/ui/icon-action-button";
-import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import { orderStatusLabels } from "@/features/orders/order-presentation";
 
@@ -21,6 +22,7 @@ interface BatchActionOrder {
   id: string;
   sequence: number;
   status: OrderStatus;
+  customerFirstName: string;
   deliveryLocation: { label: string; address: string };
 }
 
@@ -41,8 +43,6 @@ export function DeliveryBatchActions({
   const router = useRouter();
   const [sequence, setSequence] = useState(() => orders.map(({ id }) => id));
   const [pending, setPending] = useState("");
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
 
   const orderById = new Map(orders.map((order) => [order.id, order]));
 
@@ -54,17 +54,15 @@ export function DeliveryBatchActions({
       [next[index], next[target]] = [next[target]!, next[index]!];
       return next;
     });
-    setMessage("");
   }
 
   async function request(
     path: string,
     method: "POST" | "PATCH",
+    successMessage: string,
     body?: unknown,
   ) {
     setPending(path);
-    setError("");
-    setMessage("");
     try {
       const response = await fetch(path, {
         method,
@@ -75,15 +73,20 @@ export function DeliveryBatchActions({
             }
           : {}),
       });
-      const payload = (await response.json()) as ApiPayload;
+      const payload = (await response
+        .json()
+        .catch(() => null)) as ApiPayload | null;
       if (!response.ok) {
-        setError(t(payload.error?.message ?? "Unable to update this batch."));
+        toast.error(
+          t(payload?.error?.message ?? "Unable to update this batch."),
+        );
         return false;
       }
+      toast.success(successMessage);
       router.refresh();
       return true;
     } catch {
-      setError(t("Unable to update this batch."));
+      toast.error(t("Unable to update this batch."));
       return false;
     } finally {
       setPending("");
@@ -91,31 +94,43 @@ export function DeliveryBatchActions({
   }
 
   async function saveSequence() {
-    const succeeded = await request(
+    await request(
       `/api/delivery/batches/${batchId}/sequence`,
       "PATCH",
+      t("Delivery sequence saved."),
       { orderIds: sequence },
     );
-    if (succeeded) setMessage(t("Delivery sequence saved."));
   }
 
   async function startBatch() {
-    await request(`/api/delivery/batches/${batchId}/start`, "POST");
+    await request(
+      `/api/delivery/batches/${batchId}/start`,
+      "POST",
+      t("Delivery started."),
+    );
   }
 
   async function finishOrder(
     orderId: string,
     nextStatus: "DELIVERED" | "FAILED_DELIVERY",
   ) {
-    await request(
+    return request(
       `/api/delivery/batches/${batchId}/orders/${orderId}/status`,
       "PATCH",
+      t(
+        nextStatus === "DELIVERED"
+          ? "Order marked as delivered."
+          : "Order marked as failed delivery.",
+      ),
       { status: nextStatus },
     );
   }
 
   return (
-    <Card as="section" className="gap-0 mt-6 p-5">
+    <Card
+      as="section"
+      className="min-w-0 gap-0 border border-border p-4 ring-0 sm:p-5"
+    >
       <h2 className="text-lg font-semibold">
         <Text value={t("Batch actions")} />
       </h2>
@@ -128,7 +143,7 @@ export function DeliveryBatchActions({
               }
             />
           </p>
-          <ol className="mt-4 space-y-3">
+          <ol className="mt-3 space-y-2">
             {sequence.map((orderId, index) => {
               const order = orderById.get(orderId);
               if (!order) return null;
@@ -136,18 +151,18 @@ export function DeliveryBatchActions({
                 <Card
                   as="li"
                   key={orderId}
-                  className="gap-0 flex flex-wrap items-center justify-between gap-3 p-3"
+                  className="min-w-0 flex-row flex-wrap items-center justify-between gap-3 border border-border p-3 ring-0"
                 >
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold">
+                  <div className="min-w-0 flex-1 basis-32">
+                    <p className="break-words text-sm font-semibold">
                       <Text value={"Stop "} />
-                      {index + 1} · {order.deliveryLocation.label}
+                      {index + 1} · {order.customerFirstName}
                     </p>
                     <p className="truncate text-sm text-muted-foreground">
                       {order.deliveryLocation.address}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="ml-auto flex shrink-0 gap-2">
                     <IconActionButton
                       variant="outline"
                       type="button"
@@ -201,53 +216,54 @@ export function DeliveryBatchActions({
           {orders.map((order) => (
             <Card
               key={order.id}
-              className="gap-0 flex flex-wrap items-center justify-between gap-3 p-4"
+              className="min-w-0 flex-row flex-wrap items-center justify-between gap-3 border border-border p-3 ring-0"
             >
-              <div>
-                <p className="text-sm font-semibold">
+              <div className="min-w-0 flex-1 basis-32">
+                <p className="break-words text-sm font-semibold">
                   <Text value={"Stop "} />
-                  {order.sequence} · {order.deliveryLocation.label}
+                  {order.sequence} · {order.customerFirstName}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {t(orderStatusLabels[order.status])}
                 </p>
               </div>
               {order.status === "OUT_FOR_DELIVERY" ? (
-                <div className="flex flex-wrap gap-2">
+                <div className="ml-auto flex flex-wrap gap-2">
                   <IconActionButton
                     variant="success"
                     type="button"
-                    label={`${t("Mark delivered")} · ${order.deliveryLocation.label}`}
+                    label={`${t("Mark delivered")} · ${order.customerFirstName}`}
                     disabled={pending !== ""}
                     onClick={() => finishOrder(order.id, "DELIVERED")}
                   >
                     <CircleCheck aria-hidden="true" />
                   </IconActionButton>
-                  <IconActionButton
-                    variant="destructive"
-                    type="button"
-                    label={`${t("Mark failed")} · ${order.deliveryLocation.label}`}
-                    disabled={pending !== ""}
-                    onClick={() => finishOrder(order.id, "FAILED_DELIVERY")}
+                  <ConfirmAction
+                    title={t("Mark delivery failed")}
+                    description={t(
+                      "Mark the delivery for {name} as failed? This records the delivery as unsuccessful.",
+                      { name: order.customerFirstName },
+                    )}
+                    confirmLabel={t("Mark failed")}
+                    onConfirm={() => finishOrder(order.id, "FAILED_DELIVERY")}
                   >
-                    <CircleX aria-hidden="true" />
-                  </IconActionButton>
+                    <IconActionButton
+                      variant="destructive"
+                      type="button"
+                      label={`${t("Mark failed")} · ${order.customerFirstName}`}
+                      disabled={pending !== ""}
+                    >
+                      <CircleX
+                        aria-hidden="true"
+                        className="stroke-white [html.dark_&]:stroke-current"
+                      />
+                    </IconActionButton>
+                  </ConfirmAction>
                 </div>
               ) : null}
             </Card>
           ))}
         </div>
-      ) : null}
-
-      {error ? (
-        <Alert variant="destructive" role="alert" className="mt-4">
-          {error}
-        </Alert>
-      ) : null}
-      {message ? (
-        <Alert variant="success" role="status" className="mt-4">
-          {message}
-        </Alert>
       ) : null}
     </Card>
   );

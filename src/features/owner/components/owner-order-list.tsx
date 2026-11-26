@@ -18,7 +18,13 @@ import {
 
 type Dashboard = Awaited<ReturnType<typeof getOwnerOrderDashboard>>;
 
-export function OwnerOrderList({ orders }: { orders: Dashboard["orders"] }) {
+export function OwnerOrderList({
+  orders,
+  basePath = "/owner/orders",
+}: {
+  orders: Dashboard["orders"];
+  basePath?: string;
+}) {
   if (orders.length === 0) {
     return (
       <Empty className="mt-6">
@@ -104,7 +110,7 @@ export function OwnerOrderList({ orders }: { orders: Dashboard["orders"] }) {
               <TooltipTrigger
                 render={
                   <Link
-                    href={`/owner/orders/${order.id}`}
+                    href={`${basePath}/${order.id}`}
                     className={buttonVariants({
                       variant: "outline",
                       size: "icon",

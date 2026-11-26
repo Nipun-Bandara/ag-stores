@@ -1,4 +1,5 @@
 "use client";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import { useText } from "@/features/i18n/components/locale-provider";
 import { Text } from "@/features/i18n/components/text";
 
@@ -150,42 +151,52 @@ function PersonnelForm({
         </div>
         <div
           className={`grid gap-4 md:grid-cols-2 xl:items-end ${
-            person ? "xl:grid-cols-2" : "xl:grid-cols-3"
+            shops.length > 1
+              ? person
+                ? "xl:grid-cols-2"
+                : "xl:grid-cols-3"
+              : person
+                ? "xl:grid-cols-1"
+                : "xl:grid-cols-2"
           }`}
         >
-          <div className="min-w-0">
-            <Label
-              htmlFor={`delivery-shop-${suffix}`}
-              className="block text-sm font-medium"
-            >
-              <Text value="Assigned shop" />
-            </Label>
-            <Select
-              name="assignedShopId"
-              value={assignedShopId}
-              onValueChange={(value) => setAssignedShopId(value ?? "")}
-              required
-            >
-              <SelectTrigger
-                id={`delivery-shop-${suffix}`}
-                className="mt-1.5 h-10 w-full data-[size=default]:h-10"
+          {shops.length > 1 ? (
+            <div className="min-w-0">
+              <Label
+                htmlFor={`delivery-shop-${suffix}`}
+                className="block text-sm font-medium"
               >
-                <SelectValue>
-                  {(value) =>
-                    shops.find((shop) => shop.id === value)?.name ??
-                    t("Select a shop")
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false} className="min-w-0">
-                {shops.map((shop) => (
-                  <SelectItem key={shop.id} value={shop.id}>
-                    {shop.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                <Text value="Assigned shop" />
+              </Label>
+              <Select
+                name="assignedShopId"
+                value={assignedShopId}
+                onValueChange={(value) => setAssignedShopId(value ?? "")}
+                required
+              >
+                <SelectTrigger
+                  id={`delivery-shop-${suffix}`}
+                  className="mt-1.5 h-10 w-full data-[size=default]:h-10"
+                >
+                  <SelectValue>
+                    {(value) =>
+                      shops.find((shop) => shop.id === value)?.name ??
+                      t("Select a shop")
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false} className="min-w-0">
+                  {shops.map((shop) => (
+                    <SelectItem key={shop.id} value={shop.id}>
+                      {shop.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <input type="hidden" name="assignedShopId" value={assignedShopId} />
+          )}
           {!person ? (
             <div className="min-w-0">
               <Label
@@ -297,6 +308,9 @@ export function DeliveryPersonnelManager({
       );
     }
     setPendingId(undefined);
+    return Boolean(
+      response?.ok && payload.data && !("personnel" in payload.data),
+    );
   }
 
   return (
@@ -392,29 +406,53 @@ export function DeliveryPersonnelManager({
                       >
                         <Pencil aria-hidden="true" />
                       </IconActionButton>
-                      <IconActionButton
+                      <ConfirmAction
+                        title={t(
+                          person.status === "ACTIVE"
+                            ? "Deactivate delivery person"
+                            : "Activate delivery person",
+                        )}
+                        description={t(
+                          person.status === "ACTIVE"
+                            ? "Deactivate {name}? They will not be able to sign in until their account is activated again."
+                            : "Activate {name} to allow them to sign in again?",
+                          { name: person.name },
+                        )}
+                        confirmLabel={t(
+                          person.status === "ACTIVE"
+                            ? "Deactivate"
+                            : "Activate",
+                        )}
                         variant={
                           person.status === "ACTIVE" ? "destructive" : "success"
                         }
-                        className="text-white"
-                        size="icon-sm"
-                        type="button"
-                        label={`${t(person.status === "ACTIVE" ? "Deactivate" : "Activate")} ${person.name}`}
-                        disabled={pendingId === person.id}
-                        onClick={() => changeStatus(person)}
+                        onConfirm={() => changeStatus(person)}
                       >
-                        {person.status === "ACTIVE" ? (
-                          <CircleX
-                            aria-hidden="true"
-                            className="stroke-white"
-                          />
-                        ) : (
-                          <CircleCheck
-                            aria-hidden="true"
-                            className="stroke-white"
-                          />
-                        )}
-                      </IconActionButton>
+                        <IconActionButton
+                          variant={
+                            person.status === "ACTIVE"
+                              ? "destructive"
+                              : "success"
+                          }
+                          className="text-white"
+                          size="icon-sm"
+                          type="button"
+                          label={`${t(person.status === "ACTIVE" ? "Deactivate" : "Activate")} ${person.name}`}
+                          disabled={pendingId === person.id}
+                        >
+                          {person.status === "ACTIVE" ? (
+                            <CircleX
+                              aria-hidden="true"
+                              className="stroke-white"
+                            />
+                          ) : (
+                            <CircleCheck
+                              aria-hidden="true"
+                              className="stroke-white"
+                            />
+                          )}
+                        </IconActionButton>
+                      </ConfirmAction>
                     </div>
                   </div>
                 </div>

@@ -1,7 +1,11 @@
 import type { NextRequest } from "next/server";
 
 import { UserRole } from "@/generated/prisma/client";
-import { errorResponse, successResponse } from "@/lib/api-response";
+import {
+  errorResponse,
+  fieldErrors,
+  successResponse,
+} from "@/lib/api-response";
 import { requireApiRole } from "@/lib/auth/request";
 import { categoryErrorResponse } from "@/lib/category-http";
 import { CategoryError, setCategoryStatus } from "@/services/category.service";
@@ -21,7 +25,7 @@ export async function PATCH(request: NextRequest, context: CategoryContext) {
       {
         code: "VALIDATION_ERROR",
         message: "Category status is invalid.",
-        details: parsed.error.flatten().fieldErrors,
+        details: fieldErrors(parsed.error),
       },
       400,
     );

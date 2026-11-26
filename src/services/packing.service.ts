@@ -36,7 +36,7 @@ export async function savePackedWeight(
   input: PackedWeightUpdateInput,
   repository: PackingRepository = new PrismaPackingRepository(getDb()),
 ) {
-  if (actor.role !== UserRole.SHOP_OWNER)
+  if (actor.role !== UserRole.SHOP_OWNER && actor.role !== UserRole.ORDER_STAFF)
     throw new PackingError("OWNER_ONLY", "Shop owner access is required.", 403);
   if (!packedWeightValid(input.packedQuantity))
     throw new PackingError(
@@ -46,7 +46,12 @@ export async function savePackedWeight(
     );
   return repository.transaction(async (transaction) => {
     const order = await transaction.findLockedOrder(orderId);
-    if (!order || order.shop.ownerId !== actor.id)
+    if (
+      !order ||
+      (actor.role === UserRole.ORDER_STAFF
+        ? !actor.assignedShopId || order.shopId !== actor.assignedShopId
+        : order.shop.ownerId !== actor.id)
+    )
       throw new PackingError("ORDER_NOT_FOUND", "Order not found.", 404);
     if (order.status !== "PREPARING" || !order.packingRequired)
       throw new PackingError(

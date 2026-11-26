@@ -84,6 +84,7 @@ export function LocationPicker({
   const [searched, setSearched] = useState(false);
   const [searching, setSearching] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [accuracy, setAccuracy] = useState<number | null>(null);
   const [error, setError] = useState("");
   // const [manualLatitude, setManualLatitude] = useState("");
   // const [manualLongitude, setManualLongitude] = useState("");
@@ -91,8 +92,26 @@ export function LocationPicker({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const mapboxRef = useRef<typeof mapboxgl | null>(null);
+  const draftRef = useRef<PickedLocation | null>(null);
+  const locationRequestRef = useRef(0);
+
+  useEffect(
+    () => () => {
+      locationRequestRef.current += 1;
+    },
+    [],
+  );
+
+  function changeOpen(next: boolean) {
+    if (!next) {
+      locationRequestRef.current += 1;
+      setLocating(false);
+    }
+    setOpen(next);
+  }
 
   const placePin = useCallback((location: PickedLocation) => {
+    draftRef.current = location;
     const map = mapRef.current;
     const mapbox = mapboxRef.current;
     if (map && mapbox) {
@@ -103,8 +122,13 @@ export function LocationPicker({
           .setLngLat([location.longitude, location.latitude])
           .addTo(map);
         marker.on("dragend", () => {
+          locationRequestRef.current += 1;
+          setLocating(false);
           const point = marker.getLngLat();
-          setDraft({ latitude: point.lat, longitude: point.lng });
+          const location = { latitude: point.lat, longitude: point.lng };
+          draftRef.current = location;
+          setDraft(location);
+          setAccuracy(null);
         });
         markerRef.current = marker;
       }
@@ -132,11 +156,16 @@ export function LocationPicker({
         }
         mapbox.accessToken = token;
         mapboxRef.current = mapbox;
+        // The location may arrive while the map library is still loading.
+        const initialLocation = draftRef.current;
         map = new mapbox.Map({
           container,
           style: "mapbox://styles/mapbox/streets-v12",
-          center: [value?.longitude ?? 80.7718, value?.latitude ?? 7.8731],
-          zoom: value ? 15 : 7,
+          center: [
+            initialLocation?.longitude ?? 80.7718,
+            initialLocation?.latitude ?? 7.8731,
+          ],
+          zoom: initialLocation ? 16 : 7,
         });
         mapRef.current = map;
         map.addControl(
@@ -145,9 +174,12 @@ export function LocationPicker({
         );
         map.on("load", () => map?.resize());
         map.on("click", (event) => {
+          locationRequestRef.current += 1;
+          setLocating(false);
           placePin({ latitude: event.lngLat.lat, longitude: event.lngLat.lng });
+          setAccuracy(null);
         });
-        if (value) placePin(value);
+        if (initialLocation) placePin(initialLocation);
       } catch {
         if (!cancelled)
           setError(
@@ -167,33 +199,54 @@ export function LocationPicker({
       mapRef.current = null;
       mapboxRef.current = null;
     };
-  }, [open, value, locale, placePin, mapContainer, accessToken]);
+  }, [open, locale, placePin, mapContainer, accessToken]);
 
   function useCurrentLocation() {
     setError("");
+    setAccuracy(null);
+    draftRef.current = null;
+    setDraft(null);
+    markerRef.current?.remove();
+    markerRef.current = null;
+    setQuery("");
+    setResults([]);
+    setSearched(false);
+    setOpen(true);
     if (!navigator.geolocation) {
       setError(t("Your browser does not support location access."));
       return;
     }
     setLocating(true);
+    const request = ++locationRequestRef.current;
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const location = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        };
-        if (open) {
+        if (request !== locationRequestRef.current) return;
+        const location = parsePickedLocation(
+          position.coords.latitude,
+          position.coords.longitude,
+        );
+        if (location) {
           placePin(location);
+          setAccuracy(
+            Number.isFinite(position.coords.accuracy)
+              ? Math.ceil(position.coords.accuracy)
+              : null,
+          );
           mapRef.current?.flyTo({
             center: [location.longitude, location.latitude],
             zoom: 16,
           });
         } else {
-          onChange(location);
+          setError(
+            t(
+              "Location access was unavailable. Search the map or place a pin instead.",
+            ),
+          );
         }
         setLocating(false);
       },
       () => {
+        if (request !== locationRequestRef.current) return;
         setError(
           t(
             "Location access was unavailable. Search the map or place a pin instead.",
@@ -201,7 +254,7 @@ export function LocationPicker({
         );
         setLocating(false);
       },
-      { enableHighAccuracy: true, timeout: 10000 },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 },
     );
   }
 
@@ -239,11 +292,15 @@ export function LocationPicker({
   }
 
   function chooseResult(feature: GeocodingFeature) {
+    locationRequestRef.current += 1;
+    setLocating(false);
     const [longitude, latitude] = feature.geometry.coordinates;
     mapRef.current?.flyTo({ center: [longitude, latitude], zoom: 16 });
     markerRef.current?.remove();
     markerRef.current = null;
     setDraft(null);
+    draftRef.current = null;
+    setAccuracy(null);
     setResults([]);
     setSearched(false);
     setQuery(
@@ -262,7 +319,7 @@ export function LocationPicker({
   // }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={changeOpen}>
       <div className="space-y-3 sm:col-span-2">
         <Input
           type="hidden"
@@ -305,6 +362,8 @@ export function LocationPicker({
                   variant="outline"
                   onClick={() => {
                     setDraft(value);
+                    draftRef.current = value;
+                    setAccuracy(null);
                     setError("");
                     setQuery("");
                     setResults([]);
@@ -433,7 +492,15 @@ export function LocationPicker({
             role="region"
             aria-label={t("Interactive location map")}
             className="mt-4 h-[48dvh] min-h-64 w-full overflow-hidden rounded-lg bg-muted"
-          />
+          >
+            {!accessToken ? (
+              <p className="p-4 text-sm text-muted-foreground">
+                {t(
+                  "Map search is unavailable until a public Mapbox token is configured.",
+                )}
+              </p>
+            ) : null}
+          </div>
           {error && open ? (
             <Alert variant="destructive" className="mt-3">
               {error}
@@ -444,22 +511,30 @@ export function LocationPicker({
               ? t("Pin placed. Drag it to refine the location.")
               : t("Tap the map to place your pin.")}
           </p>
+          {accuracy !== null ? (
+            <p role="status" className="text-sm text-muted-foreground">
+              {t(
+                "Your device estimates this location within {accuracy} m. Check the pin before confirming.",
+                { accuracy },
+              )}
+            </p>
+          ) : null}
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => changeOpen(false)}
             >
               {t("Cancel")}
             </Button>
             <Button
               type="button"
               variant="success"
-              disabled={!draft}
+              disabled={!draft || locating}
               onClick={() => {
                 if (!draft) return;
                 onChange(draft);
-                setOpen(false);
+                changeOpen(false);
               }}
             >
               {t("Use this location")}

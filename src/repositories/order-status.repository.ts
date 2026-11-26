@@ -134,13 +134,27 @@ class PrismaOrderStatusTransaction implements OrderStatusTransaction {
       packedQuantity?: number | Prisma.Decimal | null;
     }>,
   ): Promise<void> {
-    for (const item of items) {
-      await this.prisma.product.update({
-        where: { id: item.productId },
-        data: {
-          stockQuantity: { increment: item.packedQuantity ?? item.quantity },
-        },
-      });
+    if (items.length === 0) return;
+    const rows = items.map(
+      (item) => Prisma.sql`(
+      ${item.productId}::uuid,
+      ${(item.packedQuantity ?? item.quantity).toString()}::numeric
+    )`,
+    );
+    // One round trip restores exact decimal weights and updates timestamps.
+    const restored = await this.prisma.$executeRaw(Prisma.sql`
+      UPDATE "products" AS product
+      SET "stockQuantity" = product."stockQuantity" + restored.quantity,
+          "updatedAt" = ${new Date()}
+      FROM (
+        SELECT id, SUM(quantity) AS quantity
+        FROM (VALUES ${Prisma.join(rows)}) AS stock(id, quantity)
+        GROUP BY id
+      ) AS restored
+      WHERE product.id = restored.id
+    `);
+    if (restored !== new Set(items.map((item) => item.productId)).size) {
+      throw new Error("Unable to restore stock for every order item.");
     }
   }
 
@@ -177,7 +191,11 @@ export class PrismaOrderStatusRepository implements OrderStatusRepository {
       this.prisma.$transaction(
         (prismaTransaction) =>
           operation(new PrismaOrderStatusTransaction(prismaTransaction)),
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          maxWait: 10_000,
+          timeout: 30_000,
+        },
       ),
     );
   }

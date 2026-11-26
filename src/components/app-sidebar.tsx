@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Bell,
   ChevronsUpDown,
+  LogIn,
   LogOut,
   SquareTerminal,
   User,
@@ -35,6 +36,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
 import {
+  getGuestNavGroups,
   getNavGroupsForRole,
   ICONS_MAP,
   isNavItemActive,
@@ -236,6 +238,34 @@ function NavUser({
   );
 }
 
+/** Footer action for visitors browsing the storefront without an account. */
+function GuestSignIn({ href }: { href: string }) {
+  const { isMobile, setOpenMobile } = useSidebar();
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          size="lg"
+          tooltip="Sign in"
+          render={
+            <Link
+              href={href}
+              onClick={() => {
+                if (isMobile) setOpenMobile(false);
+              }}
+            />
+          }
+        >
+          <LogIn />
+          <span className="font-medium">
+            <Text value="Sign in or register" />
+          </span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+}
+
 export function AppSidebar({
   locale,
   localizedRoute,
@@ -247,7 +277,8 @@ export function AppSidebar({
   const { user } = useAuth();
   const pathname = usePathname();
 
-  const navGroups = getNavGroupsForRole(user?.role).map((group) => ({
+  const groups = user ? getNavGroupsForRole(user.role) : getGuestNavGroups();
+  const navGroups = groups.map((group) => ({
     id: group.id,
     label: translate(locale, group.label),
     items: group.items.map((item) => ({
@@ -258,7 +289,23 @@ export function AppSidebar({
     })),
   }));
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <Sidebar collapsible="icon" {...props}>
+        <SidebarHeader>
+          <AppLogo />
+        </SidebarHeader>
+        <SidebarContent>
+          <NavMain groups={navGroups} />
+        </SidebarContent>
+        <SidebarFooter>
+          {/* No return path: after login customers start at Home and
+              owners/staff at their dashboard. */}
+          <GuestSignIn href={routePath("/auth", locale, localizedRoute)} />
+        </SidebarFooter>
+      </Sidebar>
+    );
+  }
   const navUser = {
     name: user.name,
     email: user.email ?? user.phone ?? "",

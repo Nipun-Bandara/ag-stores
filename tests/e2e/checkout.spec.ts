@@ -16,7 +16,7 @@ test("customer places a Cash on Delivery order", async ({ page }) => {
     .locator("form:visible")
     .getByRole("button", { name: "Register", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/products$/);
 
   await page.goto("/account/addresses");
   await page.getByLabel("Label").fill("Home");
