@@ -8,7 +8,7 @@
     "build": "prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:db": "vitest run tests/integration/database.test.ts",
     "test:watch": "vitest",

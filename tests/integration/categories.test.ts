@@ -93,7 +93,7 @@ describeWithDatabase("shop owner category API", () => {
         lastName: "Owner",
         name: "Other Category Owner",
         email: `category-owner-${suffix}@example.test`,
-        phone: `+94${Date.now().toString().slice(-9)}`,
+        phone: `+947${Date.now().toString().slice(-8)}`,
         passwordHash: "integration-test-only",
         role: UserRole.SHOP_OWNER,
       },
@@ -106,7 +106,7 @@ describeWithDatabase("shop owner category API", () => {
         address: "1 Other Shop Road",
         latitude: "6.900000",
         longitude: "79.800000",
-        phone: `+94${(Date.now() + 1).toString().slice(-9)}`,
+        phone: `+947${(Date.now() + 1).toString().slice(-8)}`,
       },
     });
     otherShopId = otherShop.id;

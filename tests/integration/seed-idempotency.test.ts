@@ -77,7 +77,7 @@ const run = promisify(execFile);
         where: { id: product.id },
       });
       expect(preservedProduct.price.toString()).toBe("123.45");
-      expect(preservedProduct.stockQuantity).toBe(7);
+      expect(preservedProduct.stockQuantity.toString()).toBe("7");
     } finally {
       await prisma.product.update({
         where: { id: product.id },

@@ -39,9 +39,6 @@ jobs:
     name: Integration tests (PostgreSQL)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # Four integration tests already fail on main (seeded test accounts and a
-    # Decimal comparison). Remove this once they are fixed so failures block.
-    continue-on-error: true
     services:
       postgres:
         image: postgres:16-alpine
@@ -70,4 +67,6 @@ jobs:
       - run: npm run db:seed
         env:
           ALLOW_DEV_SEED: "1"
-      - run: npx vitest run tests/integration
+      # Test files share one database; run them one at a time so a test that
+      # temporarily changes seeded rows cannot race another file's reads.
+      - run: npx vitest run tests/integration --no-file-parallelism
